@@ -9,6 +9,7 @@ debug = True;
 
 RANDOM_NAME = "foo"
 RANDOM_NAME2 = "bar"
+RANDOM_INT = 22;
 FAIL = "FAIL";
 PASS = "PASS";
 
@@ -86,6 +87,15 @@ test_name = "Show.seasons"
 print(test_name) if debug else "";
 show = Show(RANDOM_NAME);
 if not show.seasons() == show.containers:
+    print(test_name, FAIL);
+
+test_name = "Show.year"
+print(test_name) if debug else "";
+show = Show(RANDOM_NAME);
+if not show.year == None:
+    print(test_name, FAIL);
+show.year = RANDOM_INT;
+if not show.year == RANDOM_INT:
     print(test_name, FAIL);
 
 test_name = "Season.seasons"

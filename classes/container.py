@@ -23,6 +23,7 @@ class Container(object):
 class Show(Container):
     def __init__(self, show_name = None):
         super(Show, self).__init__(show_name)
+        self.year = None;
 
     def show_name(self):
         return self.container_name;
