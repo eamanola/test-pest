@@ -3,9 +3,9 @@ import sys
 import os
 
 debug = False;
-#debug = True;
+debug = True;
 
-file_names = [];
+file_names = set();
 
 print('read test-shows:') if debug else "";
 test_shows = open(sys.path[0] + os.path.sep +  "test-shows", "r");
@@ -22,7 +22,7 @@ while line:
 
     file_name = line.strip();
     print(file_name) if debug else "";
-    file_names.append(file_name);
+    file_names.add(file_name);
 
     remaining_test_lines = 14 - 1;
     for i in range(remaining_test_lines):
@@ -49,7 +49,7 @@ while line:
 
     file_name = line.strip();
     print(file_name) if debug else "";
-    file_names.append(file_name);
+    file_names.add(file_name);
 
     remaining_test_lines = 3 - 1;
     for i in range(remaining_test_lines):
@@ -61,17 +61,38 @@ test_movies.close();
 
 print("") if debug else "";
 
+print('read test-random:') if debug else "";
+test_random = open(sys.path[0] + os.path.sep + "test-random", "r");
+
+line = test_random.readline();
+
+while line:
+    if line.startswith('#') or not line.strip():
+        line = test_random.readline();
+        continue;
+
+    elif line.strip() == "EOF":
+        break;
+
+    file_name = line.strip();
+    print(file_name) if debug else "";
+    file_names.add(file_name);
+
+    line = test_random.readline();
+
+test_random.close();
+
+print("") if debug else "";
+
 print('touch test files:') if debug else "";
 
-tmp_folder = sys.path[0]  + os.path.sep + "tmp";
-#if not debug:
-    #Path(tmp_folder + "*").unlink(missing_ok=True);
+tmp_folder = sys.path[0] + os.path.sep + "tmp";
 
 for file_name in file_names:
     print(file_name) if debug else "";
 
-    path = tmp_folder + os.path.sep + file_name.replace("\n", "");
-    Path(path).parent.mkdir(exist_ok=True, parents=True);
-    Path(path).touch(exist_ok=True);
+    path = Path(tmp_folder + os.path.sep + file_name.replace("\n", ""));
+    path.parent.mkdir(parents=True,exist_ok=True)
+    path.touch(exist_ok=True)
 
 print('files created');
