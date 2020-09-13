@@ -8,6 +8,7 @@ debug = True;
 
 RANDOM_NAME = "foo"
 RANDOM_NAME2 = "bar"
+RANDOM_INT = 22;
 FAIL = "FAIL";
 PASS = "PASS";
 
@@ -62,5 +63,16 @@ media.subtitles.append(RANDOM_NAME2);
 if not len(media.subtitles) == 1:
     print(test_name, FAIL);
 
+
+test_name = "Movie.year"
+print(test_name) if debug else "";
+
+movie = Movie(RANDOM_NAME);
+if not movie.year == None:
+    print(test_name, FAIL);
+
+movie.year = RANDOM_INT;
+if not movie.year == RANDOM_INT:
+    print(test_name, FAIL);
 
 print("Successfully Completed");

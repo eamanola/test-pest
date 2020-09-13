@@ -13,3 +13,4 @@ class Episode(Media):
 class Movie(Media):
     def __init__(self, media_name = None):
         super(Movie, self).__init__(media_name)
+        self.year = None;
