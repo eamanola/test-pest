@@ -8,7 +8,7 @@ debug = True;
 file_names = set();
 
 print('read test-shows:') if debug else "";
-test_shows = open(sys.path[0] + os.path.sep +  "test-shows", "r");
+test_shows = open(os.path.join(sys.path[0], "test-shows"), "r");
 
 line = test_shows.readline();
 
@@ -35,7 +35,7 @@ test_shows.close();
 print("") if debug else "";
 
 print('read test-movies:') if debug else "";
-test_movies = open(sys.path[0] + os.path.sep + "test-movies", "r");
+test_movies = open(os.path.join(sys.path[0], "test-movies"), "r");
 
 line = test_movies.readline();
 
@@ -62,7 +62,7 @@ test_movies.close();
 print("") if debug else "";
 
 print('read test-random:') if debug else "";
-test_random = open(sys.path[0] + os.path.sep + "test-random", "r");
+test_random = open(os.path.join(sys.path[0], "test-random"), "r");
 
 line = test_random.readline();
 
@@ -86,12 +86,12 @@ print("") if debug else "";
 
 print('touch test files:') if debug else "";
 
-tmp_folder = sys.path[0] + os.path.sep + "tmp";
+tmp_folder = os.path.join(sys.path[0], "tmp");
 
 for file_name in file_names:
     print(file_name) if debug else "";
 
-    path = Path(tmp_folder + os.path.sep + file_name.replace("\n", ""));
+    path = Path(os.path.join(tmp_folder, file_name.replace("\n", "")));
     path.parent.mkdir(parents=True,exist_ok=True)
     path.touch(exist_ok=True)
 
