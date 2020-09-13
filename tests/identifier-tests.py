@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(sys.path[0] + os.path.sep + '..')
 import identifier
 
 debug = False;
@@ -97,7 +100,7 @@ expected_is_nced):
         print("--------------------------------------------------------------");
 
 print('test_show_files:') if debug else ""
-test_shows = open("test-shows", "r");
+test_shows = open(sys.path[0] + os.path.sep + "test-shows", "r");
 line = test_shows.readline();
 
 while line:
@@ -209,7 +212,7 @@ expected_year
         print("--------------------------------------------------------------");
 
 print('test_movie_files:') if debug else ""
-test_movies = open("test-movies", "r");
+test_movies = open(sys.path[0] + os.path.sep + "test-movies", "r");
 line = test_movies.readline();
 
 while line:
