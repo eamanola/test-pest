@@ -3,8 +3,12 @@ import re
 
 re_season = re.compile("(?:^|[^a-zA-Z]+)(?:season|s)(?:\s*|\.)(\d+)", re.IGNORECASE);
 re_oad = re.compile("OAD");
+re_ncop = re.compile("NCOP");
+re_nced = re.compile("NCED");
 re_extra = re.compile("extra", re.IGNORECASE);
 re_episode_oad = re.compile("OAD(?:\s*|\.)(\d+)");
+re_episode_ncop = re.compile("NCOP(?:\s*|\.)(\d+)");
+re_episode_nced = re.compile("NCED(?:\s*|\.)(\d+)");
 re_episode_extra = re.compile("extra(?:\s*|\.)(\d+)", re.IGNORECASE);
 re_episode = re.compile("(?:^|[^a-zA-Z]+)(?:episode|e|ep)(?:\s*|\.)(\d+)", re.IGNORECASE);
 re_episode2 = re.compile("(?:^|[^a-zA-Z0-9]+)(?:\s*)(\d{1,3})(?:[^a-zA-Z0-9]+|$)", re.IGNORECASE);
@@ -81,31 +85,34 @@ def guess_episode(file):
 
     for part in parts:
         has_episode = re_episode.search(part);
-
         if has_episode:
             episode = has_episode.group(1);
             break;
 
-        else:
-            has_episode = re_episode2.search(clean_show_name(part));
+        has_episode = re_episode_extra.search(part);
+        if has_episode:
+            episode = has_episode.group(1);
+            break;
 
-            if has_episode:
-                episode = has_episode.group(1);
-                break;
+        has_episode = re_episode_oad.search(part);
+        if has_episode:
+            episode = has_episode.group(1);
+            break;
 
-            elif is_extra(part):
-                has_episode = re_episode_extra.search(part);
+        has_episode = re_episode_ncop.search(part);
+        if has_episode:
+            episode = has_episode.group(1);
+            break;
 
-                if has_episode:
-                    episode = has_episode.group(1);
-                    break;
-
-            elif is_oad(part):
-                has_episode = re_episode_oad.search(part);
-
-                if has_episode:
-                    episode = has_episode.group(1);
-                    break;
+        has_episode = re_episode_nced.search(part);
+        if has_episode:
+            episode = has_episode.group(1);
+            break;
+            
+        has_episode = re_episode2.search(clean_show_name(part));
+        if has_episode:
+            episode = has_episode.group(1);
+            break;
 
     return int(episode);
 
@@ -157,3 +164,9 @@ def is_oad(file):
 
 def is_extra(file):
     return re_extra.search(remove_user_tags(remove_meta_tags(file))) != None;
+
+def is_ncop(file):
+    return re_ncop.search(remove_user_tags(remove_meta_tags(file))) != None;
+
+def is_nced(file):
+    return re_nced.search(remove_user_tags(remove_meta_tags(file))) != None;

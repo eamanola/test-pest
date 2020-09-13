@@ -15,7 +15,9 @@ expected_remove_file_extension,
 expected_is_media,
 expected_is_subtitle,
 expected_is_oad,
-expected_is_extra):
+expected_is_extra,
+expected_is_ncop,
+expected_is_nced):
     if identifier.guess_show_name(file_name) != expected_show_name:
         print("guess_show_name:", file_name);
         print("expected:", '"%s"' % expected_show_name);
@@ -82,6 +84,18 @@ expected_is_extra):
         print("got:", identifier.is_extra(file_name));
         print("--------------------------------------------------------------");
 
+    if identifier.is_ncop(file_name) != expected_is_ncop:
+        print("is_ncop:", file_name);
+        print("expected:", expected_is_ncop);
+        print("got:", identifier.is_ncop(file_name));
+        print("--------------------------------------------------------------");
+
+    if identifier.is_nced(file_name) != expected_is_nced:
+        print("is_nced:", file_name);
+        print("expected:", expected_is_nced);
+        print("got:", identifier.is_nced(file_name));
+        print("--------------------------------------------------------------");
+
 print('test_show_files:') if debug else ""
 test_shows = open("test-shows", "r");
 line = test_shows.readline();
@@ -99,53 +113,61 @@ while line:
         print('-', line.strip()) if debug else ""
         break;
 
+    #new test block
     file_name = line.strip();
     print('file_name:', file_name) if debug else ""
-    line = test_shows.readline()
 
+    line = test_shows.readline()
     expected_show_name = line.strip();
     print('expected_show_name:', expected_show_name) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_season = int(line.strip());
     print('expected_season:', expected_season) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_episode = int(line.strip());
     print('expected_episode:', expected_episode) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_year = int(line.strip());
     print('expected_year:', expected_year) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_remove_user_tags = line.strip();
     print('expected_remove_user_tags:', expected_remove_user_tags) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_remove_meta_tags = line.strip();
     print('expected_remove_meta_tags:', expected_remove_meta_tags) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_remove_file_extension = line.strip();
     print('expected_remove_file_extension:', expected_remove_file_extension) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_is_media = line.strip().lower() == "true";
     print('expected_is_media:', expected_is_media) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_is_subtitle = line.strip().lower() == "true";
     print('expected_is_subtitle:', expected_is_subtitle) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_is_oad = line.strip().lower() == "true";
     print('expected_is_oad:', expected_is_oad) if debug else ""
-    line = test_shows.readline();
 
+    line = test_shows.readline();
     expected_is_extra = line.strip().lower() == "true";
     print('expected_is_extra:', expected_is_extra) if debug else ""
+
     line = test_shows.readline();
+    expected_is_ncop = line.strip().lower() == "true";
+    print('expected_is_ncop:', expected_is_ncop) if debug else ""
+
+    line = test_shows.readline();
+    expected_is_nced = line.strip().lower() == "true";
+    print('expected_is_nced:', expected_is_nced) if debug else ""
 
     test_show_files(
     file_name,
@@ -159,12 +181,15 @@ while line:
     expected_is_media,
     expected_is_subtitle,
     expected_is_oad,
-    expected_is_extra);
+    expected_is_extra,
+    expected_is_ncop,
+    expected_is_nced);
+
+    line = test_shows.readline();
 
 test_shows.close();
 
 print("") if debug else "";
-
 
 def test_movie_files(
 file_name,
@@ -319,7 +344,7 @@ for test in oad_test:
     print(test) if debug else ""
 
     if identifier.guess_episode(test) != 1:
-        print('extras_test', test);
+        print('oad_test', test);
         print('expected', 1);
         print('got', identifier.guess_episode(test));
 
@@ -334,17 +359,17 @@ print('is_oad case sensitivity small:') if debug else ""
 test = 'show/Season1/oad1.mkv';
 print(test) if debug else ""
 if identifier.is_oad(test):
-    print('is_extra case sensitivity small:', test);
+    print('is_oad case sensitivity small:', test);
     print('expected not OAD');
     print('got OAD');
 
 print("") if debug else "";
 
-print('is_oad case sensitivity small:') if debug else ""
+print('is_oad case sensitivity mixed:') if debug else ""
 test = 'show/Season1/oAd1.mkv';
 print(test) if debug else ""
 if identifier.is_oad(test):
-    print('oad_test', test);
+    print('oad_test case sensitivity mixed', test);
     print('expected not OAD');
     print('got OAD');
 
@@ -360,5 +385,104 @@ if not identifier.is_oad(test):
 
 print("") if debug else "";
 
+print('is_ncop & episode:') if debug else ""
+ncop_test = (
+'show/NCOP/episode 1.mkv',
+'show/Season1/NCOP1.mkv',
+'show/Season1/NCOP 1.mkv',
+'show/Season1/NCOP.1.mkv')
+for test in ncop_test:
+    print(test) if debug else ""
+
+    if identifier.guess_episode(test) != 1:
+        print('ncop_test', test);
+        print('expected', 1);
+        print('got', identifier.guess_episode(test));
+
+    if not identifier.is_ncop(test):
+        print('ncop_test', test);
+        print('expected NCOP');
+        print('got not');
+
+print('is_ncop case sensitivity small:') if debug else ""
+test = 'show/Season1/ncop1.mkv';
+print(test) if debug else ""
+if identifier.is_ncop(test):
+    print('is_ncop case sensitivity small:', test);
+    print('expected not NCOP');
+    print('got NCOP');
+
+print("") if debug else "";
+
+print('is_ncop case sensitivity mixed:') if debug else ""
+test = 'show/Season1/nCOp1.mkv';
+print(test) if debug else ""
+if identifier.is_ncop(test):
+    print('is_ncop case sensitivity mixed', test);
+    print('expected not NCOP');
+    print('got NCOP');
+
+print("") if debug else "";
+
+print('is_ncop case sensitivity capital:') if debug else ""
+test = 'show/Season1/NCOP1.mkv';
+print(test) if debug else ""
+if not identifier.is_ncop(test):
+    print('is_ncop case sensitivity capital', test);
+    print('expected NCOP');
+    print('got not');
+
+print("") if debug else "";
+
+print('is_nced & episode:') if debug else ""
+nced_test = (
+'show/NCED/episode 1.mkv',
+'show/Season1/NCED1.mkv',
+'show/Season1/NCED 1.mkv',
+'show/Season1/NCED.1.mkv')
+for test in nced_test:
+    print(test) if debug else ""
+
+    if identifier.guess_episode(test) != 1:
+        print('nced_test', test);
+        print('expected', 1);
+        print('got', identifier.guess_episode(test));
+
+    if not identifier.is_nced(test):
+        print('nced_test', test);
+        print('expected NCOP');
+        print('got not');
+
+print('is_nced case sensitivity small:') if debug else ""
+test = 'show/Season1/nced1.mkv';
+print(test) if debug else ""
+if identifier.is_nced(test):
+    print('is_nced case sensitivity small:', test);
+    print('expected not NCED');
+    print('got NCED');
+
+print("") if debug else "";
+
+print('is_nced case sensitivity mixed:') if debug else ""
+test = 'show/Season1/Nced1.mkv';
+print(test) if debug else ""
+if identifier.is_nced(test):
+    print('id_nced case sensitivity mixed', test);
+    print('expected not NCED');
+    print('got NCED');
+
+print("") if debug else "";
+
+print('is_nced case sensitivity capital:') if debug else ""
+test = 'show/Season1/NCED1.mkv';
+print(test) if debug else ""
+if not identifier.is_nced(test):
+    print('is_nced case sensitivity capital', test);
+    print('expected NCED');
+    print('got not');
+
+print("") if debug else "";
+
 print('Completed Successfully');
+
 exit();

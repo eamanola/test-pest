@@ -1,7 +1,7 @@
 from pathlib import Path
 
 debug = False;
-debug = True;
+#debug = True;
 
 file_names = [];
 
@@ -22,7 +22,7 @@ while line:
     print(file_name) if debug else "";
     file_names.append(file_name);
 
-    remaining_test_lines = 11;
+    remaining_test_lines = 14 - 1;
     for i in range(remaining_test_lines):
         next(test_shows);
 
@@ -41,7 +41,7 @@ while line:
     if line.startswith('#') or not line.strip():
         line = test_movies.readline();
         continue;
-        
+
     elif line.strip() == "EOF":
         break;
 
@@ -49,7 +49,7 @@ while line:
     print(file_name) if debug else "";
     file_names.append(file_name);
 
-    remaining_test_lines = 2;
+    remaining_test_lines = 3 - 1;
     for i in range(remaining_test_lines):
         next(test_movies);
 
@@ -61,14 +61,15 @@ print("") if debug else "";
 
 print('touch test files:') if debug else "";
 
-tmp_folder = "./tmp/";
-#Path(tmp_folder + "*").unlink(missing_ok=True);
+if not debug:
+    tmp_folder = "./tmp/";
+    #Path(tmp_folder + "*").unlink(missing_ok=True);
 
-for file_name in file_names:
-    print(file_name) if debug else "";
+    for file_name in file_names:
+        print(file_name) if debug else "";
 
-    path = tmp_folder + (file_name.replace("\n", ""));
-    Path(path).parent.mkdir(exist_ok=True, parents=True);
-    Path(path).touch(exist_ok=True);
+        path = tmp_folder + (file_name.replace("\n", ""));
+        Path(path).parent.mkdir(exist_ok=True, parents=True);
+        Path(path).touch(exist_ok=True);
 
 print('files created');
