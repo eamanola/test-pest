@@ -75,4 +75,22 @@ movie.year = RANDOM_INT;
 if not movie.year == RANDOM_INT:
     print(test_name, FAIL);
 
+test_name = "Movie.anidb_id"
+print(test_name) if debug else "";
+movie = Movie(RANDOM_STR);
+if not movie.anidb_id == None:
+    print(test_name, FAIL);
+movie.anidb_id = RANDOM_STR;
+if not movie.anidb_id == RANDOM_STR:
+    print(test_name, FAIL);
+
+test_name = "Movie.imdb_id"
+print(test_name) if debug else "";
+show = Movie(RANDOM_STR);
+if not movie.imdb_id == None:
+    print(test_name, FAIL);
+movie.imdb_id = RANDOM_STR;
+if not movie.imdb_id == RANDOM_STR:
+    print(test_name, FAIL);
+
 print("media-tests: Successfully Completed");

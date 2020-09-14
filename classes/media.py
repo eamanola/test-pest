@@ -14,3 +14,5 @@ class Movie(Media):
     def __init__(self, media_name):
         super(Movie, self).__init__(media_name)
         self.year = None;
+        self.anidb_id = None;
+        self.imdb_id = None;

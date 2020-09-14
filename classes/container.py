@@ -24,6 +24,8 @@ class Show(Container):
     def __init__(self, show_name):
         super(Show, self).__init__(show_name)
         self.year = None;
+        self.anidb_id = None;
+        self.imdb_id = None;
 
     def show_name(self):
         return self.container_name;
