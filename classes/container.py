@@ -1,5 +1,5 @@
 class Container(object):
-    def __init__(self, container_name = None):
+    def __init__(self, container_name):
         super(Container, self).__init__()
 
         self.containers = []
@@ -21,7 +21,7 @@ class Container(object):
         return None;
 
 class Show(Container):
-    def __init__(self, show_name = None):
+    def __init__(self, show_name):
         super(Show, self).__init__(show_name)
         self.year = None;
 
@@ -32,8 +32,9 @@ class Show(Container):
         return self.containers;
 
 class Season(Show):
-    def __init__(self, season_name = None):
+    def __init__(self, season_name, season_number):
         super(Season, self).__init__(season_name)
+        self._season_number = season_number;
 
     def seasons(self):
         return None;
@@ -47,9 +48,12 @@ class Season(Show):
     def episodes(self):
         return self.media;
 
+    def season_number(self):
+        return self._season_number;
+
 class Extra(Season):
-    def __init__(self, extra_name = None):
-        super(Extra, self).__init__(extra_name)
+    def __init__(self, extra_name):
+        super(Extra, self).__init__(extra_name, None)
 
     def extras(self):
         return None;

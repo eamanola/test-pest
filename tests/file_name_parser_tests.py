@@ -486,6 +486,4 @@ if not file_name_parser.is_nced(test):
 
 print("") if debug else "";
 
-print('Completed Successfully');
-
-exit();
+print("file-name-parser-tests: Successfully Completed");
