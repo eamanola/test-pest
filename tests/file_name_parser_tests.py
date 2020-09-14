@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.join(sys.path[0], '..'))
-import identifier
+import file_name_parser
 
 debug = False;
 #debug = True;
@@ -21,82 +21,82 @@ expected_is_oad,
 expected_is_extra,
 expected_is_ncop,
 expected_is_nced):
-    if identifier.guess_show_name(file_name) != expected_show_name:
+    if file_name_parser.guess_show_name(file_name) != expected_show_name:
         print("guess_show_name:", file_name);
         print("expected:", '"%s"' % expected_show_name);
-        print("got:", '"%s"' % identifier.guess_show_name(file_name));
+        print("got:", '"%s"' % file_name_parser.guess_show_name(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.guess_season(file_name) != expected_season:
+    if file_name_parser.guess_season(file_name) != expected_season:
         print("guess_season", file_name);
         print("expected:", expected_season);
-        print("got:", identifier.guess_season(file_name));
+        print("got:", file_name_parser.guess_season(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.guess_episode(file_name) != expected_episode:
+    if file_name_parser.guess_episode(file_name) != expected_episode:
         print("guess_episode", file_name);
         print("expected:", expected_episode);
-        print("got:", identifier.guess_episode(file_name));
+        print("got:", file_name_parser.guess_episode(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.guess_year(file_name) != expected_year:
+    if file_name_parser.guess_year(file_name) != expected_year:
         print("guess_year:", file_name);
         print("expected:", expected_year);
-        print("got:", identifier.guess_year(file_name));
+        print("got:", file_name_parser.guess_year(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.remove_user_tags(file_name) != expected_remove_user_tags:
+    if file_name_parser.remove_user_tags(file_name) != expected_remove_user_tags:
         print("remove_user_tags:", file_name);
         print("expected:", '"%s"' % expected_remove_user_tags);
-        print("got:", '"%s"' % identifier.remove_user_tags(file_name));
+        print("got:", '"%s"' % file_name_parser.remove_user_tags(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.remove_meta_tags(file_name) != expected_remove_meta_tags:
+    if file_name_parser.remove_meta_tags(file_name) != expected_remove_meta_tags:
         print("remove_meta_tags:", file_name);
         print("expected:", '"%s"' % expected_remove_meta_tags);
-        print("got:", '"%s"' % identifier.remove_meta_tags(file_name));
+        print("got:", '"%s"' % file_name_parser.remove_meta_tags(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.remove_file_extension(file_name) != expected_remove_file_extension:
+    if file_name_parser.remove_file_extension(file_name) != expected_remove_file_extension:
         print("remove_file_extension:", file_name);
         print("expected:", '"%s"' % expected_remove_file_extension);
-        print("got:", '"%s"' % identifier.remove_file_extension(file_name));
+        print("got:", '"%s"' % file_name_parser.remove_file_extension(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.is_media(file_name) != expected_is_media:
+    if file_name_parser.is_media(file_name) != expected_is_media:
         print("is_media", file_name);
         print("expected:", expected_is_media);
-        print("got:", identifier.is_media(file_name));
+        print("got:", file_name_parser.is_media(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.is_subtitle(file_name) != expected_is_subtitle:
+    if file_name_parser.is_subtitle(file_name) != expected_is_subtitle:
         print("is_subtitle:", file_name);
         print("expected:", expected_is_subtitle);
-        print("got:", identifier.is_subtitle(file_name));
+        print("got:", file_name_parser.is_subtitle(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.is_oad(file_name) != expected_is_oad:
+    if file_name_parser.is_oad(file_name) != expected_is_oad:
         print("is_oad:", file_name);
         print("expected:", expected_is_oad);
-        print("got:", identifier.is_oad(file_name));
+        print("got:", file_name_parser.is_oad(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.is_extra(file_name) != expected_is_extra:
+    if file_name_parser.is_extra(file_name) != expected_is_extra:
         print("is_extra:", file_name);
         print("expected:", expected_is_extra);
-        print("got:", identifier.is_extra(file_name));
+        print("got:", file_name_parser.is_extra(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.is_ncop(file_name) != expected_is_ncop:
+    if file_name_parser.is_ncop(file_name) != expected_is_ncop:
         print("is_ncop:", file_name);
         print("expected:", expected_is_ncop);
-        print("got:", identifier.is_ncop(file_name));
+        print("got:", file_name_parser.is_ncop(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.is_nced(file_name) != expected_is_nced:
+    if file_name_parser.is_nced(file_name) != expected_is_nced:
         print("is_nced:", file_name);
         print("expected:", expected_is_nced);
-        print("got:", identifier.is_nced(file_name));
+        print("got:", file_name_parser.is_nced(file_name));
         print("--------------------------------------------------------------");
 
 print('test_show_files:') if debug else ""
@@ -199,16 +199,16 @@ file_name,
 expected_show_name,
 expected_year
 ):
-    if identifier.guess_show_name(file_name) != expected_show_name:
+    if file_name_parser.guess_show_name(file_name) != expected_show_name:
         print('guess_show_name', file_name);
         print('expected', '"%s"' % expected_show_name);
-        print('got', '"%s"' % identifier.guess_show_name(file_name));
+        print('got', '"%s"' % file_name_parser.guess_show_name(file_name));
         print("--------------------------------------------------------------");
 
-    if identifier.guess_year(file_name) != expected_year:
+    if file_name_parser.guess_year(file_name) != expected_year:
         print('guess_year', file_name);
         print('expected', expected_year);
-        print('got', identifier.guess_year(file_name));
+        print('got', file_name_parser.guess_year(file_name));
         print("--------------------------------------------------------------");
 
 print('test_movie_files:') if debug else ""
@@ -261,10 +261,10 @@ season_test = (
 for test in season_test:
     print(test) if debug else ""
 
-    if identifier.guess_season(test) != 1:
+    if file_name_parser.guess_season(test) != 1:
         print('guess_season', test);
         print('expected', 1);
-        print('got', identifier.guess_season(test));
+        print('got', file_name_parser.guess_season(test));
 
 print("") if debug else "";
 
@@ -279,10 +279,10 @@ episode_test = (
 for test in episode_test:
     print(test) if debug else ""
 
-    if identifier.guess_episode(test) != 1:
+    if file_name_parser.guess_episode(test) != 1:
         print('guess_episode', test);
         print('expected', 1);
-        print('got', identifier.guess_episode(test));
+        print('got', file_name_parser.guess_episode(test));
 
 print("") if debug else "";
 
@@ -295,12 +295,12 @@ extras_test = (
 for test in extras_test:
     print(test) if debug else ""
 
-    if identifier.guess_episode(test) != 1:
+    if file_name_parser.guess_episode(test) != 1:
         print('extras_test', test);
         print('expected', 1);
-        print('got', identifier.guess_episode(test));
+        print('got', file_name_parser.guess_episode(test));
 
-    if not identifier.is_extra(test):
+    if not file_name_parser.is_extra(test):
         print('extras_test', test);
         print('expected extra');
         print('got not');
@@ -310,7 +310,7 @@ print("") if debug else "";
 print('is_extra case sensitivity small:') if debug else ""
 test = 'show/Season1/extra1.mkv';
 print(test) if debug else ""
-if not identifier.is_extra(test):
+if not file_name_parser.is_extra(test):
     print('is_extra case sensitivity small:', test);
     print('expected extra');
     print('got not');
@@ -320,7 +320,7 @@ print("") if debug else "";
 print('is_extra case sensitivity mixed:') if debug else ""
 test = 'show/Season1/ExTRa1.mkv';
 print(test) if debug else ""
-if not identifier.is_extra(test):
+if not file_name_parser.is_extra(test):
     print('is_extra case sensitivity mixed:', test);
     print('expected extra');
     print('got not');
@@ -330,7 +330,7 @@ print("") if debug else "";
 print('is_extra case sensitivity capital:') if debug else ""
 test = 'show/Season1/EXTRA1.mkv';
 print(test) if debug else ""
-if not identifier.is_extra(test):
+if not file_name_parser.is_extra(test):
     print('is_extra case sensitivity capital:', test);
     print('expected extra');
     print('got not');
@@ -346,12 +346,12 @@ oad_test = (
 for test in oad_test:
     print(test) if debug else ""
 
-    if identifier.guess_episode(test) != 1:
+    if file_name_parser.guess_episode(test) != 1:
         print('oad_test', test);
         print('expected', 1);
-        print('got', identifier.guess_episode(test));
+        print('got', file_name_parser.guess_episode(test));
 
-    if not identifier.is_oad(test):
+    if not file_name_parser.is_oad(test):
         print('oad_test', test);
         print('expected OAD');
         print('got not');
@@ -361,7 +361,7 @@ print("") if debug else "";
 print('is_oad case sensitivity small:') if debug else ""
 test = 'show/Season1/oad1.mkv';
 print(test) if debug else ""
-if identifier.is_oad(test):
+if file_name_parser.is_oad(test):
     print('is_oad case sensitivity small:', test);
     print('expected not OAD');
     print('got OAD');
@@ -371,7 +371,7 @@ print("") if debug else "";
 print('is_oad case sensitivity mixed:') if debug else ""
 test = 'show/Season1/oAd1.mkv';
 print(test) if debug else ""
-if identifier.is_oad(test):
+if file_name_parser.is_oad(test):
     print('oad_test case sensitivity mixed', test);
     print('expected not OAD');
     print('got OAD');
@@ -381,7 +381,7 @@ print("") if debug else "";
 print('is_oad case sensitivity capital:') if debug else ""
 test = 'show/Season1/OAD1.mkv';
 print(test) if debug else ""
-if not identifier.is_oad(test):
+if not file_name_parser.is_oad(test):
     print('is_oad case sensitivity capital', test);
     print('expected OAD');
     print('got not');
@@ -397,12 +397,12 @@ ncop_test = (
 for test in ncop_test:
     print(test) if debug else ""
 
-    if identifier.guess_episode(test) != 1:
+    if file_name_parser.guess_episode(test) != 1:
         print('ncop_test', test);
         print('expected', 1);
-        print('got', identifier.guess_episode(test));
+        print('got', file_name_parser.guess_episode(test));
 
-    if not identifier.is_ncop(test):
+    if not file_name_parser.is_ncop(test):
         print('ncop_test', test);
         print('expected NCOP');
         print('got not');
@@ -410,7 +410,7 @@ for test in ncop_test:
 print('is_ncop case sensitivity small:') if debug else ""
 test = 'show/Season1/ncop1.mkv';
 print(test) if debug else ""
-if identifier.is_ncop(test):
+if file_name_parser.is_ncop(test):
     print('is_ncop case sensitivity small:', test);
     print('expected not NCOP');
     print('got NCOP');
@@ -420,7 +420,7 @@ print("") if debug else "";
 print('is_ncop case sensitivity mixed:') if debug else ""
 test = 'show/Season1/nCOp1.mkv';
 print(test) if debug else ""
-if identifier.is_ncop(test):
+if file_name_parser.is_ncop(test):
     print('is_ncop case sensitivity mixed', test);
     print('expected not NCOP');
     print('got NCOP');
@@ -430,7 +430,7 @@ print("") if debug else "";
 print('is_ncop case sensitivity capital:') if debug else ""
 test = 'show/Season1/NCOP1.mkv';
 print(test) if debug else ""
-if not identifier.is_ncop(test):
+if not file_name_parser.is_ncop(test):
     print('is_ncop case sensitivity capital', test);
     print('expected NCOP');
     print('got not');
@@ -446,12 +446,12 @@ nced_test = (
 for test in nced_test:
     print(test) if debug else ""
 
-    if identifier.guess_episode(test) != 1:
+    if file_name_parser.guess_episode(test) != 1:
         print('nced_test', test);
         print('expected', 1);
-        print('got', identifier.guess_episode(test));
+        print('got', file_name_parser.guess_episode(test));
 
-    if not identifier.is_nced(test):
+    if not file_name_parser.is_nced(test):
         print('nced_test', test);
         print('expected NCOP');
         print('got not');
@@ -459,7 +459,7 @@ for test in nced_test:
 print('is_nced case sensitivity small:') if debug else ""
 test = 'show/Season1/nced1.mkv';
 print(test) if debug else ""
-if identifier.is_nced(test):
+if file_name_parser.is_nced(test):
     print('is_nced case sensitivity small:', test);
     print('expected not NCED');
     print('got NCED');
@@ -469,7 +469,7 @@ print("") if debug else "";
 print('is_nced case sensitivity mixed:') if debug else ""
 test = 'show/Season1/Nced1.mkv';
 print(test) if debug else ""
-if identifier.is_nced(test):
+if file_name_parser.is_nced(test):
     print('id_nced case sensitivity mixed', test);
     print('expected not NCED');
     print('got NCED');
@@ -479,7 +479,7 @@ print("") if debug else "";
 print('is_nced case sensitivity capital:') if debug else ""
 test = 'show/Season1/NCED1.mkv';
 print(test) if debug else ""
-if not identifier.is_nced(test):
+if not file_name_parser.is_nced(test):
     print('is_nced case sensitivity capital', test);
     print('expected NCED');
     print('got not');
