@@ -63,7 +63,6 @@ media.subtitles.append(RANDOM_STR2);
 if not len(media.subtitles) == 1:
     print(test_name, FAIL);
 
-
 test_name = "Movie.year"
 print(test_name) if debug else "";
 
