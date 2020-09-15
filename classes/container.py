@@ -1,3 +1,8 @@
+import sys
+import os
+sys.path.append(os.path.join(sys.path[0], '..'))
+from classes.identifiable import Identifiable
+
 class Container(object):
     def __init__(self, container_name):
         super(Container, self).__init__()
@@ -20,12 +25,10 @@ class Container(object):
 
         return None;
 
-class Show(Container):
+class Show(Container, Identifiable):
     def __init__(self, show_name):
         super(Show, self).__init__(show_name)
         self.year = None;
-        self.anidb_id = None;
-        self.imdb_id = None;
 
     def show_name(self):
         return self.container_name;

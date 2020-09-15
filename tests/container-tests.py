@@ -98,24 +98,6 @@ show.year = RANDOM_INT;
 if not show.year == RANDOM_INT:
     print(test_name, FAIL);
 
-test_name = "Show.anidb_id"
-print(test_name) if debug else "";
-show = Show(RANDOM_STR);
-if not show.anidb_id == None:
-    print(test_name, FAIL);
-show.anidb_id = RANDOM_STR;
-if not show.anidb_id == RANDOM_STR:
-    print(test_name, FAIL);
-
-test_name = "Show.imdb_id"
-print(test_name) if debug else "";
-show = Show(RANDOM_STR);
-if not show.imdb_id == None:
-    print(test_name, FAIL);
-show.imdb_id = RANDOM_STR;
-if not show.imdb_id == RANDOM_STR:
-    print(test_name, FAIL);
-
 test_name = "Season.season_number"
 print(test_name) if debug else "";
 season = Season(RANDOM_STR, RANDOM_INT);
