@@ -1,7 +1,7 @@
 import os
 import re
 
-re_season = re.compile("(?:^|[^a-zA-Z]+)(?:season|s)(?:\s*|\.)(\d+)", re.IGNORECASE);
+re_season = re.compile("(?:^|[^a-zA-Z]+)(?:season(?:s?)|s)(?:\s*|\.)(\d+)(?:[^\s\.]*|$)", re.IGNORECASE);
 re_oad = re.compile("OAD");
 re_ncop = re.compile("NCOP");
 re_nced = re.compile("NCED");
@@ -33,7 +33,9 @@ re_clean_show_name = (
     re.compile("aac5.1(?:\s+|\.|-|$)", re.IGNORECASE),
     re.compile("flac", re.IGNORECASE),
 
-    re.compile("\d{4}(?:\s+|\.|-|$)", re.IGNORECASE)
+    re.compile("\d{4}(?:\s+|\.|-|$)", re.IGNORECASE),
+
+    re_season
 );
 
 UNKNOWN_SEASON = 0;

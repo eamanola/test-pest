@@ -3,8 +3,8 @@ import os
 sys.path.append(os.path.join(sys.path[0], '..'))
 import file_name_parser
 
+debug = True;
 debug = False;
-#debug = True;
 
 def test_show_files(
 file_name,
