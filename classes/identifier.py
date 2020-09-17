@@ -192,7 +192,6 @@ class Identifier(object):
 
         if ext_id == None and len(matches) > 0:
 
-
             unique_matches = self.group_by_id(matches);
             match_count = len(unique_matches);
 
@@ -203,7 +202,8 @@ class Identifier(object):
             if match_count > 1: ## TODO: more filters?
                 print(match_count, "unique matches for:", show_name) #if debug else "";
                 print("Selecting 1st:", unique_matches[0]) #if debug else "";
-                print(unique_matches)
+                for unique_match in unique_matches:
+                    print(unique_match)
                 ext_id = self.parse_id_from_line(unique_matches[0]);
 
         return ext_id;

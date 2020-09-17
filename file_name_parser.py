@@ -39,7 +39,7 @@ re_clean_show_name = (
 UNKNOWN_SEASON = 0;
 UNKNOWN_EPISODE = 0;
 UNKNOWN_YEAR = 0;
-MEDIA_EXTENSIONS = ('.mkv', '.mp4','.avi');
+MEDIA_EXTENSIONS = ('.mkv', '.mp4','.avi', '.m4v');
 SUB_TITLE_EXTENSIONS = ('.srt',);
 FILE_EXTENSIONS = MEDIA_EXTENSIONS + SUB_TITLE_EXTENSIONS;
 
