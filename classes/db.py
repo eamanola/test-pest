@@ -1,8 +1,3 @@
-import sys
-import os
-sys.path.append(os.path.join(sys.path[0], os.path.join('classes', 'db')))
-
-
 class DB(object):
     SQLITE = "sqlite"
     MARIADB = "mariadb"
@@ -17,38 +12,38 @@ class DB(object):
         super(DB, self).__init__()
 
     def connect(self):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     def close(self):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     def create_title_to_anidb_id_table(self):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     def populate_title_to_anidb_id_table(self, data):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     def create_title_to_imdb_id_table(self):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     def populate_title_to_imdb_id_table(self, data):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     def get_anidb_ids(self, re_show_name):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     def get_imdb_ids(self, re_show_name):
-        raise NotImplementedError();
+        raise NotImplementedError()
 
     @staticmethod
     def get_instance():
-        instance = None;
+        instance = None
 
         if DB.db_type == DB.SQLITE:
-            from sqlite import Sqlite
+            from classes.dbs.sqlite import Sqlite
             instance = Sqlite()
 
         elif DB.db_type in (DB.MARIADB, DB.MYSQL):
-            raise NotImplementedError();
+            raise NotImplementedError()
 
-        return instance;
+        return instance

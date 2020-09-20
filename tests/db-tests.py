@@ -1,9 +1,5 @@
-import sys
-import os
-sys.path.append(os.path.join(sys.path[0], '..', 'classes'))
-from db import DB
-sys.path.append(os.path.join(sys.path[0], os.path.join('..', 'classes', 'db')))
-from sqlite import Sqlite
+from classes.db import DB
+from classes.dbs.sqlite import Sqlite
 
 debug = True;
 debug = False;

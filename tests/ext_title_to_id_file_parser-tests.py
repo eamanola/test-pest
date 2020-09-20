@@ -1,7 +1,7 @@
-import sys
-import os
-sys.path.append(os.path.join(sys.path[0], '..'))
-from classes.ext_title_to_id_file_parser import  Anidb_title_to_id_file_parser, Imdb_title_to_id_file_parser
+from classes.ext_title_to_id_file_parser import (
+    Anidb_title_to_id_file_parser,
+    Imdb_title_to_id_file_parser
+)
 
 debug = True;
 debug = False;

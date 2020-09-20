@@ -1,9 +1,6 @@
-import sys
-import os
 import re
 import sqlite3
-sys.path.append(os.path.join(sys.path[0], os.path.join('..', 'classes', 'db')))
-from sqlite import Sqlite
+from classes.dbs.sqlite import Sqlite
 
 debug = True;
 debug = False;
@@ -240,7 +237,7 @@ try:
 
 except Exception as e:
     print(test_name, FAIL, 2, e);
-    
+
 finally:
     db.close();
 
