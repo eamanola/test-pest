@@ -12,65 +12,11 @@ RANDOM_INT = 22;
 FAIL = "FAIL";
 PASS = "PASS";
 
-test_name = "AniDBIdentifier.parse_title_from_line"
-print(test_name) if debug else "";
-if not AniDBIdentifier.parse_title_from_line("789|1|x-jat|JoJo no Kimyou na Bouken (2000)") == "JoJo no Kimyou na Bouken (2000)":
-    print(test_name, FAIL, 1);
-
-test_name = "AniDBIdentifier.parse_id_from_line"
-print(test_name) if debug else "";
-if not AniDBIdentifier.parse_id_from_line("789|1|x-jat|JoJo no Kimyou na Bouken (2000)") == "789":
-    print(test_name, FAIL, 1);
-
-test_name = "AniDBIdentifier.parse_year_from_line"
-print(test_name) if debug else "";
-tests = (
-("789|1|x-jat|JoJo no Kimyou na Bouken (2000)", 2000),
-("789|1|x-jat|JoJo no Kimyou na Bouken (200)", None),
-("789|1|x-jat|JoJo no Kimyou na Bouken (20000)", None),
-("789|1|x-jat|JoJo no Kimyou na Bouken 2000", None)
-);
-for test in tests:
-    if not AniDBIdentifier.parse_year_from_line(test[0]) == test[1]:
-        print(test_name, FAIL, test[0], test[1]);
-
-test_name = "AniDBIdentifier.parse_media_type_from_line"
-print(test_name) if debug else "";
-if not AniDBIdentifier.parse_media_type_from_line("789|1|x-jat|JoJo no Kimyou na Bouken (2000)") == None:
-    print(test_name, FAIL, 1);
-
-test_name = "IMDBIdentifier.parse_title_from_line"
-print(test_name) if debug else "";
-if not IMDBIdentifier.parse_title_from_line("tt0000001	short	Carmencita	Carmencita	0	1894	\\N	1	Documentary,Short") == "Carmencita":
-    print(test_name, FAIL, 1);
-
-test_name = "IMDBIdentifier.parse_id_from_line"
-print(test_name) if debug else "";
-if not IMDBIdentifier.parse_id_from_line("tt0000001	short	Carmencita	Carmencita	0	1894	\\N	1	Documentary,Short") == "tt0000001":
-    print(test_name, FAIL, 1);
-
-test_name = "IMDBIdentifier.parse_year_from_line"
-print(test_name) if debug else "";
-tests = (
-("tt0000001	short	Carmencita	Carmencita	0	1894	\\N	1	Documentary,Short", 1894),
-("tt0000001	short	Carmencita	Carmencita	0	\\N	\\N	1	Documentary,Short", None),
-("tt0000001	short	Carmencita	Carmencita	0	189	\\N	1	Documentary,Short", None),
-("tt0000001	short	Carmencita	Carmencita	0	18943	\\N	1	Documentary,Short", None)
-);
-for test in tests:
-    if not IMDBIdentifier.parse_year_from_line(test[0]) == test[1]:
-        print(test_name, FAIL, test[0], test[1]);
-
-test_name = "IMDBIdentifier.parse_media_type_from_line"
-print(test_name) if debug else "";
-if not IMDBIdentifier.parse_media_type_from_line("tt0000001	short	Carmencita	Carmencita	0	1894	\\N	1	Documentary,Short") == "short":
-    print(test_name, FAIL, 1);
-
 anidb_lines = [
-    "789|1|x-jat|JoJo no Kimyou na Bouken (2000)",
-    "789|1|x-jat|JoJo no Kimyou na Bouken x",
-    "789|1|x-jat|JoJo no Kimyou na Bouken (2000)",
-    "800|1|x-jat|JoJo no Kimyou na Bouken (2000)"
+    ("789", "JoJo no Kimyou na Bouken (2000)", 2000, ""),
+    ("789", "JoJo no Kimyou na Bouken x", 0, ""),
+    ("789", "JoJo no Kimyou na Bouken (2000)", 2000, ""),
+    ("800", "JoJo no Kimyou na Bouken (2000)", 2000, "")
 ]
 
 test_name = "AniDBIdentifier.filter_by_year"
@@ -97,15 +43,18 @@ if not len(AniDBIdentifier().group_by_id(anidb_lines)) == 2:
     print(test_name, FAIL, 1, len(AniDBIdentifier().group_by_id(anidb_lines)));
 
 imdb_lines = [
-    "tt0000001	movie	Carmencita x	Carmencita	0	1894	\\N	1	Documentary,Short",
-    "tt0000001	tvEpisode	Carmencita	Carmencita	0	1894	\\N	1	Documentary,Short",
-    "tt0000001	short	Carmencita	Carmencita	0	\\N	\\N	1	Documentary,Short",
-    "tt0000002	short	Carmencita	Carmencita	0	1894   \\N	1	Documentary,Short"
+    ("tt0000001", "Carmencita x", 1894, "movie"),
+    ("tt0000001", "Carmencita", 1894, "tvEpisode"),
+    ("tt0000001", "Carmencita", 0, "short"),
+    ("tt0000002", "Carmencita", 1894, "short")
+    #"tt0000001	movie	Carmencita x	Carmencita	0	1894	\\N	1	Documentary,Short",
+    #"tt0000001	tvEpisode	Carmencita	Carmencita	0	1894	\\N	1	Documentary,Short",
+    #"tt0000001	short	Carmencita	Carmencita	0	\\N	\\N	1	Documentary,Short",
+    #"tt0000002	short	Carmencita	Carmencita	0	1894   \\N	1	Documentary,Short"
 ]
 
 test_name = "IMDBIdentifier.filter_by_year"
-print(test_name) if debug else "";
-if len(AniDBIdentifier().filter_by_year(imdb_lines, 1894)) == 3:
+if not len(IMDBIdentifier().filter_by_year(imdb_lines, 1894)) == 3:
     print(test_name, FAIL, 1);
 
 test_name = "IMDBIdentifier.filter_by_exact_match"
@@ -137,6 +86,5 @@ if not Identifier.compile_re_search(test_str, True) == re.compile("^JoJo.+no.+Ki
 
 if not Identifier.compile_re_search(test_str, False) == re.compile(".*JoJo.+no.+Kimyou.+na.+Bouken.*", re.IGNORECASE):
     print(test_name, FAIL, 1);
-
 
 print("identifier-tests: Successfully Completed");
