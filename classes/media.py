@@ -18,4 +18,3 @@ class Episode(Media):
 class Movie(Media, Identifiable):
     def __init__(self, media_name):
         super(Movie, self).__init__(media_name)
-        self.year = None

@@ -4,3 +4,4 @@ class Identifiable(object):
         super(Identifiable, self).__init__()
         self.anidb_id = None
         self.imdb_id = None
+        self.year = None
