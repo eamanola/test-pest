@@ -28,55 +28,28 @@ except Exception as e:
     if not isinstance(e, NotImplementedError):
         print(test_name, FAIL)
 
-test_name = "db.create_title_to_anidb_id_table"
+test_name = "db.create_title_to_ext_id_table"
 print(test_name) if debug else ""
 try:
-    DB().create_title_to_anidb_id_table()
+    DB().create_title_to_ext_id_table(RANDOM_STR)
     print(test_name, FAIL)
 except Exception as e:
     if not isinstance(e, NotImplementedError):
-        print(test_name, FAIL)
+        print(test_name, FAIL, e)
 
-test_name = "db.populate_title_to_anidb_id_table"
+test_name = "db.populate_title_to_ext_id_table"
 print(test_name) if debug else ""
 try:
-    DB().populate_title_to_anidb_id_table(RANDOM_STR)
+    DB().populate_title_to_ext_id_table(RANDOM_STR, RANDOM_STR)
     print(test_name, FAIL)
 except Exception as e:
     if not isinstance(e, NotImplementedError):
-        print(test_name, FAIL)
+        print(test_name, FAIL, e)
 
-test_name = "db.create_title_to_imdb_id_table"
+test_name = "db.get_ext_ids"
 print(test_name) if debug else ""
 try:
-    DB().create_title_to_imdb_id_table()
-    print(test_name, FAIL)
-except Exception as e:
-    if not isinstance(e, NotImplementedError):
-        print(test_name, FAIL)
-
-test_name = "db.populate_title_to_imdb_id_table"
-print(test_name) if debug else ""
-try:
-    DB().populate_title_to_imdb_id_table(RANDOM_STR)
-    print(test_name, FAIL)
-except Exception as e:
-    if not isinstance(e, NotImplementedError):
-        print(test_name, FAIL)
-
-test_name = "db.get_anidb_ids"
-print(test_name) if debug else ""
-try:
-    DB().get_anidb_ids(RANDOM_STR)
-    print(test_name, FAIL)
-except Exception as e:
-    if not isinstance(e, NotImplementedError):
-        print(test_name, FAIL)
-
-test_name = "db.get_imdb_ids"
-print(test_name) if debug else ""
-try:
-    DB().get_imdb_ids(RANDOM_STR)
+    DB().get_ext_ids(RANDOM_STR, RANDOM_STR)
     print(test_name, FAIL)
 except Exception as e:
     if not isinstance(e, NotImplementedError):

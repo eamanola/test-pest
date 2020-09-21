@@ -1,14 +1,12 @@
 from classes.db import DB
-from classes.ext_title_to_id_file_parser import (
-    Anidb_title_to_id_file_parser,
-    Imdb_title_to_id_file_parser
-)
+from classes.ext_apis.anidb import AniDB
+from classes.ext_apis.imdb import IMDB
 
 
-def parse_file(parser):
+def parse_file(file_path, parser):
     results = []
 
-    file = open(parser.file_path, "r")
+    file = open(file_path, "r")
     line = file.readline()
 
     while line:
@@ -33,20 +31,21 @@ def parse_file(parser):
     return results
 
 
-results = parse_file(Anidb_title_to_id_file_parser())
-# results = parse_file(Imdb_title_to_id_file_parser())
+# ext_api = AniDB
+# ext_api = IMDB()
+def generate_table(ext_api):
+    if ext_api:
+        parser = ext_api.get_title_to_id_file_parser()
+        table = ext_api.TITLE_TO_ID_TABLE
+        file_path = ext_api.TITLE_TO_ID_FILE_PATH
 
-db = DB.get_instance()
-db.connect()
+    if parser and table:
+        results = parse_file(file_path, parser)
+        db = DB.get_instance()
+        db.connect()
+        db.create_title_to_ext_id_table(table)
+        db.populate_title_to_ext_id_table(table, results)
+        db.print_table(table)
+        db.close()
 
-db.create_title_to_anidb_id_table()
-db.populate_title_to_anidb_id_table(results)
-
-# db.create_title_to_imdb_id_table()
-# db.populate_title_to_imdb_id_table(results)
-
-table = DB.TITLE_TO_ANIDB_ID
-# table = DB.TITLE_TO_IMDB_ID
-db.print_table(table)
-
-db.close()
+generate_table(AniDB)

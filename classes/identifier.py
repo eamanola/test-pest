@@ -6,14 +6,94 @@ debug = False
 
 
 class Identifier(object):
-    TV_SHOW = "TV_SHOW"
-    MOVIE = "MOVIE"
-
-    def __init__(self):
+    def __init__(self, ext_api):
         super(Identifier, self).__init__()
+        self.ext_api = ext_api
 
     def get_ext_ids(self, re_search):
-        raise NotImplementedError()
+        db = DB.get_instance()
+        db.connect()
+
+        matches = db.get_ext_ids(self.ext_api.TITLE_TO_ID_TABLE, re_search)
+
+        db.close()
+
+        return matches
+
+    def search_db(self, show_name):
+        re_search = Identifier.compile_re_search(show_name, exact_match=False)
+        print('Searching for:', re_search) if debug else ""
+
+        matches = self.get_ext_ids(re_search)
+
+        Identifier.print_result(matches) if debug else ""
+
+        return matches
+
+    def guess_id(
+        self,
+        show_name,
+        year,
+        media_type
+    ):
+        print("Showname: '{}'".format(show_name)) if debug else ""
+        ext_id = None
+
+        matches = self.search_db(show_name)
+
+        ext_id = matches[0][0] if len(matches) == 1 else None
+
+        if ext_id is None and len(matches) > 0 and year is not None:
+
+            year_matches = Identifier.filter_by_year(matches, year)
+            match_count = len(year_matches)
+
+            matches = year_matches if match_count > 0 else matches
+
+            ext_id = matches[0][0] if match_count == 1 else None
+
+        if ext_id is None and len(matches) > 0:
+
+            exact_matches = Identifier.filter_by_exact_match(
+                matches,
+                show_name
+            )
+            match_count = len(exact_matches)
+
+            matches = exact_matches if match_count > 0 else matches
+
+            ext_id = matches[0][0] if match_count == 1 else None
+
+        if ext_id is None and len(matches) > 0 and media_type is not None:
+
+            media_type_matches = Identifier.filter_by_media_type(
+                matches,
+                media_type
+            )
+            match_count = len(media_type_matches)
+
+            matches = media_type_matches if match_count > 0 else matches
+
+            ext_id = matches[0][0] if match_count == 1 else None
+
+        if ext_id is None and len(matches) > 0:
+
+            unique_matches = Identifier.group_by_id(matches)
+            match_count = len(unique_matches)
+
+            matches = unique_matches if match_count > 0 else matches
+
+            ext_id = matches[0][0] if match_count == 1 else None
+
+            if match_count > 1:  # TODO: more filters?
+                print(match_count, "unique matches for:", show_name)
+                print("Selecting 1st:", unique_matches[0])
+                for unique_match in unique_matches:
+                    print(unique_match)
+                print("")
+                ext_id = matches[0][0]
+
+        return ext_id
 
     @staticmethod
     def compile_re_search(show_name: str, exact_match: bool):
@@ -74,17 +154,8 @@ class Identifier(object):
 
         print("")
 
-    def search_db(self, show_name):
-        re_search = Identifier.compile_re_search(show_name, exact_match=False)
-        print('Searching for:', re_search) if debug else ""
-
-        matches = self.get_ext_ids(re_search)
-
-        Identifier.print_result(matches) if debug else ""
-
-        return matches
-
-    def filter_by_year(self, matches, year):
+    @staticmethod
+    def filter_by_year(matches, year):
         print("Filtering by year:") if debug else ""
 
         year_matches = []
@@ -98,7 +169,8 @@ class Identifier(object):
 
         return year_matches
 
-    def filter_by_exact_match(self, matches, show_name):
+    @staticmethod
+    def filter_by_exact_match(matches, show_name):
         print("Looking for exact matches:") if debug else ""
 
         re_search = Identifier.compile_re_search(show_name, exact_match=True)
@@ -116,7 +188,8 @@ class Identifier(object):
 
         return exact_matches
 
-    def filter_by_media_type(self, matches, media_type):
+    @staticmethod
+    def filter_by_media_type(matches, media_type):
         print("Filtering by media type:") if debug else ""
 
         media_type_matches = []
@@ -131,7 +204,8 @@ class Identifier(object):
 
         return media_type_matches
 
-    def group_by_id(self, matches):
+    @staticmethod
+    def group_by_id(matches):
         print("Grouping by ids:") if debug else ""
 
         unique_matches = []
@@ -149,106 +223,3 @@ class Identifier(object):
 
         Identifier.print_result(unique_matches) if debug else ""
         return unique_matches
-
-    def guess_id(
-        self,
-        show_name,
-        year,
-        media_type
-    ):
-        print("Showname: '{}'".format(show_name)) if debug else ""
-        ext_id = None
-
-        matches = self.search_db(show_name)
-
-        ext_id = matches[0][0] if len(matches) == 1 else None
-
-        if ext_id is None and len(matches) > 0 and year is not None:
-
-            year_matches = self.filter_by_year(matches, year)
-            match_count = len(year_matches)
-
-            matches = year_matches if match_count > 0 else matches
-
-            ext_id = matches[0][0] if match_count == 1 else None
-
-        if ext_id is None and len(matches) > 0:
-
-            exact_matches = self.filter_by_exact_match(matches, show_name)
-            match_count = len(exact_matches)
-
-            matches = exact_matches if match_count > 0 else matches
-
-            ext_id = matches[0][0] if match_count == 1 else None
-
-        if ext_id is None and len(matches) > 0 and media_type is not None:
-
-            media_type_matches = self.filter_by_media_type(matches, media_type)
-            match_count = len(media_type_matches)
-
-            matches = media_type_matches if match_count > 0 else matches
-
-            ext_id = matches[0][0] if match_count == 1 else None
-
-        if ext_id is None and len(matches) > 0:
-
-            unique_matches = self.group_by_id(matches)
-            match_count = len(unique_matches)
-
-            matches = unique_matches if match_count > 0 else matches
-
-            ext_id = matches[0][0] if match_count == 1 else None
-
-            if match_count > 1:  # TODO: more filters?
-                print(match_count, "unique matches for:", show_name)
-                print("Selecting 1st:", unique_matches[0])
-                for unique_match in unique_matches:
-                    print(unique_match)
-                print("")
-                ext_id = matches[0][0]
-
-        return ext_id
-
-
-class AniDBIdentifier(Identifier):
-    TV_SHOW = None
-    MOVIE = None
-
-    def __init__(self):
-        super(AniDBIdentifier, self).__init__()
-
-    def get_ext_ids(self, re_search):
-        db = DB.get_instance()
-        db.connect()
-
-        matches = db.get_anidb_ids(re_search)
-
-        db.close()
-
-        return matches
-
-
-class IMDBIdentifier(Identifier):
-    TV_SHOW = "tvEpisode"
-    MOVIE = "movie"
-
-    def __init__(self):
-        super(IMDBIdentifier, self).__init__()
-
-    def get_ext_ids(self, re_search):
-        db = DB.get_instance()
-        db.connect()
-
-        matches = db.get_imdb_ids(re_search)
-
-        db.close()
-
-        return matches
-
-# print(IMDBIdentifier().guess_id("The Intouchables", 2011))
-# print(IMDBIdentifier().guess_id("Mulan", 2020, 'movie'))
-# print("tt0000001	short	Carmencita	Carmencita	0	1894	\N	1	Documentary,Short")
-
-# print(AniDBIdentifier().guess_id("JoJo's Bizarre Adventure - OVA (2000)",
-# 2000, 'foo'));
-# print(guess_id("JoJo's Bizarre Adventure - OVA (2000)"));

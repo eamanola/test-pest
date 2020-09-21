@@ -3,9 +3,6 @@ class DB(object):
     MARIADB = "mariadb"
     MYSQL = "mysql"
 
-    TITLE_TO_ANIDB_ID = "title_to_anidb_id"
-    TITLE_TO_IMDB_ID = "title_to_imdb_id"
-
     db_type = SQLITE
 
     def __init__(self):
@@ -17,22 +14,13 @@ class DB(object):
     def close(self):
         raise NotImplementedError()
 
-    def create_title_to_anidb_id_table(self):
+    def create_title_to_ext_id_table(self, table):
         raise NotImplementedError()
 
-    def populate_title_to_anidb_id_table(self, data):
+    def populate_title_to_ext_id_table(self, table, data):
         raise NotImplementedError()
 
-    def create_title_to_imdb_id_table(self):
-        raise NotImplementedError()
-
-    def populate_title_to_imdb_id_table(self, data):
-        raise NotImplementedError()
-
-    def get_anidb_ids(self, re_show_name):
-        raise NotImplementedError()
-
-    def get_imdb_ids(self, re_show_name):
+    def get_ext_ids(self, table, re_show_name):
         raise NotImplementedError()
 
     @staticmethod

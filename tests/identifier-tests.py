@@ -1,5 +1,5 @@
 import re
-from classes.identifier import Identifier, AniDBIdentifier, IMDBIdentifier
+from classes.identifier import Identifier
 
 debug = True
 debug = False
@@ -10,101 +10,45 @@ RANDOM_INT = 22
 FAIL = "FAIL"
 PASS = "PASS"
 
-anidb_lines = [
-    ("789", "JoJo no Kimyou na Bouken (2000)", 2000, ""),
-    ("789", "JoJo no Kimyou na Bouken x", 0, ""),
-    ("789", "JoJo no Kimyou na Bouken (2000)", 2000, ""),
+test_lines = [
+    ("789", "JoJo no Kimyou na Bouken (2000)", 2000, "movie"),
+    ("789", "JoJo no Kimyou na Bouken x", 0, "tvEpisode"),
+    ("789", "JoJo no Kimyou na Bouken (2000)", 2000, "short"),
     ("800", "JoJo no Kimyou na Bouken (2000)", 2000, "")
 ]
 
-test_name = "AniDBIdentifier.filter_by_year"
+test_name = "Identifier.filter_by_year"
 print(test_name) if debug else ""
-if not len(AniDBIdentifier().filter_by_year(anidb_lines, 2000)) == 3:
+if not len(Identifier.filter_by_year(test_lines, 2000)) == 3:
     print(test_name, FAIL, 1)
 
-test_name = "AniDBIdentifier.filter_by_exact_match"
+test_name = "Identifier.filter_by_exact_match"
 print(test_name) if debug else ""
 if (
-    len(AniDBIdentifier().filter_by_exact_match(
-        anidb_lines,
+    len(Identifier.filter_by_exact_match(
+        test_lines,
         "JoJo no Kimyou na Bouken x"
     )) != 1
 ):
     print(test_name, FAIL, 1)
 
-test_name = "AniDBIdentifier.filter_by_media_type"
+test_name = "Identifier.filter_by_media_type"
 print(test_name) if debug else ""
 if (
-    len(AniDBIdentifier().filter_by_media_type(
-        anidb_lines,
-        AniDBIdentifier.TV_SHOW
-    )) != 0
-):
-    print(test_name, FAIL, 1)
-
-if (
-    len(AniDBIdentifier().filter_by_media_type(
-        anidb_lines,
-        AniDBIdentifier.MOVIE
-    )) != 0
-):
-    print(test_name, FAIL, 2)
-
-test_name = "AniDBIdentifier.group_by_id"
-print(test_name) if debug else ""
-if not len(AniDBIdentifier().group_by_id(anidb_lines)) == 2:
-    print(test_name, FAIL, 1, len(AniDBIdentifier().group_by_id(anidb_lines)))
-
-imdb_lines = [
-    ("tt0000001", "Carmencita x", 1894, "movie"),
-    ("tt0000001", "Carmencita", 1894, "tvEpisode"),
-    ("tt0000001", "Carmencita", 0, "short"),
-    ("tt0000002", "Carmencita", 1894, "short")
-]
-
-test_name = "IMDBIdentifier.filter_by_year"
-if not len(IMDBIdentifier().filter_by_year(imdb_lines, 1894)) == 3:
-    print(test_name, FAIL, 1)
-
-test_name = "IMDBIdentifier.filter_by_exact_match"
-print(test_name) if debug else ""
-if (
-    len(IMDBIdentifier().filter_by_exact_match(
-        imdb_lines,
-        "Carmencita x"
+    len(Identifier.filter_by_media_type(
+        test_lines,
+        "movie"
     )) != 1
 ):
     print(test_name, FAIL, 1)
 
-test_name = "IMDBIdentifier.filter_by_media_type"
-print(test_name) if debug else ""
 if (
-    len(IMDBIdentifier().filter_by_media_type(
-        imdb_lines,
-        IMDBIdentifier.TV_SHOW
-    )) != 1
-):
-    print(
-        test_name, FAIL,
-        1,
-        IMDBIdentifier().filter_by_media_type(
-            imdb_lines,
-            IMDBIdentifier.TV_SHOW
-        )
-    )
-
-if (
-    len(IMDBIdentifier().filter_by_media_type(
-        imdb_lines,
-        IMDBIdentifier.MOVIE
+    len(Identifier.filter_by_media_type(
+        test_lines,
+        "tvEpisode"
     )) != 1
 ):
     print(test_name, FAIL, 2)
-
-test_name = "IMDBIdentifier.group_by_id"
-print(test_name) if debug else ""
-if not len(IMDBIdentifier().group_by_id(imdb_lines)) == 2:
-    print(test_name, FAIL, 1)
 
 test_name = "Identifier.compile_re_search"
 print(test_name) if debug else ""

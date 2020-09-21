@@ -34,18 +34,6 @@ class Sqlite(DB):
 
         self.conn.commit()
 
-    def create_title_to_anidb_id_table(self):
-        return self.create_title_to_ext_id_table(DB.TITLE_TO_ANIDB_ID)
-
-    def populate_title_to_anidb_id_table(self, data):
-        return self.populate_title_to_ext_id_table(DB.TITLE_TO_ANIDB_ID, data)
-
-    def create_title_to_imdb_id_table(self):
-        return self.create_title_to_ext_id_table(DB.TITLE_TO_IMDB_ID)
-
-    def populate_title_to_imdb_id_table(self, data):
-        return self.populate_title_to_ext_id_table(DB.TITLE_TO_IMDB_ID, data)
-
     def get_ext_ids(self, table, re_show_name):
         self.conn.create_function(
             'matches',
@@ -59,12 +47,6 @@ class Sqlite(DB):
         cur.execute(sql)
 
         return cur.fetchall()
-
-    def get_anidb_ids(self, re_show_name):
-        return self.get_ext_ids(DB.TITLE_TO_ANIDB_ID, re_show_name)
-
-    def get_imdb_ids(self, re_show_name):
-        return self.get_ext_ids(DB.TITLE_TO_IMDB_ID, re_show_name)
 
     def print_table(self, table):
         cur = self.conn.cursor()
