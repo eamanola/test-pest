@@ -10,21 +10,11 @@ class Identifier(object):
         super(Identifier, self).__init__()
         self.ext_api = ext_api
 
-    def get_ext_ids(self, re_search):
-        db = DB.get_instance()
-        db.connect()
-
-        matches = db.get_ext_ids(self.ext_api.TITLE_TO_ID_TABLE, re_search)
-
-        db.close()
-
-        return matches
-
-    def search_db(self, show_name):
+    def search_db(self, db, show_name):
         re_search = Identifier.compile_re_search(show_name, exact_match=False)
         print('Searching for:', re_search) if debug else ""
 
-        matches = self.get_ext_ids(re_search)
+        matches = db.get_ext_ids(self.ext_api.TITLE_TO_ID_TABLE, re_search)
 
         Identifier.print_result(matches) if debug else ""
 
@@ -32,6 +22,7 @@ class Identifier(object):
 
     def guess_id(
         self,
+        db,
         show_name,
         year,
         media_type
@@ -39,7 +30,7 @@ class Identifier(object):
         print("Showname: '{}'".format(show_name)) if debug else ""
         ext_id = None
 
-        matches = self.search_db(show_name)
+        matches = self.search_db(db, show_name)
 
         ext_id = matches[0][0] if len(matches) == 1 else None
 

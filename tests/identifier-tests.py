@@ -1,5 +1,7 @@
 import re
 from classes.identifier import Identifier
+from classes.dbs.sqlite import Sqlite
+from classes.ext_api import Ext_api
 
 debug = True
 debug = False
@@ -65,5 +67,51 @@ if (
     re.compile(".*JoJo.+no.+Kimyou.+na.+Bouken.*", re.IGNORECASE)
 ):
     print(test_name, FAIL, 1)
+
+test_name = "Identifier.search_db"
+print(test_name) if debug else ""
+try:
+    db = Sqlite()
+    db.connect(":memory:")
+    table_name = RANDOM_STR
+    db.create_title_to_ext_id_table(table_name)
+
+    ext_id = RANDOM_STR
+    title = RANDOM_STR
+    year = RANDOM_INT
+    media_type = RANDOM_STR
+    test_data = [
+        (ext_id, title, year, media_type),
+        (ext_id + RANDOM_STR, title + RANDOM_STR, year, media_type),
+        (ext_id + RANDOM_STR2, title[::-1], year, media_type)
+    ]
+    db.populate_title_to_ext_id_table(table_name, test_data)
+
+    ext_api = Ext_api()
+    ext_api.TITLE_TO_ID_TABLE = table_name
+
+    identifier = Identifier(ext_api)
+
+    show_name = title
+    if len(identifier.search_db(db, show_name)) != 2:
+        print(test_name, FAIL, 1)
+
+    show_name = title[::-1]
+    if len(identifier.search_db(db, show_name)) == 1:
+        print(test_name, FAIL, 2)
+
+    show_name = title + RANDOM_STR
+    if identifier.search_db(db, show_name)[0] != test_data[1]:
+        print(test_name, FAIL, 3)
+
+    show_name = title + RANDOM_STR2
+    if not len(identifier.search_db(db, show_name)) == 0:
+        print(test_name, FAIL, 4)
+
+except Exception as e:
+    print(test_name, FAIL, 5, e)
+
+finally:
+    db.close()
 
 print("identifier-tests: Successfully Completed")
