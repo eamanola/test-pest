@@ -20,9 +20,9 @@ class Container(object):
 
         return None
 
-    def get_media(self, media_name):
+    def get_media(self, media_id):
         for media in self.media:
-            if media.media_name == media_name:
+            if media.id() == media_id:
                 return media
 
         return None

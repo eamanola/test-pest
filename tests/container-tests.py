@@ -93,7 +93,7 @@ container = Container()
 media = Media(RANDOM_STR2)
 container.media.append(media)
 
-if not container.get_media(RANDOM_STR2) == media:
+if not container.get_media(media.id()) == media:
     print(test_name, FAIL, 2)
 
 if container.get_media(RANDOM_STR) is not None:
