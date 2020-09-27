@@ -109,7 +109,7 @@ if (
     print(test_name, FAIL)
 
 parent = Container()
-container = Container(parent)
+container = Container(parent=parent)
 if (
     not container.parent() == parent or
     not container.parent() == container._parent

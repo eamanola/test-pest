@@ -33,7 +33,7 @@ class Container(object):
 
 class MediaLibrary(Container):
     def __init__(self, path, parent=None):
-        super(MediaLibrary, self).__init__(parent)
+        super(MediaLibrary, self).__init__(parent=parent)
         self._path = path
 
     def path(self):
@@ -45,7 +45,7 @@ class MediaLibrary(Container):
 
 class Show(MediaLibrary, Identifiable):
     def __init__(self, library_path, show_name, parent=None):
-        super(Show, self).__init__(library_path, parent)
+        super(Show, self).__init__(library_path, parent=parent)
         self._show_name = show_name
 
     def show_name(self):
@@ -60,7 +60,7 @@ class Show(MediaLibrary, Identifiable):
 
 class Season(Show):
     def __init__(self, library_path, show_name, season_number, parent=None):
-        super(Season, self).__init__(library_path, show_name, parent)
+        super(Season, self).__init__(library_path, show_name, parent=parent)
         self._season_number = season_number
 
     def seasons(self):
@@ -88,7 +88,7 @@ class Extra(Season):
             library_path,
             show_name,
             season_number,
-            parent
+            parent=parent
         )
 
     def extras(self):
