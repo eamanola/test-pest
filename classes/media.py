@@ -1,5 +1,6 @@
-from classes.identifiable import Identifiable
 import hashlib
+from classes.container import Show, Season, Extra
+from classes.identifiable import Identifiable
 
 
 class Media(object):
@@ -18,6 +19,12 @@ class Media(object):
 
     def parent(self):
         return self._parent
+
+    def title(self):
+        raise NotImplementedError()
+
+    def thumbnail(self):
+        raise NotImplementedError()
 
 
 class Episode(Media):
@@ -48,6 +55,35 @@ class Episode(Media):
     def is_nced(self):
         return self._is_nced
 
+    def title(self):
+        if self.is_oad():
+            prefix = "OAD"
+        elif self.is_ncop():
+            prefix = "NCOP"
+        elif self.is_nced():
+            prefix = "NCED"
+        else:
+            prefix = "Episode"
+
+        return "{} {:02d}".format(
+            prefix,
+            self.episode_number()
+        )
+
+    def thumbnail(self):
+        thumbnail = self.title()
+
+        parent = self.parent()
+        while parent:
+            if isinstance(parent, (Extra, Season, Show)):
+                thumbnail = "{}.{}".format(parent.title(), thumbnail)
+                parent = parent.parent()
+
+            else:
+                parent = None
+
+        return thumbnail.replace(" ", ".")
+
 
 class Movie(Media, Identifiable):
     def __init__(self, file_path, title, parent=None):
@@ -56,3 +92,11 @@ class Movie(Media, Identifiable):
 
     def title(self):
         return self._title
+
+    def thumbnail(self):
+        if self.year:
+            thumbnail = "{} ({})".format(self.title(), self.year)
+        else:
+            thumbnail = self.title()
+
+        return thumbnail.replace(" ", ".")

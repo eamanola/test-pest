@@ -1,4 +1,5 @@
 class DB(object):
+    # DB types
     SQLITE = "sqlite"
     MARIADB = "mariadb"
     MYSQL = "mysql"

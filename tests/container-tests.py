@@ -197,5 +197,39 @@ if (
 ):
     print(test_name, FAIL)
 
+test_name = "Container.title"
+print(test_name) if debug else ""
+container = Container()
+try:
+    print(container.title())
+    print(test_name, FAIL)
+except Exception as e:
+    if not isinstance(e, NotImplementedError):
+        print(test_name, FAIL)
+
+test_name = "MediaLibrary.title"
+print(test_name) if debug else ""
+mediaLibrary = MediaLibrary(LIBRARY_PATH)
+if mediaLibrary.title() != mediaLibrary.path():
+    print(test_name, FAIL)
+
+test_name = "Show.title"
+print(test_name) if debug else ""
+show = Show(LIBRARY_PATH, SHOW_NAME)
+if show.title() != show.show_name():
+    print(test_name, FAIL)
+
+test_name = "Season.title"
+print(test_name) if debug else ""
+season = Season(LIBRARY_PATH, SHOW_NAME, SEASON_NUMBER)
+expected = "Season {:02d}".format(season.season_number())
+if season.title() != expected:
+    print(test_name, FAIL)
+
+test_name = "Extra.title"
+print(test_name) if debug else ""
+extra = Extra(LIBRARY_PATH, SHOW_NAME, SEASON_NUMBER)
+if extra.title() != "Extra":
+    print(test_name, FAIL)
 
 print("container-tests: Successfully Completed")

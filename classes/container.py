@@ -30,6 +30,9 @@ class Container(object):
     def id(hash_id):
         return hashlib.md5(hash_id.encode('utf-8')).hexdigest()
 
+    def title(self):
+        raise NotImplementedError()
+
 
 class MediaLibrary(Container):
     def __init__(self, path, parent=None):
@@ -41,6 +44,9 @@ class MediaLibrary(Container):
 
     def id(self):
         return Container.id(self.path())
+
+    def title(self):
+        return self.path()
 
 
 class Show(MediaLibrary, Identifiable):
@@ -56,6 +62,9 @@ class Show(MediaLibrary, Identifiable):
 
     def id(self):
         return Container.id(self.show_name())
+
+    def title(self):
+        return self.show_name()
 
 
 class Season(Show):
@@ -77,9 +86,14 @@ class Season(Show):
 
     def id(self):
         id_str = "{}{}{}".format(
-            self.show_name(), "season", self.season_number()
+            self.show_name(),
+            "season",
+            self.season_number()
         )
         return Container.id(id_str)
+
+    def title(self):
+        return "Season {:02d}".format(self.season_number())
 
 
 class Extra(Season):
@@ -96,6 +110,12 @@ class Extra(Season):
 
     def id(self):
         id_str = "{}{}{}{}".format(
-            self.show_name(), "season", self.season_number(), "extra"
+            self.show_name(),
+            "season",
+            self.season_number(),
+            "extra"
         )
         return Container.id(id_str)
+
+    def title(self):
+        return "Extra"
