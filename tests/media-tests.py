@@ -88,7 +88,7 @@ test_name = "Movie.title"
 print(test_name) if debug else ""
 movie = Movie(FILE_PATH, TITLE)
 if movie.title() != TITLE:
-    print(test_name, FAIL)
+    print(test_name, FAIL, 2)
 
 media.subtitles.append(RANDOM_STR2)
 if not len(media.subtitles) == 1:
@@ -145,7 +145,7 @@ test_name = "Movie.title"
 print(test_name) if debug else ""
 movie = Movie(FILE_PATH, TITLE)
 if movie.title() != movie._title:
-    print(test_name, FAIL)
+    print(test_name, FAIL, 1)
 
 test_name = "Media.thumbnail"
 print(test_name) if debug else ""
@@ -203,7 +203,12 @@ if episode.thumbnail() != expected:
 test_name = "Movie.thumbnail"
 print(test_name) if debug else ""
 movie = Movie(FILE_PATH, TITLE)
-if movie.thumbnail() != movie.title():
-    print(test_name, FAIL)
+if movie.thumbnail() != movie.title().replace(" ", "."):
+    print(test_name, FAIL, 1)
+
+movie.set_year(RANDOM_INT)
+expected = "{} ({})".format(movie.title(), movie.year()).replace(" ", ".")
+if movie.thumbnail() != expected:
+    print(test_name, FAIL, 2)
 
 print("media-tests: Successfully Completed")

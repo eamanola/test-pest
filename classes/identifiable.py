@@ -2,5 +2,14 @@ class Identifiable(object):
 
     def __init__(self):
         super(Identifiable, self).__init__()
-        self.year = None
-        self.ext_ids = {}
+        self._year = None
+        self._ext_ids = {}
+
+    def set_year(self, year):
+        self._year = year
+
+    def year(self):
+        return self._year
+
+    def ext_ids(self):
+        return self._ext_ids
