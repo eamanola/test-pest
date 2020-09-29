@@ -20,6 +20,20 @@ class Container(object):
 
         return None
 
+    def find_container(self, container_id):
+        match = None
+
+        for container in self.containers:
+            if container.id() == container_id:
+                match = container
+            else:
+                match = container.find_container(container_id)
+
+            if match:
+                break
+
+        return match
+
     def get_media(self, media_id):
         for media in self.media:
             if media.id() == media_id:
