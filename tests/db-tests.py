@@ -82,7 +82,7 @@ test_name = "db.create_containers_table"
 print(test_name) if debug else ""
 try:
     DB().create_containers_table()
-    print(test_name, FAIL, 1)
+    print(test_name, FAIL)
 except NotImplementedError as e:
     pass
 
@@ -106,6 +106,38 @@ test_name = "db.delete_containers"
 print(test_name) if debug else ""
 try:
     DB().delete_containers(RANDOM_STR)
+    print(test_name, FAIL)
+except NotImplementedError as e:
+    pass
+
+test_name = "db.create_media_table"
+print(test_name) if debug else ""
+try:
+    DB().create_media_table()
+    print(test_name, FAIL, 1)
+except NotImplementedError as e:
+    pass
+
+test_name = "db.update_media"
+print(test_name) if debug else ""
+try:
+    DB().update_media(RANDOM_STR)
+    print(test_name, FAIL)
+except NotImplementedError as e:
+    pass
+
+test_name = "db.get_media"
+print(test_name) if debug else ""
+try:
+    DB().get_media(RANDOM_STR)
+    print(test_name, FAIL)
+except NotImplementedError as e:
+    pass
+
+test_name = "db.delete_media"
+print(test_name) if debug else ""
+try:
+    DB().delete_media(RANDOM_STR)
     print(test_name, FAIL)
 except NotImplementedError as e:
     pass

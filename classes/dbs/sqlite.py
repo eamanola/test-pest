@@ -1,6 +1,7 @@
 import sqlite3
 from classes.db import DB
 from classes.container import MediaLibrary, Show, Season, Extra
+from classes.media import Episode, Movie
 
 
 class Sqlite(DB):
@@ -109,6 +110,70 @@ class Sqlite(DB):
 
         self.conn.commit()
 
+    def create_media_table(self):
+        self._create_table(
+            "media",
+            # type: Episode|Movie
+            # subtitles: comma separated list
+            # title: None for Episode
+            # flags: is_oad is_ncop is_nced
+            """(
+                id TEXT,
+                type TEXT,
+                parent TEXT,
+                file_path TEXT,
+                subtitles TEXT,
+                episode_number INTEGER,
+                title TEXT,
+                flags TEXT
+            )"""
+        )
+
+    def update_media(self, media):
+
+        self.delete_media(media)
+
+        where, ids = self._where_ids(media)
+
+        data = [self._get_media_data(m) for m in media]
+
+        cur = self.conn.cursor()
+
+        sql = """INSERT INTO media (
+            id,
+            type,
+            parent,
+            file_path,
+            subtitles,
+            episode_number,
+            title,
+            flags
+        ) VALUES (?,?,?,?,?,?,?,?)"""
+
+        cur.executemany(sql, data)
+
+    def get_media(self, media):
+        cur = self.conn.cursor()
+
+        sql = "SELECT * FROM media WHERE id=?"
+        cur.execute(sql, [media.id()])
+
+        result = cur.fetchone()
+
+        return_obj = self._media_from_data(result)
+
+        return return_obj
+
+    def delete_media(self, media):
+        where, ids = self._where_ids(media)
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM media WHERE {}'.format(where)
+        cur.execute(sql, ids)
+
+        self.conn.commit()
+
     def print_table(self, table):
         cur = self.conn.cursor()
 
@@ -131,12 +196,12 @@ class Sqlite(DB):
 
         self.conn.commit()
 
-    def _where_ids(self, containers, and_or='OR'):
+    def _where_ids(self, items, and_or='OR'):
         ids = []
         where = ""
 
-        for container in containers:
-            ids.append(container.id())
+        for item in items:
+            ids.append(item.id())
             where = '{}id=? {} '.format(where, and_or)
 
         where = where.rstrip('{} '.format(and_or))
@@ -160,11 +225,32 @@ class Sqlite(DB):
             )
         )
 
-    def _get_container_parent(self, result):
+    def _get_media_data(self, media):
+        if isinstance(media, Episode):
+            flags = "{}{}{}".format(
+                1 if media.is_oad() else 0,
+                1 if media.is_ncop() else 0,
+                1 if media.is_nced() else 0,
+            )
+        else:
+            flags = None
+
+        return (
+            media.id(),
+            media.__class__.__name__,
+            media.parent().id() if media.parent() else None,
+            media.file_path(),
+            ','.join(media.subtitles),
+            media.episode_number() if isinstance(media, Episode) else None,
+            media.title() if isinstance(media, Movie) else None,
+            flags
+        )
+
+    def _get_parent(self, parent_id):
         cur = self.conn.cursor()
 
         sql = "SELECT * FROM containers WHERE id=?"
-        cur.execute(sql, [result[4]])
+        cur.execute(sql, [parent_id])
 
         result = cur.fetchone()
 
@@ -205,7 +291,7 @@ class Sqlite(DB):
 
     def _container_from_data(self, result, get_children=True, get_parent=True):
         if get_parent and result[4]:
-            parent = self._get_container_parent(result)
+            parent = self._get_parent(result[4])
         else:
             parent = None
 
@@ -228,5 +314,36 @@ class Sqlite(DB):
 
             for m in media:
                 return_obj.media.append(m)
+
+        return return_obj
+
+    def _media_from_data(self, result):
+        if result[2]:
+            parent = self._get_parent(result[2])
+        else:
+            parent = None
+
+        if result[1] == 'Movie':
+            return_obj = Movie(result[3], result[6], parent=parent)
+        elif result[1] == 'Episode':
+            flags = result[7]
+            is_oad = flags[0] == "1"
+            is_ncop = flags[1] == "1"
+            is_nced = flags[2] == "1"
+            return_obj = Episode(
+                result[3],
+                result[5],
+                parent=parent,
+                is_oad=is_oad,
+                is_ncop=is_ncop,
+                is_nced=is_nced
+            )
+        else:
+            print('hmm hmm')
+            pass
+
+        for subtitle in result[4].split(","):
+            if subtitle.strip():
+                return_obj.subtitles.append(subtitle)
 
         return return_obj

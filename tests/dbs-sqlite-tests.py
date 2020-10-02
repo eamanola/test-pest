@@ -2,6 +2,7 @@ import re
 import sqlite3
 from classes.dbs.sqlite import Sqlite
 from classes.container import MediaLibrary, Show, Season, Extra
+from classes.media import Episode, Movie
 
 debug = True
 debug = False
@@ -309,7 +310,6 @@ show.containers.append(season2)
 show.containers.append(season3)
 season1.containers.append(extra)
 
-
 db.update_containers([
     media_library,
     show,
@@ -453,6 +453,197 @@ if test_data_count(db, "containers") != 1:
     print(test_name, FAIL, 3)
 
 if test_data_count(db, "containers", (['id', media_library.id()],)) != 0:
+    print(test_name, FAIL, 4)
+db.close()
+
+test_name = "Sqlite.create_media_table"
+print(test_name) if debug else ""
+
+table_name = "media"
+cols = parse_cols("""(
+    id TEXT,
+    type TEXT,
+    parent TEXT,
+    file_path TEXT,
+    subtitles TEXT,
+    episode_number INTEGER,
+    title TEXT,
+    flags TEXT
+)""")
+
+db = Sqlite()
+db.connect(TMP_DB)
+cur = db.conn.cursor()
+
+db.create_media_table()
+if not test_table_pragma(db, table_name, cols):
+    print(test_name, FAIL)
+
+db.close()
+
+test_name = "Sqlite.update_media"
+print(test_name) if debug else ""
+db = Sqlite()
+db.connect(TMP_DB)
+db.create_containers_table()
+db.create_media_table()
+
+lib_path = "a path"
+file_path = "a file path"
+file_path2 = "another file path"
+show_name = "a show name"
+subtitle_path = "a subtitle path"
+title = "a title"
+
+media_library = MediaLibrary(path)
+show = Show(lib_path, show_name, parent=media_library)
+season1 = Season(lib_path, show_name, 1, parent=show)
+season2 = Season(lib_path, show_name, 2 + 1, parent=show)
+season3 = Season(lib_path, show_name, 3, parent=show)
+extra = Extra(lib_path, show_name, 1, parent=season1)
+episode1 = Episode(file_path, 1, parent=season1)
+episode1.subtitles.append(subtitle_path)
+movie = Movie(file_path2, title, parent=media_library)
+
+media_library.containers.append(show)
+media_library.media.append(movie)
+show.containers.append(season1)
+show.containers.append(season2)
+show.containers.append(season3)
+season1.containers.append(extra)
+season1.media.append(episode1)
+
+db.update_containers([
+    media_library,
+    show,
+    season1,
+    season2,
+    season3,
+    extra
+])
+
+db.update_media([episode1, movie])
+result = db.get_media(episode1)
+if (
+    result.id() != episode1.id() or
+    not isinstance(result, Episode) or
+    result.parent().id() != episode1.parent().id() or
+    result.file_path() != episode1.file_path() or
+    len(result.subtitles) != len(episode1.subtitles) or
+    result.episode_number() != episode1.episode_number() or
+    result.is_oad() != episode1.is_oad() or
+    result.is_ncop() != episode1.is_ncop() or
+    result.is_nced() != episode1.is_nced()
+):
+    print(test_name, FAIL, 2)
+
+if len(result.subtitles) != 1:
+    print(test_name, FAIL, 3)
+
+episode1.subtitles.clear()
+db.update_media([episode1])
+result = db.get_media(episode1)
+if (
+    result.id() != episode1.id() or
+    not isinstance(result, Episode) or
+    result.parent().id() != episode1.parent().id() or
+    result.file_path() != episode1.file_path() or
+    len(result.subtitles) != len(episode1.subtitles) or
+    result.episode_number() != episode1.episode_number() or
+    result.is_oad() != episode1.is_oad() or
+    result.is_ncop() != episode1.is_ncop() or
+    result.is_nced() != episode1.is_nced()
+):
+    print(test_name, FAIL, 4)
+
+if len(result.subtitles) != 0:
+    print(test_name, FAIL, 5)
+
+test_data = [movie, episode1]
+db.update_media(test_data)
+if not test_data_count(db, "media") == len(test_data):
+    print(test_name, FAIL, 6)
+
+# overwrite
+db.update_media(test_data)
+if not test_data_count(db, "media") == len(test_data):
+    print(test_name, FAIL, 7)
+
+result = db.get_media(episode1)
+if (
+    result.id() != episode1.id() or
+    not isinstance(result, Episode) or
+    result.parent().id() != episode1.parent().id() or
+    result.file_path() != episode1.file_path() or
+    len(result.subtitles) != len(episode1.subtitles) or
+    result.episode_number() != episode1.episode_number() or
+    result.is_oad() != episode1.is_oad() or
+    result.is_ncop() != episode1.is_ncop() or
+    result.is_nced() != episode1.is_nced()
+):
+    print(test_name, FAIL, 8)
+
+result = db.get_media(movie)
+if (
+    result.id() != movie.id() or
+    not isinstance(result, Movie) or
+    result.parent().id() != movie.parent().id() or
+    result.file_path() != movie.file_path() or
+    len(result.subtitles) != len(movie.subtitles) or
+    result.title() != movie.title()
+):
+    print(test_name, FAIL, 9)
+
+episode2 = Episode("2{}".format(file_path), 2, parent=season1, is_oad=True)
+episode3 = Episode("3{}".format(file_path), 3, parent=season1, is_ncop=True)
+episode4 = Episode("4{}".format(file_path), 4, parent=season1, is_nced=True)
+season1.containers.append(episode2)
+season1.containers.append(episode3)
+season1.containers.append(episode4)
+db.update_containers([season1])
+db.update_media([episode2, episode3, episode4])
+
+result = db.get_media(episode2)
+if not result.is_oad() or result.is_ncop() or result.is_nced():
+    print(test_name, FAIL, 10)
+
+result = db.get_media(episode3)
+if result.is_oad() or not result.is_ncop() or result.is_nced():
+    print(test_name, FAIL, 11)
+
+result = db.get_media(episode4)
+if result.is_oad() or result.is_ncop() or not result.is_nced():
+    print(test_name, FAIL, 12)
+
+db.close()
+
+test_name = "Sqlite.delete_media"
+print(test_name) if debug else ""
+
+db = Sqlite()
+db.connect(TMP_DB)
+db.create_media_table()
+
+movie = Movie("a file_path", "a title")
+movie2 = Movie("another file_path", "another title")
+
+if test_data_count(db, "media") != 0:
+    print(test_name, FAIL, 1)
+
+db.update_media([movie, movie2])
+
+if test_data_count(db, "media") != 2:
+    print(test_name, FAIL, 2)
+
+if test_data_count(db, "media", (['id', movie.id()],)) != 1:
+    print(test_name, FAIL, 3)
+
+db.delete_media([movie])
+
+if test_data_count(db, "media") != 1:
+    print(test_name, FAIL, 3)
+
+if test_data_count(db, "media", (['id', movie.id()],)) != 0:
     print(test_name, FAIL, 4)
 db.close()
 

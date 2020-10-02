@@ -36,6 +36,18 @@ class DB(object):
     def delete_containers(self, containers):
         raise NotImplementedError()
 
+    def create_media_table(self):
+        raise NotImplementedError()
+
+    def update_media(self, media):
+        raise NotImplementedError()
+
+    def get_media(self, media):
+        raise NotImplementedError()
+
+    def delete_media(self, media):
+        raise NotImplementedError()
+
     @staticmethod
     def get_instance():
         instance = None
