@@ -24,6 +24,18 @@ class DB(object):
     def get_ext_ids(self, table, re_show_name):
         raise NotImplementedError()
 
+    def create_containers_table(self):
+        raise NotImplementedError()
+
+    def update_containers(self, containers):
+        raise NotImplementedError()
+
+    def get_container(self, container):
+        raise NotImplementedError()
+
+    def delete_containers(self, containers):
+        raise NotImplementedError()
+
     @staticmethod
     def get_instance():
         instance = None
@@ -33,6 +45,9 @@ class DB(object):
             instance = Sqlite()
 
         elif DB.db_type in (DB.MARIADB, DB.MYSQL):
+            raise NotImplementedError()
+
+        else:
             raise NotImplementedError()
 
         return instance
