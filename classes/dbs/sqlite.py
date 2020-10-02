@@ -88,6 +88,8 @@ class Sqlite(DB):
 
         cur.executemany(sql, data)
 
+        self.conn.commit()
+
     def get_container(self, container):
         cur = self.conn.cursor()
 
@@ -95,7 +97,6 @@ class Sqlite(DB):
         cur.execute(sql, [container.id()])
 
         result = cur.fetchone()
-
         return_obj = self._container_from_data(result)
 
         return return_obj
@@ -151,6 +152,8 @@ class Sqlite(DB):
         ) VALUES (?,?,?,?,?,?,?,?)"""
 
         cur.executemany(sql, data)
+
+        self.conn.commit()
 
     def get_media(self, media):
         cur = self.conn.cursor()
@@ -254,20 +257,27 @@ class Sqlite(DB):
 
         result = cur.fetchone()
 
-        parent = self._container_from_data(result, False, False)
+        if result:
+            parent = self._container_from_data(
+                result,
+                get_children=False,
+                get_parent=False
+            )
+        else:
+            parent = None
 
         return parent
 
     def _get_container_children(self, result):
+        container_ids = [item for item in result[2].split(",") if item.strip()]
+        media_ids = [item for item in result[3].split(",") if item.strip()]
         containers = []
         media = []
 
-        if result[2]:
-            container_ids = result[2].split(",")
+        if len(container_ids):
             where = ""
-            for container in container_ids:
-                if container.strip():
-                    where = "{}id=? OR ".format(where)
+            for container_id in container_ids:
+                where = "{}id=? OR ".format(where)
 
             where = where.rstrip(" OR ")
 
@@ -279,13 +289,24 @@ class Sqlite(DB):
             for result in cur.fetchall():
                 containers.append(self._container_from_data(
                     result,
-                    False,
-                    False
+                    get_children=False,
+                    get_parent=False
                 ))
 
-        if result[3]:
-            # TODO:
-            pass
+        if len(media_ids):
+            where = ""
+            for media_id in media_ids:
+                where = "{}id=? OR ".format(where)
+
+            where = where.rstrip(" OR ")
+
+            cur = self.conn.cursor()
+
+            sql = "SELECT * FROM media WHERE {}".format(where)
+            cur.execute(sql, media_ids)
+
+            for result in cur.fetchall():
+                media.append(self._media_from_data(result))
 
         return containers, media
 
@@ -309,6 +330,7 @@ class Sqlite(DB):
 
         if get_children and (result[2] or result[3]):
             containers, media = self._get_container_children(result)
+
             for c in containers:
                 return_obj.containers.append(c)
 
