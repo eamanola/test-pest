@@ -1,9 +1,12 @@
 import hashlib
 from classes.container import Show, Season, Extra
 from classes.identifiable import Identifiable
+import os
+import sys
 
 
 class Media(object):
+
     def __init__(self, file_path, parent=None):
         super(Media, self).__init__()
 
@@ -23,9 +26,47 @@ class Media(object):
     def title(self):
         raise NotImplementedError()
 
-    def thumbnail(self, thumbnail):
-        # TODO: print("{} exist?good:create".format(thumbnail))
-        return thumbnail  # + ".jpg"
+    def thumbnail(self, thumbnail, create_ifmissing=True):
+        ret = None
+
+        if (
+            create_ifmissing and
+            thumbnail and
+            self.file_path() and
+            self.parent()
+        ):
+            THUMBNAIL_FOLDER = os.path.join(
+                sys.path[0],
+                'images',
+                'thumbnails'
+            )
+
+            thumbnail_path = os.path.join(THUMBNAIL_FOLDER, f"{thumbnail}.png")
+
+            if not os.path.exists(thumbnail_path):
+                if not os.path.exists(THUMBNAIL_FOLDER):
+                    os.makedirs(THUMBNAIL_FOLDER)
+
+                mediafile_full_path = os.path.join(
+                    self.parent().path(),
+                    self.file_path()
+                )
+
+                cmd = f'''
+                    ffmpeg -ss {{}} -i "{mediafile_full_path}" -vf scale=240:-1
+                    -y -vframes 1 "{thumbnail_path}"
+                '''.replace("\n", " ")
+                time = "00:04:00.000"
+                os.system(cmd.format(time))
+
+                # video shorter than 4 min
+                if not os.path.exists(thumbnail_path):
+                    time = "00:00:10.000"
+                    os.system(cmd.format(time))
+
+            ret = "/images/thumbnails/{}.png".format(thumbnail)
+
+        return ret
 
 
 class Episode(Media):
@@ -71,21 +112,34 @@ class Episode(Media):
             self.episode_number()
         )
 
-    def thumbnail(self):
+    def thumbnail(self, create_ifmissing=True):
         thumbnail = self.title()
 
-        parent = self.parent()
-        while parent:
-            if isinstance(parent, (Extra, Season, Show)):
-                thumbnail = "{}.{}".format(parent.title(), thumbnail)
-                parent = parent.parent()
+        if self.parent() and isinstance(self.parent(), (Extra, Season, Show)):
+            if isinstance(self.parent(), Extra):
+                thumbnail = "Extra {}".format(thumbnail)
 
-            else:
-                parent = None
+            if (
+                isinstance(self.parent(), Season) and
+                self.parent().season_number()
+            ):
+                thumbnail = "Season{} {}".format(
+                    self.parent().season_number(),
+                    thumbnail
+                )
+
+            if (
+                isinstance(self.parent(), Show) and
+                self.parent().show_name()
+            ):
+                thumbnail = "{} {}".format(
+                    self.parent().show_name(),
+                    thumbnail
+                )
 
         thumbnail = thumbnail.replace(" ", ".")
 
-        return super().thumbnail(thumbnail)
+        return super().thumbnail(thumbnail, create_ifmissing)
 
 
 class Movie(Media, Identifiable):
@@ -96,7 +150,7 @@ class Movie(Media, Identifiable):
     def title(self):
         return self._title
 
-    def thumbnail(self):
+    def thumbnail(self, create_ifmissing=True):
         if self.year():
             thumbnail = "{} ({})".format(self.title(), self.year())
         else:
@@ -104,4 +158,4 @@ class Movie(Media, Identifiable):
 
         thumbnail = thumbnail.replace(" ", ".")
 
-        return super().thumbnail(thumbnail)
+        return super().thumbnail(thumbnail, create_ifmissing)

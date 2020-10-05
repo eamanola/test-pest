@@ -149,7 +149,8 @@ if movie.title() != movie._title:
 test_name = "Media.thumbnail"
 print(test_name) if debug else ""
 media = Media(FILE_PATH)
-if media.thumbnail(RANDOM_STR) != RANDOM_STR:
+media._parent
+if media.thumbnail(RANDOM_STR, False) is not None:
     print(test_name, FAIL)
 
 test_name = "Episode.thumbnail"
@@ -164,12 +165,12 @@ extra = Extra(LIBRARY_PATH, SHOW_NAME, SEASON_NUMBER)
 episode = Episode(FILE_PATH, EPISODE_NUMBER)
 
 expected = episode.title().replace(" ", ".")
-if episode.thumbnail() != expected:
+if episode.thumbnail(False) != expected:
     print(test_name, FAIL)
 
 episode._parent = season
 expected = "{}.{}".format(season.title(), episode.title()).replace(" ", ".")
-if episode.thumbnail() != expected:
+if episode.thumbnail(False) != expected:
     print(test_name, FAIL)
 
 season._parent = show
@@ -178,7 +179,7 @@ expected = "{}.{}.{}".format(
     season.title(),
     episode.title()
 ).replace(" ", ".")
-if episode.thumbnail() != expected:
+if episode.thumbnail(False) != expected:
     print(test_name, FAIL)
 
 show._parent = mediaLibrary
@@ -187,23 +188,23 @@ expected = "{}.{}.{}".format(
     season.title(),
     episode.title()
 ).replace(" ", ".")
-if episode.thumbnail() != expected:
+if episode.thumbnail(False) != expected:
     print(test_name, FAIL)
 
 episode._parent = show
 expected = "{}.{}".format(show.title(), episode.title()).replace(" ", ".")
-if episode.thumbnail() != expected:
+if episode.thumbnail(False) != expected:
     print(test_name, FAIL)
 
 test_name = "Movie.thumbnail"
 print(test_name) if debug else ""
 movie = Movie(FILE_PATH, TITLE)
-if movie.thumbnail() != movie.title().replace(" ", "."):
+if movie.thumbnail(False) != movie.title().replace(" ", "."):
     print(test_name, FAIL, 1)
 
 movie.set_year(RANDOM_INT)
 expected = "{} ({})".format(movie.title(), movie.year()).replace(" ", ".")
-if movie.thumbnail() != expected:
+if movie.thumbnail(False) != expected:
     print(test_name, FAIL, 2)
 
 print("media-tests: Successfully Completed")

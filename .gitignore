@@ -1,1 +1,6 @@
 __pycache__/
+images/thumbnails/
+tmp/
+external/
+TODO
+example.db

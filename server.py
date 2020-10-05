@@ -42,7 +42,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/":
-            self.path = "/?c=224fd5892f9ca98ca94cd819639e1eea"
+            self.path = "/?c=d16c4b170f395bcdeaedcd5c9786eb01"
 
         params = parse_qs(urlparse(self.path).query)
         page = "Unknown"
@@ -52,7 +52,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             'c' in params or
             'm' in params
         ):
-            print(self.html(params))
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
@@ -77,6 +76,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
 
             f = open(os.path.join(sys.path[0], 'styles.css'), "rb")
+            self.wfile.write(f.read())
+            f.close()
+
+        elif (
+            self.path.startswith("/images/thumbnails/") and
+            self.path.endswith(".png")
+        ):
+            self.send_response(200)
+            self.send_header("Content-type", "image/png")
+            self.end_headers()
+
+            f = open(os.path.join(
+                sys.path[0],
+                os.sep.join(self.path[1:].split("/"))
+            ), "rb")
             self.wfile.write(f.read())
             f.close()
 
