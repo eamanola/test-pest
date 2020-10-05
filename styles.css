@@ -1,0 +1,6 @@
+.js-container[data-id],
+.js-parent[data-id],
+.js-media[data-id]
+{
+  text-decoration: underline;
+}

@@ -116,6 +116,12 @@ if (
 ):
     print(test_name, FAIL)
 
+test_name = "Container.thumbnail"
+print(test_name) if debug else ""
+container = Container()
+if container.thumbnail() != "":
+    print(test_name, FAIL)
+
 test_name = "MediaLibrary.path()"
 print(test_name) if debug else ""
 mediaLibrary = MediaLibrary(LIBRARY_PATH)

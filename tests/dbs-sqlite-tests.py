@@ -318,8 +318,8 @@ db.update_containers([
     season3,
     extra
 ])
-result = db.get_container(show)
 
+result = db.get_container(show)
 if (
     result.id() != show.id() or
     not isinstance(result, Show) or
@@ -330,6 +330,14 @@ if (
     result.show_name() != show.show_name()
 ):
     print(test_name, FAIL, 2)
+
+result2 = db.get_container(show.id())
+if result.id() != result2.id():
+    print(test_name, FAIL, 2)
+
+result = db.get_container(RANDOM_STR)
+if result is not None:
+    print(test_name, FAIL, 3)
 
 db.close()
 
@@ -536,6 +544,14 @@ if (
     result.is_nced() != episode1.is_nced()
 ):
     print(test_name, FAIL, 2)
+
+result2 = db.get_media(episode1.id())
+if result.id() != result2.id():
+    print(test_name, FAIL, 2.1)
+
+result2 = db.get_media(RANDOM_STR)
+if result2 is not None:
+    print(test_name, FAIL, 2.2)
 
 if len(result.subtitles) != 1:
     print(test_name, FAIL, 3)

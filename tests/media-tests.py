@@ -100,9 +100,8 @@ media = Media(FILE_PATH)
 try:
     print(media.title())
     print(test_name, FAIL)
-except Exception as e:
-    if not isinstance(e, NotImplementedError):
-        print(test_name, FAIL)
+except NotImplementedError:
+    pass
 
 test_name = "Episode.title"
 print(test_name) if debug else ""
@@ -150,12 +149,8 @@ if movie.title() != movie._title:
 test_name = "Media.thumbnail"
 print(test_name) if debug else ""
 media = Media(FILE_PATH)
-try:
-    print(media.thumbnail())
+if media.thumbnail(RANDOM_STR) != RANDOM_STR:
     print(test_name, FAIL)
-except Exception as e:
-    if not isinstance(e, NotImplementedError):
-        print(test_name, FAIL)
 
 test_name = "Episode.thumbnail"
 print(test_name) if debug else ""

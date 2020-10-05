@@ -23,8 +23,9 @@ class Media(object):
     def title(self):
         raise NotImplementedError()
 
-    def thumbnail(self):
-        raise NotImplementedError()
+    def thumbnail(self, thumbnail):
+        # TODO: print("{} exist?good:create".format(thumbnail))
+        return thumbnail  # + ".jpg"
 
 
 class Episode(Media):
@@ -82,7 +83,9 @@ class Episode(Media):
             else:
                 parent = None
 
-        return thumbnail.replace(" ", ".")
+        thumbnail = thumbnail.replace(" ", ".")
+
+        return super().thumbnail(thumbnail)
 
 
 class Movie(Media, Identifiable):
@@ -99,4 +102,6 @@ class Movie(Media, Identifiable):
         else:
             thumbnail = self.title()
 
-        return thumbnail.replace(" ", ".")
+        thumbnail = thumbnail.replace(" ", ".")
+
+        return super().thumbnail(thumbnail)

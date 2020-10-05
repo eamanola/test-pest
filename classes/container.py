@@ -47,6 +47,9 @@ class Container(object):
     def title(self):
         raise NotImplementedError()
 
+    def thumbnail(self):
+        return ""
+
 
 class MediaLibrary(Container):
     def __init__(self, path, parent=None):

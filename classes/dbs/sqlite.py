@@ -1,7 +1,7 @@
 import sqlite3
 from classes.db import DB
-from classes.container import MediaLibrary, Show, Season, Extra
-from classes.media import Episode, Movie
+from classes.container import Container, MediaLibrary, Show, Season, Extra
+from classes.media import Media, Episode, Movie
 
 
 class Sqlite(DB):
@@ -91,13 +91,18 @@ class Sqlite(DB):
         self.conn.commit()
 
     def get_container(self, container):
+        if isinstance(container, Container):
+            container_id = container.id()
+        else:
+            container_id = container
+
         cur = self.conn.cursor()
 
         sql = "SELECT * FROM containers WHERE id=?"
-        cur.execute(sql, [container.id()])
+        cur.execute(sql, [container_id])
 
         result = cur.fetchone()
-        return_obj = self._container_from_data(result)
+        return_obj = self._container_from_data(result) if result else None
 
         return return_obj
 
@@ -156,14 +161,19 @@ class Sqlite(DB):
         self.conn.commit()
 
     def get_media(self, media):
+        if isinstance(media, Media):
+            media_id = media.id()
+        else:
+            media_id = media
+
         cur = self.conn.cursor()
 
         sql = "SELECT * FROM media WHERE id=?"
-        cur.execute(sql, [media.id()])
+        cur.execute(sql, [media_id])
 
         result = cur.fetchone()
 
-        return_obj = self._media_from_data(result)
+        return_obj = self._media_from_data(result) if result else None
 
         return return_obj
 
