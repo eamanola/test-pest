@@ -8,25 +8,25 @@ class MediaUI(object):
 
     @staticmethod
     def html_line(media, is_title=False):
-        include_parent = (
-            is_title and
-            media.parent() and
-            isinstance(media.parent(), (Show, Season, Extra))
-        )
 
-        return f'''
-            <div class="media">
-                <img src="{media.thumbnail()}" />
-                {{parent}}
-                <span
-                    class="js-media"
-                    data-id="{media.id()}"
-                >
-                    {media.title()}
-                </span>
-            </div>
-        '''.format(parent=f'''
-            <span class="parent js-parent" data-id="{media.parent().id()}">
+        if is_title and media.parent() and isinstance(
+            media.parent(), (Show, Season, Extra)
+        ):
+            parent = f'''
+            <span
+                class="js-navigation
+                js-container"
+                data-id="{media.parent().id()}"
+            >
                 {media.parent().title()}
             </span> &nbsp;
-            ''' if include_parent else "")
+            '''
+        else:
+            parent = ""
+        return f'''
+            <div class="media js-media" data-id="{media.id()}">
+                <img src="{media.thumbnail()}" />
+                {parent}
+                <span class="js-navigation">{media.title()}</span>
+            </div>
+        '''

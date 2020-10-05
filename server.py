@@ -4,12 +4,25 @@ from urllib.parse import urlparse, parse_qs
 import time
 from classes.ui.media_ui import MediaUI
 from classes.ui.container_ui import ContainerUI
+from classes.scanner import Scanner
+from classes.container import MediaLibrary, Show, Season, Extra
 from classes.db import DB
 import os
 import sys
 
 
+def collect_objs(con, containers=[], media=[]):
+    containers = containers + con.containers
+    media = media + con.media
+
+    for container in con.containers:
+        containers, media = collect_objs(container, containers, media)
+
+    return containers, media
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
+
     def html(self, params):
         if 'c' in params:
             container_id = params['c'][0]
@@ -21,8 +34,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             page = ContainerUI.html_page(container) if container else "errorrs"
         elif 'm' in params:
-            page = "media"
-            id = params['m']
+            media_id = params['m'][0]
+
+            db = DB.get_instance()
+            db.connect()
+            media = db.get_media(media_id)
+            db.close()
+
+            page = f'''
+                {media.file_path()} <br/>
+                {media.title()} <br/>
+                {media.thumbnail()} <br/>
+                {media.parent().title() if media.parent() else ""} <br/>
+            '''
 
         return f"""
             <!DOCTYPE html>
@@ -58,9 +82,56 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             self.wfile.write(bytes(self.html(params), "utf-8"))
 
-        elif (
-            self.path == "/scripts.js"
-        ):
+        elif 's' in params:
+            self.send_response(200)
+            self.send_header("Content-type", "text/json")
+            self.end_headers()
+
+            container_id = params['s'][0]
+
+            db = DB.get_instance()
+            db.connect()
+
+            container = db.get_container(container_id)
+
+            containers, media = collect_objs(container)
+            db.delete_containers(containers)
+            db.delete_media(media)
+
+            result = None
+            if isinstance(container, Extra):
+                result = Scanner().scan_extra(container)
+            elif isinstance(container, Season):
+                result = Scanner().scan_season(container)
+            elif isinstance(container, Show):
+                result = Scanner().scan_show(container)
+            elif isinstance(container, MediaLibrary):
+                result = Scanner().scan_media_library(container)
+
+            if result:
+                containers, media = collect_objs(result)
+                containers.append(container)
+
+                db.create_containers_table()
+                db.create_media_table()
+
+                db.update_containers(containers)
+                db.update_media(media)
+
+            db.close()
+
+            self.wfile.write(
+                bytes(
+                    f'''{{
+                        "action":"scan",
+                        "data_id":"{container_id}",
+                        "message":"{container.title()} updated"
+                    }}'''.replace("\n", " "),
+                    "utf-8"
+                )
+            )
+
+        elif self.path == "/scripts.js":
 
             self.send_response(200)
             self.send_header("Content-type", "text/javascript")

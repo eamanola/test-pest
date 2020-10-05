@@ -1,6 +1,10 @@
-.js-container[data-id],
-.js-parent[data-id],
-.js-media[data-id]
+.js-navigation
 {
   text-decoration: underline;
+}
+
+.container .actions
+{
+  position: absolute;
+  right: 0px;
 }

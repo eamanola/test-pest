@@ -107,6 +107,9 @@ class Sqlite(DB):
         return return_obj
 
     def delete_containers(self, containers):
+        if not len(containers):
+            return
+
         where, ids = self._where_ids(containers)
 
         cur = self.conn.cursor()
@@ -178,6 +181,9 @@ class Sqlite(DB):
         return return_obj
 
     def delete_media(self, media):
+        if not len(media):
+            return
+
         where, ids = self._where_ids(media)
 
         cur = self.conn.cursor()
