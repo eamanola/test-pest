@@ -2,6 +2,7 @@ import sqlite3
 from classes.db import DB
 from classes.container import Container, MediaLibrary, Show, Season, Extra
 from classes.media import Media, Episode, Movie
+from classes.identifiable import Identifiable
 
 
 class Sqlite(DB):
@@ -64,6 +65,7 @@ class Sqlite(DB):
                 season_number INTEGER
             )"""
         )
+        self._create_identifiables_table()
 
     def update_containers(self, containers):
 
@@ -88,6 +90,10 @@ class Sqlite(DB):
 
         cur.executemany(sql, data)
 
+        self._update_identifiables(
+            [i for i in containers if isinstance(i, Identifiable)]
+        )
+
         self.conn.commit()
 
     def get_container(self, container):
@@ -96,9 +102,15 @@ class Sqlite(DB):
         else:
             container_id = container
 
+        self.conn.row_factory = sqlite3.Row
         cur = self.conn.cursor()
 
-        sql = "SELECT * FROM containers WHERE id=?"
+        sql = """
+            SELECT * FROM containers
+            LEFT OUTER JOIN identifiables
+            ON containers.id = identifiables.id
+            WHERE containers.id=?
+            """
         cur.execute(sql, [container_id])
 
         result = cur.fetchone()
@@ -137,6 +149,7 @@ class Sqlite(DB):
                 flags TEXT
             )"""
         )
+        self._create_identifiables_table()
 
     def update_media(self, media):
 
@@ -161,6 +174,10 @@ class Sqlite(DB):
 
         cur.executemany(sql, data)
 
+        self._update_identifiables(
+            [i for i in media if isinstance(i, Identifiable)]
+        )
+
         self.conn.commit()
 
     def get_media(self, media):
@@ -169,9 +186,15 @@ class Sqlite(DB):
         else:
             media_id = media
 
+        self.conn.row_factory = sqlite3.Row
         cur = self.conn.cursor()
 
-        sql = "SELECT * FROM media WHERE id=?"
+        sql = """
+            SELECT * FROM media
+            LEFT OUTER JOIN identifiables
+            ON media.id = identifiables.id
+            WHERE media.id=?
+            """
         cur.execute(sql, [media_id])
 
         result = cur.fetchone()
@@ -215,13 +238,14 @@ class Sqlite(DB):
 
         self.conn.commit()
 
-    def _where_ids(self, items, and_or='OR'):
+    def _where_ids(self, items, and_or='OR', table=''):
         ids = []
         where = ""
+        table = f"{table}." if table else ""
 
         for item in items:
             ids.append(item.id())
-            where = '{}id=? {} '.format(where, and_or)
+            where = '{}{}id=? {} '.format(where, table, and_or)
 
         where = where.rstrip('{} '.format(and_or))
 
@@ -266,9 +290,15 @@ class Sqlite(DB):
         )
 
     def _get_parent(self, parent_id):
+        self.conn.row_factory = sqlite3.Row
         cur = self.conn.cursor()
 
-        sql = "SELECT * FROM containers WHERE id=?"
+        sql = """
+            SELECT * FROM containers
+            LEFT OUTER JOIN identifiables
+            ON containers.id = identifiables.id
+            WHERE containers.id=?
+            """
         cur.execute(sql, [parent_id])
 
         result = cur.fetchone()
@@ -293,13 +323,19 @@ class Sqlite(DB):
         if len(container_ids):
             where = ""
             for container_id in container_ids:
-                where = "{}id=? OR ".format(where)
+                where = "{}containers.id=? OR ".format(where)
 
             where = where.rstrip(" OR ")
 
+            self.conn.row_factory = sqlite3.Row
             cur = self.conn.cursor()
 
-            sql = "SELECT * FROM containers WHERE {}".format(where)
+            sql = """
+                SELECT * FROM containers
+                LEFT OUTER JOIN identifiables
+                ON containers.id = identifiables.id
+                WHERE {}
+                """.format(where)
             cur.execute(sql, container_ids)
 
             for result in cur.fetchall():
@@ -312,13 +348,19 @@ class Sqlite(DB):
         if len(media_ids):
             where = ""
             for media_id in media_ids:
-                where = "{}id=? OR ".format(where)
+                where = "{}media.id=? OR ".format(where)
 
             where = where.rstrip(" OR ")
 
+            self.conn.row_factory = sqlite3.Row
             cur = self.conn.cursor()
 
-            sql = "SELECT * FROM media WHERE {}".format(where)
+            sql = """
+                SELECT * FROM media
+                LEFT OUTER JOIN identifiables
+                ON media.id = identifiables.id
+                WHERE {}
+                """.format(where)
             cur.execute(sql, media_ids)
 
             for result in cur.fetchall():
@@ -326,26 +368,48 @@ class Sqlite(DB):
 
         return containers, media
 
-    def _container_from_data(self, result, get_children=True, get_parent=True):
-        if get_parent and result[4]:
-            parent = self._get_parent(result[4])
+    def _container_from_data(
+        self,
+        result_row,
+        get_children=True,
+        get_parent=True
+    ):
+        if get_parent and result_row['parent']:
+            parent = self._get_parent(result_row['parent'])
         else:
             parent = None
 
-        if result[1] == 'MediaLibrary':
-            return_obj = MediaLibrary(result[5], parent=parent)
-        elif result[1] == 'Show':
-            return_obj = Show(result[5], result[6], parent=parent)
-        elif result[1] == 'Season':
-            return_obj = Season(result[5], result[6], result[7], parent=parent)
-        elif result[1] == 'Extra':
-            return_obj = Extra(result[5], result[6], result[7], parent=parent)
+        if result_row['type'] == 'MediaLibrary':
+            return_obj = MediaLibrary(result_row['path'], parent=parent)
+        elif result_row['type'] == 'Show':
+            return_obj = Show(
+                result_row['path'],
+                result_row['show_name'],
+                parent=parent
+            )
+        elif result_row['type'] == 'Season':
+            return_obj = Season(
+                result_row['path'],
+                result_row['show_name'],
+                result_row['season_number'],
+                parent=parent
+            )
+        elif result_row['type'] == 'Extra':
+            return_obj = Extra(
+                result_row['path'],
+                result_row['show_name'],
+                result_row['season_number'],
+                parent=parent
+            )
         else:
             print('hmm hmm')
             pass
 
-        if get_children and (result[2] or result[3]):
-            containers, media = self._get_container_children(result)
+        if get_children and (
+            result_row['containers'] or
+            result_row['media']
+        ):
+            containers, media = self._get_container_children(result_row)
 
             for c in containers:
                 return_obj.containers.append(c)
@@ -353,24 +417,36 @@ class Sqlite(DB):
             for m in media:
                 return_obj.media.append(m)
 
+        if result_row['year']:
+            return_obj.set_year(result_row['year'])
+
+        if result_row['ext_ids']:
+            for ext_id in result_row['ext_ids'].split(","):
+                parts = ext_id.split("=")
+                return_obj.ext_ids()[parts[0]] = parts[1]
+
         return return_obj
 
-    def _media_from_data(self, result):
-        if result[2]:
-            parent = self._get_parent(result[2])
+    def _media_from_data(self, result_row):
+        if result_row['parent']:
+            parent = self._get_parent(result_row['parent'])
         else:
             parent = None
 
-        if result[1] == 'Movie':
-            return_obj = Movie(result[3], result[6], parent=parent)
-        elif result[1] == 'Episode':
-            flags = result[7]
+        if result_row['type'] == 'Movie':
+            return_obj = Movie(
+                result_row['file_path'],
+                result_row['title'],
+                parent=parent
+            )
+        elif result_row['type'] == 'Episode':
+            flags = result_row['flags']
             is_oad = flags[0] == "1"
             is_ncop = flags[1] == "1"
             is_nced = flags[2] == "1"
             return_obj = Episode(
-                result[3],
-                result[5],
+                result_row['file_path'],
+                result_row['episode_number'],
                 parent=parent,
                 is_oad=is_oad,
                 is_ncop=is_ncop,
@@ -380,8 +456,74 @@ class Sqlite(DB):
             print('hmm hmm')
             pass
 
-        for subtitle in result[4].split(","):
+        for subtitle in result_row['subtitles'].split(","):
             if subtitle.strip():
                 return_obj.subtitles.append(subtitle)
 
+        if result_row['year']:
+            return_obj.set_year(result_row['year'])
+
+        if result_row['ext_ids']:
+            for ext_id in result_row['ext_ids'].split(","):
+                parts = ext_id.split("=")
+                return_obj.ext_ids()[parts[0]] = parts[1]
+
         return return_obj
+
+    def _create_identifiables_table(self):
+        self._create_table(
+            "identifiables",
+            # type: Episode|Movie
+            # subtitles: comma separated list
+            # title: None for Episode
+            # flags: is_oad is_ncop is_nced
+            """(
+                id TEXT,
+                ext_ids TEXT,
+                year INTEGER
+            )"""
+            )
+
+    def _update_identifiables(self, identifiables):
+
+        self._delete_identifiables(identifiables)
+
+        where, ids = self._where_ids(identifiables)
+
+        data = [self._get_identifiable_data(i) for i in identifiables]
+
+        cur = self.conn.cursor()
+
+        sql = """INSERT INTO identifiables (
+            id,
+            ext_ids,
+            year
+        ) VALUES (?,?,?)"""
+
+        cur.executemany(sql, data)
+
+        self.conn.commit()
+
+    def _delete_identifiables(self, identifiables):
+        if not len(identifiables):
+            return
+
+        where, ids = self._where_ids(identifiables)
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM identifiables WHERE {}'.format(where)
+        cur.execute(sql, ids)
+
+        self.conn.commit()
+
+    def _get_identifiable_data(self, identifiable):
+        ext_ids = []
+        for key in identifiable.ext_ids().keys():
+            ext_ids.append(f"{key}={identifiable.ext_ids()[key]}")
+
+        return (
+            identifiable.id(),
+            ','.join(ext_ids),
+            identifiable.year()
+        )

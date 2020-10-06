@@ -97,6 +97,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             containers, media = collect_objs(container)
             db.delete_containers(containers)
             db.delete_media(media)
+            container.containers.clear()
+            container.media.clear()
 
             result = None
             if isinstance(container, Extra):

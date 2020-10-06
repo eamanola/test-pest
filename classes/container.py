@@ -81,7 +81,8 @@ class Show(MediaLibrary, Identifiable):
         return Container.id(self.show_name())
 
     def title(self):
-        return self.show_name()
+        year_str = f" ({self.year()})" if self.year() else ""
+        return self.show_name() + year_str
 
 
 class Season(Show):

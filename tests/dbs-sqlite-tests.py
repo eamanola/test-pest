@@ -300,7 +300,7 @@ show_name = "a show name"
 media_library = MediaLibrary(path)
 show = Show(path, show_name, parent=media_library)
 season1 = Season(path, show_name, 1, parent=show)
-season2 = Season(path, show_name, 2 + 1, parent=show)
+season2 = Season(path, show_name, 2, parent=show)
 season3 = Season(path, show_name, 3, parent=show)
 extra = Extra(path, show_name, 1, parent=season1)
 
@@ -333,7 +333,7 @@ if (
 
 result2 = db.get_container(show.id())
 if result.id() != result2.id():
-    print(test_name, FAIL, 2)
+    print(test_name, FAIL, 2.1)
 
 result = db.get_container(RANDOM_STR)
 if result is not None:
@@ -354,7 +354,7 @@ show_name = "a show name"
 media_library = MediaLibrary(path)
 show = Show(path, show_name, parent=media_library)
 season1 = Season(path, show_name, 1, parent=show)
-season2 = Season(path, show_name, 2 + 1, parent=show)
+season2 = Season(path, show_name, 2, parent=show)
 season3 = Season(path, show_name, 3, parent=show)
 extra = Extra(path, show_name, 1, parent=season1)
 
@@ -661,6 +661,123 @@ if test_data_count(db, "media") != 1:
 
 if test_data_count(db, "media", (['id', movie.id()],)) != 0:
     print(test_name, FAIL, 4)
+db.close()
+
+test_name = "Sqlite.create_identifiable_table"
+print(test_name) if debug else ""
+
+db = Sqlite()
+db.connect(TMP_DB)
+cur = db.conn.cursor()
+table_name = "identifiables"
+
+cols = parse_cols(
+    """(
+        item_id TEXT,
+        ext_ids TEXT,
+        year INTEGER
+    )"""
+)
+
+db.create_media_table()
+if not test_table_pragma(db, table_name, cols):
+    print(test_name, FAIL, 1)
+
+db.close()
+
+db.connect(TMP_DB)
+cur = db.conn.cursor()
+db.create_containers_table()
+if not test_table_pragma(db, table_name, cols):
+    print(test_name, FAIL, 2)
+
+db.close()
+
+test_name = "Sqlite.update_identifiables"
+print(test_name) if debug else ""
+db = Sqlite()
+db.connect(TMP_DB)
+db.create_containers_table()
+db.create_media_table()
+
+lib_path = "a path"
+file_path = "a file path"
+file_path2 = "another file path"
+show_name = "a show name"
+subtitle_path = "a subtitle path"
+title = "a title"
+
+media_library = MediaLibrary(path)
+show = Show(lib_path, show_name, parent=media_library)
+season1 = Season(lib_path, show_name, 1, parent=show)
+season2 = Season(lib_path, show_name, 2 + 1, parent=show)
+season3 = Season(lib_path, show_name, 3, parent=show)
+extra = Extra(lib_path, show_name, 1, parent=season1)
+episode1 = Episode(file_path, 1, parent=season1)
+episode1.subtitles.append(subtitle_path)
+movie = Movie(file_path2, title, parent=media_library)
+
+media_library.containers.append(show)
+media_library.media.append(movie)
+show.containers.append(season1)
+show.containers.append(season2)
+show.containers.append(season3)
+season1.containers.append(extra)
+season1.media.append(episode1)
+
+db.update_containers([
+    media_library,
+    show,
+    season1,
+    season2,
+    season3,
+    extra
+])
+
+db.update_media([episode1, movie])
+
+if (
+    (movie.year() != show.year()) is not None and
+    (len(movie.ext_ids()) != len(show.ext_ids())) != 0
+):
+    print(test_name, FAIL, 1)
+
+MOVIE_YEAR = 2000
+movie.set_year(MOVIE_YEAR)
+db.update_media([movie])
+result = db.get_media(movie)
+if result.year() != MOVIE_YEAR:
+    print(test_name, FAIL, 2)
+
+SHOW_YEAR = 2001
+show.set_year(SHOW_YEAR)
+db.update_containers([show])
+result = db.get_container(show)
+if result.year() != SHOW_YEAR:
+    print(test_name, FAIL, 3)
+
+movie.ext_ids()[RANDOM_STR] = RANDOM_STR2
+movie.ext_ids()[RANDOM_STR2] = RANDOM_STR
+db.update_media([movie])
+result = db.get_media(movie)
+if (
+    len(result.ext_ids()) != 2 and
+    result.ext_ids()[RANDOM_STR] != RANDOM_STR2 and
+    result.ext_ids()[RANDOM_STR2] != RANDOM_STR
+):
+    print(test_name, FAIL, 2)
+
+show.ext_ids()[RANDOM_STR] = RANDOM_STR2
+show.ext_ids()[RANDOM_STR2] = RANDOM_STR
+db.update_containers([show])
+result = db.get_container(show)
+if (
+    len(result.ext_ids()) != 2 and
+    result.ext_ids()[RANDOM_STR] != RANDOM_STR2 and
+    result.ext_ids()[RANDOM_STR2] != RANDOM_STR
+):
+    print(test_name, FAIL, 2)
+
 db.close()
 
 print("db-sqlite-tests: Successfully Completed")
