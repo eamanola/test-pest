@@ -11,6 +11,7 @@ import os
 import sys
 from classes.identifier import Identifier
 from classes.ext_apis.anidb import AniDB
+import subprocess
 
 
 def collect_objs(con, containers=[], media=[]):
@@ -53,7 +54,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     <link rel="stylesheet" href="styles.css">
                 </head>
                 <body>
-                    <a href="#" onclick="play(); return false">Play</a>
+                    <a class="js-play" href="#">Play</a>
+                    <a class="js-clear-play" href="#">Clear</a>
                     {page}
                     <script type="text/javascript" src="./scripts.js"></script>
                 </body>
@@ -213,26 +215,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 message = f"playing {', '.join([m.title() for m in media])}"
 
                 file_paths = [
-                    f'"{os.path.join(m.parent().path(), m.file_path())}"'
+                    f'{os.path.join(m.parent().path(), m.file_path())}'
                     for m in media
                 ]
 
-                cmd_vlc = f'''
-                vlc {" ".join(file_paths)}
-                --fullscreen
-                --mouse-hide-timeout 3000
-                -q
-                '''.replace("\n", " ")
+                cmd_vlc = [
+                    'vlc',
+                    '--fullscreen',
+                    '--mouse-hide-timeout 3000',
+                    '-q'
+                ] + file_paths
 
-                cmd_mpv = f'''
-                mpv {" ".join(file_paths)}
-                --fullscreen
-                --slang=en,eng
-                '''.replace("\n", " ")
+                cmd_mpv = [
+                    'mpv',
+                    '--fullscreen',
+                    '--slang=en,eng'
+                ] + file_paths
 
                 cmd = cmd_mpv
-                print(cmd)
-                os.system(cmd)
+                subprocess.Popen(cmd)
+                print(" ".join(cmd))
+                # os.system(cmd)
 
             self.wfile.write(
                 bytes(

@@ -133,6 +133,8 @@ function onToggleToPlayClick(e) {
 
     storage.setItem('add-to-play-list', list.join(","))
 
+    update_play()
+
     var query = '[data-id="' + data_id + '"] .js-add-to-play'
     var el = document.querySelectorAll(query)[0]
     el.innerHTML = title
@@ -164,7 +166,30 @@ function onPlayedClick(e) {
   }
 }
 
+function update_play() {
+  var list_str = storage.getItem('add-to-play-list')
+  var list = list_str ? list_str.split(",") : []
+  document.querySelectorAll('.js-play')[0]
+    .innerHTML = "Play(" + list.length + ")"
+}
+
+function onClearPlayClick(e) {
+  storage.removeItem('add-to-play-list')
+  update_play()
+  var add_to_play_items = document.querySelectorAll('.js-add-to-play')
+  for (var i = 0, il = add_to_play_items.length; i < il; i++)
+    if (add_to_play_items[i].innerHTML !== "+Play") {
+      add_to_play_items[i].innerHTML = "+Play"
+    }
+}
+
 function init() {
+  var play_item = document.querySelectorAll('.js-play')[0]
+  play_item.addEventListener('click', play, false)
+
+  var clear_play_item = document.querySelectorAll('.js-clear-play')[0]
+  clear_play_item.addEventListener('click', onClearPlayClick, false)
+
   var played_items = document.querySelectorAll('.js-played')
   for (var i = 0, il = played_items.length; i < il; i++) {
     played_items[i].addEventListener('click', onPlayedClick, false)
@@ -205,6 +230,9 @@ function init() {
   for (var i = 0, il = navigation_items.length; i < il; i++) {
     navigation_items[i].addEventListener('click', onNavigationClick, false)
   }
+
+
+  update_play()
 }
 
 init();
