@@ -9,6 +9,8 @@ from classes.container import MediaLibrary, Show, Season, Extra
 from classes.db import DB
 import os
 import sys
+from classes.identifier import Identifier
+from classes.ext_apis.anidb import AniDB
 
 
 def collect_objs(con, containers=[], media=[]):
@@ -128,6 +130,61 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         "action":"scan",
                         "data_id":"{container_id}",
                         "message":"{container.title()} updated"
+                    }}'''.replace("\n", " "),
+                    "utf-8"
+                )
+            )
+        elif 'i' in params:
+            self.send_response(200)
+            self.send_header("Content-type", "text/json")
+            self.end_headers()
+
+            identifiable_id = params['i'][0]
+
+            error = 0
+            message = ""
+
+            db = DB.get_instance()
+            db.connect()
+
+            container = db.get_container(identifiable_id)
+            if not container:
+                media = db.get_media(identifiable_id)
+
+            item = container if container else media
+
+            if not item:
+                error = 1
+                message = "Not Found"
+
+            if not error:
+                media_type = AniDB.TV_SHOW if container else AniDB.MOVIE
+                show_name = container.show_name() if container else movie.title()
+                anidb_id = Identifier(AniDB).guess_id(
+                    db,
+                    show_name,
+                    item.year(),
+                    media_type
+                )
+
+                if anidb_id:
+                    item.ext_ids()[AniDB.KEY] = anidb_id
+
+                if container:
+                    db.update_containers([container])
+                else:
+                    db.update_media([media])
+
+                message = f"anidb is {anidb_id}"
+
+            db.close()
+            self.wfile.write(
+                bytes(
+                    f'''{{
+                        "action":"identify",
+                        "data_id":"{identifiable_id}",
+                        "error":”{error}",
+                        "message": "{message}"
                     }}'''.replace("\n", " "),
                     "utf-8"
                 )

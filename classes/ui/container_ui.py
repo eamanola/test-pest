@@ -1,6 +1,7 @@
 from classes.container import Season, Show, Extra
 from classes.ui.media_ui import MediaUI
 from classes.identifiable import Identifiable
+from classes.ext_apis.anidb import AniDB
 
 
 class ContainerUI(object):
@@ -56,6 +57,22 @@ class ContainerUI(object):
         else:
             parent = ""
 
+        if (
+            isinstance(container, Identifiable) and
+            AniDB.KEY in container.ext_ids()
+        ):
+            anidb = f'''
+            <a
+                href="https://anidb.net/anime/{container.ext_ids()[AniDB.KEY]}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="extrenal-link">
+                aniDB
+            </a>&nbsp;
+            '''
+        else:
+            anidb = ""
+
         scan = '<a href="#" class="js-scan">Scan</a>'
 
         identify = ''
@@ -79,6 +96,9 @@ class ContainerUI(object):
                 <img src="{container.thumbnail()}" />
                 {parent}
                 {title}
-                {actions}
+                <span class="right">
+                    {anidb}
+                    {actions}
+                </span>
             </div>
         '''

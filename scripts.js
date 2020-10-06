@@ -32,6 +32,17 @@ function get_data_id(el) {
   }
 }
 
+function updatePage() {
+  url = "/" + window.location.search
+  ajax(
+    url,
+    function updatePageDataReceived(responseText) {
+      document.body.innerHTML = responseText
+
+      init()
+    }
+  )
+}
 
 function onNavigationClick(e) {
   id_obj = get_data_id(e.target)
@@ -52,12 +63,9 @@ function onNavigationClick(e) {
   }
 }
 
-var navigation_items = document.querySelectorAll('.js-navigation')
-for (var i = 0, il = navigation_items.length; i < il; i++) {
-  navigation_items[i].addEventListener('click', onNavigationClick, false)
-}
-
 function onScanCompleted(responseText) {
+  return updatePage();
+
   response = JSON.parse(responseText)
   console.log(response)
 
@@ -83,7 +91,41 @@ function onScanClick(e) {
   return false
 }
 
-var scan_items = document.querySelectorAll('.js-scan')
-for (var i = 0, il = scan_items.length; i < il; i++) {
-  scan_items[i].addEventListener('click', onScanClick, false)
+function onIdentifyCompleted(responseText) {
+  return updatePage();
+  console.log(responseText)
 }
+
+function onIdentifyClick(e) {
+  id_obj = get_data_id(e.target)
+  data_id = id_obj.data_id
+  if (data_id) {
+    ajax('/?i=' + data_id, onIdentifyCompleted)
+
+    query = '[data-id="' + data_id + '"] .js-identify'
+    var el = document.querySelectorAll(query)[0]
+    el.innerHTML = "identifying"
+    el.removeEventListener('click', onIdentifyClick, false)
+  }
+
+  return false
+}
+
+function init() {
+  var identify_items = document.querySelectorAll('.js-identify')
+  for (var i = 0, il = identify_items.length; i < il; i++) {
+    identify_items[i].addEventListener('click', onIdentifyClick, false)
+  }
+
+  var scan_items = document.querySelectorAll('.js-scan')
+  for (var i = 0, il = scan_items.length; i < il; i++) {
+    scan_items[i].addEventListener('click', onScanClick, false)
+  }
+
+  var navigation_items = document.querySelectorAll('.js-navigation')
+  for (var i = 0, il = navigation_items.length; i < il; i++) {
+    navigation_items[i].addEventListener('click', onNavigationClick, false)
+  }
+}
+
+init();
