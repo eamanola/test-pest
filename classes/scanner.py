@@ -84,6 +84,7 @@ class Scanner(object):
                     media = Episode(
                         file_path,
                         episode_number,
+                        False,
                         parent=current_container,
                         is_oad=is_oad,
                         is_ncop=is_ncop,
@@ -96,7 +97,12 @@ class Scanner(object):
                         current_container.media.append(media)
 
             elif is_movie:
-                media = Movie(file_path, show_name, parent=current_container)
+                media = Movie(
+                    file_path,
+                    show_name,
+                    False,
+                    parent=current_container
+                )
                 existing = current_container.get_media(media.id())
                 if existing:
                     media = existing

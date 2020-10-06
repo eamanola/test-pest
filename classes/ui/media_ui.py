@@ -58,7 +58,16 @@ class MediaUI(object):
             identify = '<a href="#" class="js-identify">Identify</a>'
 
         add_to_play = '<a href="#" class="js-add-to-play">+Play</a>'
-        played = '<a href="#" class="js-played">Played</a>'
+        played = f'''
+            <label>
+                Played
+                <input
+                    type="checkbox"
+                    class="js-played"
+                    {"checked" if media.played() else ""}
+                    ></input>
+            </label>
+            '''
 
         actions = f'''
             <span class="actions">

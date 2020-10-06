@@ -476,7 +476,8 @@ cols = parse_cols("""(
     subtitles TEXT,
     episode_number INTEGER,
     title TEXT,
-    flags TEXT
+    flags TEXT,
+    played INTEGER
 )""")
 
 db = Sqlite()
@@ -509,9 +510,9 @@ season1 = Season(lib_path, show_name, 1, parent=show)
 season2 = Season(lib_path, show_name, 2 + 1, parent=show)
 season3 = Season(lib_path, show_name, 3, parent=show)
 extra = Extra(lib_path, show_name, 1, parent=season1)
-episode1 = Episode(file_path, 1, parent=season1)
+episode1 = Episode(file_path, 1, False, parent=season1)
 episode1.subtitles.append(subtitle_path)
-movie = Movie(file_path2, title, parent=media_library)
+movie = Movie(file_path2, title, False, parent=media_library)
 
 media_library.containers.append(show)
 media_library.media.append(movie)
@@ -541,7 +542,8 @@ if (
     result.episode_number() != episode1.episode_number() or
     result.is_oad() != episode1.is_oad() or
     result.is_ncop() != episode1.is_ncop() or
-    result.is_nced() != episode1.is_nced()
+    result.is_nced() != episode1.is_nced() or
+    result.played() != episode1.played()
 ):
     print(test_name, FAIL, 2)
 
@@ -568,7 +570,8 @@ if (
     result.episode_number() != episode1.episode_number() or
     result.is_oad() != episode1.is_oad() or
     result.is_ncop() != episode1.is_ncop() or
-    result.is_nced() != episode1.is_nced()
+    result.is_nced() != episode1.is_nced() or
+    result.played() != episode1.played()
 ):
     print(test_name, FAIL, 4)
 
@@ -595,7 +598,8 @@ if (
     result.episode_number() != episode1.episode_number() or
     result.is_oad() != episode1.is_oad() or
     result.is_ncop() != episode1.is_ncop() or
-    result.is_nced() != episode1.is_nced()
+    result.is_nced() != episode1.is_nced() or
+    result.played() != episode1.played()
 ):
     print(test_name, FAIL, 8)
 
@@ -610,9 +614,15 @@ if (
 ):
     print(test_name, FAIL, 9)
 
-episode2 = Episode("2{}".format(file_path), 2, parent=season1, is_oad=True)
-episode3 = Episode("3{}".format(file_path), 3, parent=season1, is_ncop=True)
-episode4 = Episode("4{}".format(file_path), 4, parent=season1, is_nced=True)
+episode3 = Episode(
+    "3{}".format(file_path), 3, False, parent=season1, is_ncop=True
+)
+episode2 = Episode(
+    "2{}".format(file_path), 2, False, parent=season1, is_oad=True
+)
+episode4 = Episode(
+    "4{}".format(file_path), 4, False, parent=season1, is_nced=True
+)
 season1.containers.append(episode2)
 season1.containers.append(episode3)
 season1.containers.append(episode4)
@@ -631,6 +641,35 @@ result = db.get_media(episode4)
 if result.is_oad() or result.is_ncop() or not result.is_nced():
     print(test_name, FAIL, 12)
 
+movie = Movie(file_path2, title, False, parent=media_library)
+episode5 = Episode("5{}".format(file_path), 5, False, parent=season1)
+db.update_media([movie, episode5])
+result1 = db.get_media(movie)
+result2 = db.get_media(episode5)
+if (
+    movie.played() !=
+    episode5.played() !=
+    result1.played() !=
+    result2.played() is not
+    False
+):
+    print(test_name, FAIL, 13)
+
+movie.set_played(True)
+episode5.set_played(True)
+db.update_media([movie, episode5])
+result1 = db.get_media(movie)
+result2 = db.get_media(episode5)
+if (
+    movie.played() !=
+    episode5.played() !=
+    result1.played() !=
+    result2.played() is not
+    True
+):
+    print(test_name, FAIL, 13)
+
+
 db.close()
 
 test_name = "Sqlite.delete_media"
@@ -640,8 +679,8 @@ db = Sqlite()
 db.connect(TMP_DB)
 db.create_media_table()
 
-movie = Movie("a file_path", "a title")
-movie2 = Movie("another file_path", "another title")
+movie = Movie("a file_path", "a title", False)
+movie2 = Movie("another file_path", "another title", False)
 
 if test_data_count(db, "media") != 0:
     print(test_name, FAIL, 1)
@@ -713,9 +752,9 @@ season1 = Season(lib_path, show_name, 1, parent=show)
 season2 = Season(lib_path, show_name, 2 + 1, parent=show)
 season3 = Season(lib_path, show_name, 3, parent=show)
 extra = Extra(lib_path, show_name, 1, parent=season1)
-episode1 = Episode(file_path, 1, parent=season1)
+episode1 = Episode(file_path, 1, False, parent=season1)
 episode1.subtitles.append(subtitle_path)
-movie = Movie(file_path2, title, parent=media_library)
+movie = Movie(file_path2, title, False, parent=media_library)
 
 media_library.containers.append(show)
 media_library.media.append(movie)

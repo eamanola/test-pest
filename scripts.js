@@ -149,7 +149,25 @@ function play() {
   }
 }
 
+function onPlayedSaved(responseText) {
+  console.log(responseText);
+}
+
+function onPlayedClick(e) {
+  var id_obj = get_data_id(e.target)
+  var data_id = id_obj.data_id
+
+  if (data_id) {
+    var url = ["/?", e.target.checked ? "pa" : "pr", "=", data_id].join("")
+    ajax(url, onPlayedSaved)
+  }
+}
+
 function init() {
+  var played_items = document.querySelectorAll('.js-played')
+  for (var i = 0, il = played_items.length; i < il; i++) {
+    played_items[i].addEventListener('click', onPlayedClick, false)
+  }
 
   var add_to_play_items = document.querySelectorAll('.js-add-to-play')
 

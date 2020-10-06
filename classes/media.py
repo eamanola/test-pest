@@ -7,12 +7,13 @@ import sys
 
 class Media(object):
 
-    def __init__(self, file_path, parent=None):
+    def __init__(self, file_path, played, parent=None):
         super(Media, self).__init__()
 
         self._file_path = file_path
         self.subtitles = []
         self._parent = parent
+        self._played = played
 
     def file_path(self):
         return self._file_path
@@ -22,6 +23,12 @@ class Media(object):
 
     def parent(self):
         return self._parent
+
+    def played(self):
+        return self._played
+
+    def set_played(self, played):
+        self._played = played
 
     def title(self):
         raise NotImplementedError()
@@ -74,12 +81,13 @@ class Episode(Media):
         self,
         file_path,
         episode_number,
+        played,
         parent=None,
         is_oad=False,
         is_ncop=False,
         is_nced=False
     ):
-        super(Episode, self).__init__(file_path, parent=parent)
+        super(Episode, self).__init__(file_path, played, parent=parent)
         self._episode_number = episode_number
         self._is_oad = is_oad
         self._is_ncop = is_ncop
@@ -143,8 +151,8 @@ class Episode(Media):
 
 
 class Movie(Media, Identifiable):
-    def __init__(self, file_path, title, parent=None):
-        super(Movie, self).__init__(file_path, parent=parent)
+    def __init__(self, file_path, title, played, parent=None):
+        super(Movie, self).__init__(file_path, played, parent=parent)
         self._title = title
 
     def title(self):

@@ -233,6 +233,38 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 )
             )
 
+        elif 'pa' in params or 'pr' in params:
+            self.send_response(200)
+            self.send_header("Content-type", "text/json")
+            self.end_headers()
+
+            add = 'pa' in params
+            remove = 'pr' in params
+            media_id = params['pa'][0] if add else params['pr'][0]
+
+            db = DB.get_instance()
+            db.connect()
+
+            media = db.get_media(media_id)
+            media.set_played(add)
+            db.update_media([media])
+
+            db.close()
+
+            message = f"""
+                {media.title()} marked {"played" if add else "unplayed"}
+            """
+
+            self.wfile.write(
+                bytes(
+                    f'''{{
+                        "action":"played",
+                        "data_id":"{media_id}",
+                        "message": "{message}"
+                    }}'''.replace("\n", " "),
+                    "utf-8"
+                )
+            )
         elif self.path == "/scripts.js":
 
             self.send_response(200)

@@ -146,7 +146,8 @@ class Sqlite(DB):
                 subtitles TEXT,
                 episode_number INTEGER,
                 title TEXT,
-                flags TEXT
+                flags TEXT,
+                played INTEGER
             )"""
         )
         self._create_identifiables_table()
@@ -169,8 +170,9 @@ class Sqlite(DB):
             subtitles,
             episode_number,
             title,
-            flags
-        ) VALUES (?,?,?,?,?,?,?,?)"""
+            flags,
+            played
+        ) VALUES (?,?,?,?,?,?,?,?,?)"""
 
         cur.executemany(sql, data)
 
@@ -286,7 +288,8 @@ class Sqlite(DB):
             ','.join(media.subtitles),
             media.episode_number() if isinstance(media, Episode) else None,
             media.title() if isinstance(media, Movie) else None,
-            flags
+            flags,
+            1 if media.played() else 0
         )
 
     def _get_parent(self, parent_id):
@@ -437,6 +440,7 @@ class Sqlite(DB):
             return_obj = Movie(
                 result_row['file_path'],
                 result_row['title'],
+                result_row['played'] == 1,
                 parent=parent
             )
         elif result_row['type'] == 'Episode':
@@ -447,6 +451,7 @@ class Sqlite(DB):
             return_obj = Episode(
                 result_row['file_path'],
                 result_row['episode_number'],
+                result_row['played'] == 1,
                 parent=parent,
                 is_oad=is_oad,
                 is_ncop=is_ncop,
