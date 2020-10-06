@@ -1,3 +1,4 @@
+storage = sessionStorage
 function ajax(url, callback) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
@@ -117,7 +118,7 @@ function onToggleToPlayClick(e) {
   var data_id = id_obj.data_id
 
   if (data_id) {
-    var list_str = localStorage.getItem('add-to-play-list')
+    var list_str = storage.getItem('add-to-play-list')
     var list = list_str ? list_str.split(",") : []
     var title = ""
 
@@ -130,7 +131,7 @@ function onToggleToPlayClick(e) {
       title = "+Play"
     }
 
-    localStorage.setItem('add-to-play-list', list.join(","))
+    storage.setItem('add-to-play-list', list.join(","))
 
     var query = '[data-id="' + data_id + '"] .js-add-to-play'
     var el = document.querySelectorAll(query)[0]
@@ -143,7 +144,7 @@ function onPlayConfirmed(responseText) {
 }
 
 function play() {
-  var list_str = localStorage.getItem('add-to-play-list')
+  var list_str = storage.getItem('add-to-play-list')
   if (list_str) {
     ajax('/?p=' + list_str, onPlayConfirmed)
   }
@@ -171,7 +172,7 @@ function init() {
 
   var add_to_play_items = document.querySelectorAll('.js-add-to-play')
 
-  var list_str = localStorage.getItem('add-to-play-list')
+  var list_str = storage.getItem('add-to-play-list')
   var list = list_str ? list_str.split(",") : null
   var data_id = id_obj = null
 

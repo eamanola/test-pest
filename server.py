@@ -217,7 +217,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     for m in media
                 ]
 
-                cmd = f'''vlc {" ".join(file_paths)} --fullscreen'''
+                cmd_vlc = f'''
+                vlc {" ".join(file_paths)}
+                --fullscreen
+                --mouse-hide-timeout 3000
+                -q
+                '''.replace("\n", " ")
+
+                cmd_mpv = f'''
+                mpv {" ".join(file_paths)}
+                --fullscreen
+                --slang=en,eng
+                '''.replace("\n", " ")
+
+                cmd = cmd_mpv
                 print(cmd)
                 os.system(cmd)
 
