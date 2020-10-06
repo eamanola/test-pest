@@ -59,7 +59,7 @@ class Sqlite(DB):
                 type TEXT,
                 containers TEXT,
                 media TEXT,
-                parent TEXT,
+                parent_id TEXT,
                 path TEXT,
                 show_name TEXT,
                 season_number INTEGER
@@ -82,7 +82,7 @@ class Sqlite(DB):
             type,
             containers,
             media,
-            parent,
+            parent_id,
             path,
             show_name,
             season_number
@@ -141,7 +141,7 @@ class Sqlite(DB):
             """(
                 id TEXT,
                 type TEXT,
-                parent TEXT,
+                parent_id TEXT,
                 file_path TEXT,
                 subtitles TEXT,
                 episode_number INTEGER,
@@ -164,7 +164,7 @@ class Sqlite(DB):
         sql = """INSERT INTO media (
             id,
             type,
-            parent,
+            parent_id,
             file_path,
             subtitles,
             episode_number,
@@ -374,8 +374,8 @@ class Sqlite(DB):
         get_children=True,
         get_parent=True
     ):
-        if get_parent and result_row['parent']:
-            parent = self._get_parent(result_row['parent'])
+        if get_parent and result_row['parent_id']:
+            parent = self._get_parent(result_row['parent_id'])
         else:
             parent = None
 
@@ -428,8 +428,8 @@ class Sqlite(DB):
         return return_obj
 
     def _media_from_data(self, result_row):
-        if result_row['parent']:
-            parent = self._get_parent(result_row['parent'])
+        if result_row['parent_id']:
+            parent = self._get_parent(result_row['parent_id'])
         else:
             parent = None
 

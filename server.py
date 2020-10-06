@@ -53,8 +53,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     <link rel="stylesheet" href="styles.css">
                 </head>
                 <body>
-                    <p>Request: {self.path}</p>
-                    <p>Params: {params}</p>
                     <a href="#" onclick="play(); return false">Play</a>
                     {page}
                     <script type="text/javascript" src="./scripts.js"></script>
