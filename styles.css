@@ -3,8 +3,13 @@
   text-decoration: underline;
 }
 
-.container .right
+.right
 {
   position: absolute;
   right: 0px;
+  margin-right: 1em
+}
+
+.container *, .media * {
+  vertical-align: top
 }

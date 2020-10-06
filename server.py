@@ -43,12 +43,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             media = db.get_media(media_id)
             db.close()
 
-            page = f'''
-                {media.file_path()} <br/>
-                {media.title()} <br/>
-                {media.thumbnail()} <br/>
-                {media.parent().title() if media.parent() else ""} <br/>
-            '''
+            page = MediaUI.html_page(media) if media else "errorrs"
 
         return f"""
             <!DOCTYPE html>
@@ -234,10 +229,10 @@ hostName = "localhost"
 
 try:
     serverPort = 8080
-    httpd = socketserver.TCPServer((hostName, 8080), Handler)
+    httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 except OSError:
-    serverPort = 8083
-    httpd = socketserver.TCPServer((hostName, 8083), Handler)
+    serverPort = 8084
+    httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 
 print("Server started http://%s:%s" % (hostName, serverPort))
 

@@ -79,8 +79,10 @@ class ContainerUI(object):
         if container.__class__.__name__ == "Show":
             identify = '<a href="#" class="js-identify">Identify</a>'
 
-        add_to_play = '<a href="#" class="js-add-to-play">+Play</a>'
-        played = '<a href="#" class="js-played">Played</a>'
+        # add_to_play = '<a href="#" class="js-add-to-play">+Play</a>'
+        # played = '<a href="#" class="js-played">Played</a>'
+        add_to_play = ''
+        played = ''
 
         actions = f'''
             <span class="actions">
