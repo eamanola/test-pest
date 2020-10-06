@@ -46,6 +46,8 @@ function updatePage() {
 }
 
 function onNavigationClick(e) {
+  e.preventDefault();
+
   var id_obj = get_data_id(e.target)
   var type = id_obj.type
   var data_id = id_obj.data_id
@@ -63,6 +65,8 @@ function onNavigationClick(e) {
     if (window.location.pathname + window.location.search != url)
       window.location.href = url
   }
+
+  return false
 }
 
 function onScanCompleted(responseText) {
@@ -79,6 +83,8 @@ function onScanCompleted(responseText) {
 }
 
 function onScanClick(e) {
+  e.preventDefault();
+
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
   if (data_id) {
@@ -99,6 +105,8 @@ function onIdentifyCompleted(responseText) {
 }
 
 function onIdentifyClick(e) {
+  e.preventDefault();
+
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
   if (data_id) {
@@ -114,6 +122,8 @@ function onIdentifyClick(e) {
 }
 
 function onToggleToPlayClick(e) {
+  e.preventDefault();
+
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
 
@@ -139,17 +149,24 @@ function onToggleToPlayClick(e) {
     var el = document.querySelectorAll(query)[0]
     el.innerHTML = title
   }
+
+  return false
 }
 
 function onPlayConfirmed(responseText) {
   console.log(responseText)
 }
 
-function play() {
+function play(e) {
+  if (e && e.preventDefault)
+    e.preventDefault();
+
   var list_str = storage.getItem('add-to-play-list')
   if (list_str) {
     ajax('/?p=' + list_str, onPlayConfirmed)
   }
+
+  return false
 }
 
 function onPlayedSaved(responseText) {
@@ -157,6 +174,8 @@ function onPlayedSaved(responseText) {
 }
 
 function onPlayedClick(e) {
+  e.preventDefault();
+
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
 
@@ -164,6 +183,8 @@ function onPlayedClick(e) {
     var url = ["/?", e.target.checked ? "pa" : "pr", "=", data_id].join("")
     ajax(url, onPlayedSaved)
   }
+
+  return false
 }
 
 function update_play() {
@@ -174,6 +195,8 @@ function update_play() {
 }
 
 function onClearPlayClick(e) {
+  e.preventDefault();
+
   storage.removeItem('add-to-play-list')
   update_play()
   var add_to_play_items = document.querySelectorAll('.js-add-to-play')
@@ -181,6 +204,29 @@ function onClearPlayClick(e) {
     if (add_to_play_items[i].innerHTML !== "+Play") {
       add_to_play_items[i].innerHTML = "+Play"
     }
+
+  return false
+}
+
+function update_add_to_play_items() {
+  var add_to_play_items = document.querySelectorAll('.js-add-to-play')
+
+  var list_str = storage.getItem('add-to-play-list')
+  var list = list_str ? list_str.split(",") : null
+  var data_id = id_obj = null
+
+  for (var i = 0, il = add_to_play_items.length; i < il; i++) {
+    if (list) {
+      id_obj = get_data_id(add_to_play_items[i])
+      data_id = id_obj.data_id
+
+      if (data_id && list.indexOf(data_id) !== -1) {
+        add_to_play_items[i].innerHTML = "-Play"
+      } else {
+        add_to_play_items[i].innerHTML = "+Play"
+      }
+    }
+  }
 }
 
 function init() {
@@ -196,25 +242,10 @@ function init() {
   }
 
   var add_to_play_items = document.querySelectorAll('.js-add-to-play')
-
-  var list_str = storage.getItem('add-to-play-list')
-  var list = list_str ? list_str.split(",") : null
-  var data_id = id_obj = null
-
   for (var i = 0, il = add_to_play_items.length; i < il; i++) {
     add_to_play_items[i].addEventListener('click', onToggleToPlayClick, false)
-
-    if (list) {
-      id_obj = get_data_id(add_to_play_items[i])
-      data_id = id_obj.data_id
-
-      if (data_id && list.indexOf(data_id) !== -1) {
-        add_to_play_items[i].innerHTML = "-Play"
-      } else {
-        add_to_play_items[i].innerHTML = "+Play"
-      }
-    }
   }
+  update_add_to_play_items()
 
   var identify_items = document.querySelectorAll('.js-identify')
   for (var i = 0, il = identify_items.length; i < il; i++) {
@@ -230,7 +261,6 @@ function init() {
   for (var i = 0, il = navigation_items.length; i < il; i++) {
     navigation_items[i].addEventListener('click', onNavigationClick, false)
   }
-
 
   update_play()
 }

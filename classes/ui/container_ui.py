@@ -34,18 +34,9 @@ class ContainerUI(object):
     @staticmethod
     def html_line(container, is_title=False):
 
-        if is_title:
-            title = f'<span>{container.title()}</span>'
-        else:
-            title = f'<span class="js-navigation">{container.title()}</span>'
-
-        if (
-            container.parent() and
-            (
-                is_title or
-                isinstance(container.parent(), (Season, Extra))
-            )
-        ):
+        if (container.parent() and (
+            isinstance(container.parent(), (Show, Season, Extra))
+        )):
             parent = f'''
                 <span
                     class="js-navigation js-container"
@@ -56,6 +47,11 @@ class ContainerUI(object):
             '''
         else:
             parent = ""
+
+        if is_title:
+            title = f'<span>{container.title()}</span>'
+        else:
+            title = f'<span class="js-navigation">{container.title()}</span>'
 
         if (
             isinstance(container, Identifiable) and

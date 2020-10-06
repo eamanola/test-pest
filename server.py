@@ -35,7 +35,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             container = db.get_container(container_id)
             db.close()
 
+            # skip one item pages
+            if len(container.containers) + len(container.media) == 1:
+                if len(container.containers) == 1:
+                    new_params = {
+                        'c': [container.containers[0].id()]
+                    }
+                elif len(container.media) == 1:
+                    new_params = {
+                        'm': [container.media[0].id()]
+                    }
+                return self.html(new_params)
+
             page = ContainerUI.html_page(container) if container else "errorrs"
+
+            if container.__class__.__name__ != "MediaLibrary":
+                media_library = MediaLibrary(container.path())
+            else:
+                media_library = None
         elif 'm' in params:
             media_id = params['m'][0]
 
@@ -45,7 +62,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             db.close()
 
             page = MediaUI.html_page(media) if media else "errorrs"
+            if media.parent() and media.parent().path():
+                media_library = MediaLibrary(media.parent().path())
+            else:
+                media_library = None
 
+        if media_library:
+            media_library = f'''
+                <a href="/?c={media_library.id()}" >
+                    {media_library.title()}
+                </a>'''
+        else:
+            media_library = ""
         return f"""
             <!DOCTYPE html>
             <html>
@@ -54,8 +82,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     <link rel="stylesheet" href="styles.css">
                 </head>
                 <body>
+                    <a href="/">Home</a>
                     <a class="js-play" href="#">Play</a>
                     <a class="js-clear-play" href="#">Clear</a>
+                    {media_library}
                     {page}
                     <script type="text/javascript" src="./scripts.js"></script>
                 </body>
@@ -206,8 +236,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if m:
                     media.append(m)
 
-            db.close()
-
             if len(media) == 0:
                 error = 1
                 message = "Nothing to play"
@@ -236,6 +264,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 subprocess.Popen(cmd)
                 print(" ".join(cmd))
                 # os.system(cmd)
+
+                add = []
+                for m in media:
+                    if isinstance(m.parent(), (Extra, Season, Show)):
+                        add.append(m.parent())
+                        print(f'adding {m.parent().title()} to front page')
+            db.close()
 
             self.wfile.write(
                 bytes(
