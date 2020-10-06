@@ -10,8 +10,8 @@ function ajax(url, callback) {
 }
 
 function get_data_id(el) {
-  type = null
-  data_id = null
+  var type = null
+  var data_id = null
 
   while(el && !el.hasAttribute('data-id')) {
     el = el.parentNode
@@ -33,7 +33,7 @@ function get_data_id(el) {
 }
 
 function updatePage() {
-  url = "/" + window.location.search
+  var url = "/" + window.location.search
   ajax(
     url,
     function updatePageDataReceived(responseText) {
@@ -45,9 +45,10 @@ function updatePage() {
 }
 
 function onNavigationClick(e) {
-  id_obj = get_data_id(e.target)
-  type = id_obj.type
-  data_id = id_obj.data_id
+  var id_obj = get_data_id(e.target)
+  var type = id_obj.type
+  var data_id = id_obj.data_id
+  var url = undefined
 
   if (type && data_id) {
     if (type == "container") {
@@ -66,23 +67,23 @@ function onNavigationClick(e) {
 function onScanCompleted(responseText) {
   return updatePage();
 
-  response = JSON.parse(responseText)
+  var response = JSON.parse(responseText)
   console.log(response)
 
-  data_id = response.data_id
-  query = '[data-id="' + data_id + '"] .js-scan'
+  var data_id = response.data_id
+  var query = '[data-id="' + data_id + '"] .js-scan'
   var el = document.querySelectorAll(query)[0]
   el.innerHTML = "Scan"
   el.addEventListener('click', onScanClick, false)
 }
 
 function onScanClick(e) {
-  id_obj = get_data_id(e.target)
-  data_id = id_obj.data_id
+  var id_obj = get_data_id(e.target)
+  var data_id = id_obj.data_id
   if (data_id) {
     ajax('/?s=' + data_id, onScanCompleted)
 
-    query = '[data-id="' + data_id + '"] .js-scan'
+    var query = '[data-id="' + data_id + '"] .js-scan'
     var el = document.querySelectorAll(query)[0]
     el.innerHTML = "Scanning"
     el.removeEventListener('click', onScanClick, false)
@@ -97,12 +98,12 @@ function onIdentifyCompleted(responseText) {
 }
 
 function onIdentifyClick(e) {
-  id_obj = get_data_id(e.target)
-  data_id = id_obj.data_id
+  var id_obj = get_data_id(e.target)
+  var data_id = id_obj.data_id
   if (data_id) {
     ajax('/?i=' + data_id, onIdentifyCompleted)
 
-    query = '[data-id="' + data_id + '"] .js-identify'
+    var query = '[data-id="' + data_id + '"] .js-identify'
     var el = document.querySelectorAll(query)[0]
     el.innerHTML = "identifying"
     el.removeEventListener('click', onIdentifyClick, false)
@@ -111,7 +112,66 @@ function onIdentifyClick(e) {
   return false
 }
 
+function onToggleToPlayClick(e) {
+  var id_obj = get_data_id(e.target)
+  var data_id = id_obj.data_id
+
+  if (data_id) {
+    var list_str = localStorage.getItem('add-to-play-list')
+    var list = list_str ? list_str.split(",") : []
+    var title = ""
+
+    var index = list.indexOf(data_id)
+    if (index === -1) {
+      list.push(data_id)
+      title = "-Play"
+    } else {
+      list.splice(index, 1)
+      title = "+Play"
+    }
+
+    localStorage.setItem('add-to-play-list', list.join(","))
+
+    var query = '[data-id="' + data_id + '"] .js-add-to-play'
+    var el = document.querySelectorAll(query)[0]
+    el.innerHTML = title
+  }
+}
+
+function onPlayConfirmed(responseText) {
+  console.log(responseText)
+}
+
+function play() {
+  var list_str = localStorage.getItem('add-to-play-list')
+  if (list_str) {
+    ajax('/?p=' + list_str, onPlayConfirmed)
+  }
+}
+
 function init() {
+
+  var add_to_play_items = document.querySelectorAll('.js-add-to-play')
+
+  var list_str = localStorage.getItem('add-to-play-list')
+  var list = list_str ? list_str.split(",") : null
+  var data_id = id_obj = null
+
+  for (var i = 0, il = add_to_play_items.length; i < il; i++) {
+    add_to_play_items[i].addEventListener('click', onToggleToPlayClick, false)
+
+    if (list) {
+      id_obj = get_data_id(add_to_play_items[i])
+      data_id = id_obj.data_id
+
+      if (data_id && list.indexOf(data_id) !== -1) {
+        add_to_play_items[i].innerHTML = "-Play"
+      } else {
+        add_to_play_items[i].innerHTML = "+Play"
+      }
+    }
+  }
+
   var identify_items = document.querySelectorAll('.js-identify')
   for (var i = 0, il = identify_items.length; i < il; i++) {
     identify_items[i].addEventListener('click', onIdentifyClick, false)

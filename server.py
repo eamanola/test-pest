@@ -55,6 +55,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 <body>
                     <p>Request: {self.path}</p>
                     <p>Params: {params}</p>
+                    <a href="#" onclick="play(); return false">Play</a>
                     {page}
                     <script type="text/javascript" src="./scripts.js"></script>
                 </body>
@@ -154,7 +155,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if not error:
                 media_type = AniDB.TV_SHOW if container else AniDB.MOVIE
-                show_name = container.show_name() if container else movie.title()
+                show_name = (
+                    container.show_name() if container else movie.title()
+                )
                 anidb_id = Identifier(AniDB).guess_id(
                     db,
                     show_name,
@@ -178,7 +181,54 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     f'''{{
                         "action":"identify",
                         "data_id":"{identifiable_id}",
-                        "error":”{error}",
+                        "error":"{error}",
+                        "message": "{message}"
+                    }}'''.replace("\n", " "),
+                    "utf-8"
+                )
+            )
+        elif 'p' in params:
+            self.send_response(200)
+            self.send_header("Content-type", "text/json")
+            self.end_headers()
+
+            to_play = params['p'][0].split(",")
+            media = []
+
+            error = 0
+            message = ""
+
+            db = DB.get_instance()
+            db.connect()
+
+            for item in to_play:
+                m = db.get_media(item)
+                if m:
+                    media.append(m)
+
+            db.close()
+
+            if len(media) == 0:
+                error = 1
+                message = "Nothing to play"
+            else:
+                message = f"playing {', '.join([m.title() for m in media])}"
+
+                file_paths = [
+                    f'"{os.path.join(m.parent().path(), m.file_path())}"'
+                    for m in media
+                ]
+
+                cmd = f'''vlc {" ".join(file_paths)} --fullscreen'''
+                print(cmd)
+                os.system(cmd)
+
+            self.wfile.write(
+                bytes(
+                    f'''{{
+                        "action":"play",
+                        "data_id":"{params['p']}",
+                        "error":"{error}",
                         "message": "{message}"
                     }}'''.replace("\n", " "),
                     "utf-8"
