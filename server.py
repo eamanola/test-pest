@@ -330,6 +330,7 @@ except OSError:
 print("Server started http://%s:%s" % (hostName, serverPort))
 
 try:
+    os.system(f'firefox http://{hostName}:{serverPort}')
     httpd.serve_forever()
 except KeyboardInterrupt:
     pass
