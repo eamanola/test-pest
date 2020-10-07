@@ -83,9 +83,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 </head>
                 <body>
                     <a href="/">Home</a>
-                    <a class="js-play" href="#">Play</a>
-                    <a class="js-clear-play" href="#">Clear</a>
                     {media_library}
+                    <div id="add-to-play-list"></div>
+                    <button id="play-button">Play</button>
+                    <button id="clear-add-to-play-list-button">Clear</button>
                     {page}
                     <script type="text/javascript" src="./scripts.js"></script>
                 </body>
@@ -362,13 +363,13 @@ try:
     serverPort = 8080
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 except OSError:
-    serverPort = 8084
+    serverPort = 8083
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 
 print("Server started http://%s:%s" % (hostName, serverPort))
 
 try:
-    os.system(f'firefox http://{hostName}:{serverPort}')
+    subprocess.Popen(['firefox', f'http://{hostName}:{serverPort}'])
     httpd.serve_forever()
 except KeyboardInterrupt:
     pass

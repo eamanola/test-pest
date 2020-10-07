@@ -64,7 +64,7 @@ class MediaUI(object):
                 <input
                     type="checkbox"
                     class="js-played"
-                    {"checked" if media.played() else ""}
+                    {'checked="checked"' if media.played() else ''}
                     ></input>
             </label>
             '''
