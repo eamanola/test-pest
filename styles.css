@@ -14,11 +14,13 @@
   vertical-align: top
 }
 
-#add-to-play-list img {
+#add-to-play-list img,
+#play-next-list img {
   max-height: 3em;
   max-width: 3em;
 }
 
-#add-to-play-list .media {
+#add-to-play-list .media,
+#play-next-list .media {
   margin: 2px
 }

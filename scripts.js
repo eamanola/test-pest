@@ -354,6 +354,13 @@ function remove_from_play_list(data_id) {
   }
 }
 
+function show_play_next_list_parents() {
+  var parents = document.querySelectorAll('#play-next-list .js-parents')
+  for(var i = 0, il = parents.length; i < il; i++)
+    parents[i].style.display = "initial"
+}
+
+
 function init() {
   var play_item = document.getElementById('play-button')
   play_item.addEventListener('click', onPlayClick, false)
@@ -380,6 +387,8 @@ function init() {
   for (var i = 0, il = navigation_items.length; i < il; i++) {
     navigation_items[i].addEventListener('click', onNavigationClick, false)
   }
+
+  show_play_next_list_parents()
 }
 
 init();

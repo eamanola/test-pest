@@ -12,6 +12,7 @@ import sys
 from classes.identifier import Identifier
 from classes.ext_apis.anidb import AniDB
 import subprocess
+from classes.watchinglist import WatchingList
 
 
 def collect_objs(con, containers=[], media=[]):
@@ -27,6 +28,11 @@ def collect_objs(con, containers=[], media=[]):
 class Handler(http.server.SimpleHTTPRequestHandler):
 
     def html(self, params):
+        if self.path == "/":
+            params = {
+                'c': ["d16c4b170f395bcdeaedcd5c9786eb01"]
+            }
+
         if 'c' in params:
             container_id = params['c'][0]
 
@@ -67,6 +73,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 media_library = None
 
+        play_next_list_str = ""
+        if self.path == "/":
+            db = DB.get_instance()
+            db.connect()
+
+            play_next = WatchingList.get_play_next_list(db)
+
+            for media in play_next:
+                parent = media.parent()
+                if isinstance(parent, (Extra, Season)):
+                    parent = db.get_container(media.parent()).parent()
+
+                play_next_list_str = (
+                    ''.join([
+                        play_next_list_str,
+                        MediaUI.html_line(media, parent=parent)
+                    ])
+                )
+
+            db.close()
+
         if media_library:
             media_library = f'''
                 <a href="/?c={media_library.id()}" >
@@ -74,6 +101,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 </a>'''
         else:
             media_library = ""
+
         return f"""
             <!DOCTYPE html>
             <html>
@@ -87,6 +115,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     <div id="add-to-play-list"></div>
                     <button id="play-button">Play</button>
                     <button id="clear-add-to-play-list-button">Clear</button>
+                    <div id="play-next-list">{play_next_list_str}</div>
                     {page}
                     <script type="text/javascript" src="./scripts.js"></script>
                 </body>
@@ -94,16 +123,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         """
 
     def do_GET(self):
-        if self.path == "/":
-            self.path = "/?c=d16c4b170f395bcdeaedcd5c9786eb01"
-
         params = parse_qs(urlparse(self.path).query)
         page = "Unknown"
         id = None
 
         if (
             'c' in params or
-            'm' in params
+            'm' in params or
+            self.path == "/"
         ):
             self.send_response(200)
             self.send_header("Content-type", "text/html")
@@ -265,12 +292,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 subprocess.Popen(cmd)
                 print(" ".join(cmd))
                 # os.system(cmd)
-
-                add = []
-                for m in media:
-                    if isinstance(m.parent(), (Extra, Season, Show)):
-                        add.append(m.parent())
-                        print(f'adding {m.parent().title()} to front page')
+                WatchingList.started_play(db, media)
             db.close()
 
             self.wfile.write(

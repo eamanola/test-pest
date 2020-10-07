@@ -218,6 +218,53 @@ class Sqlite(DB):
 
         self.conn.commit()
 
+    def create_watchlist_table(self):
+        self._create_table("watchlist", "(show_id TEXT)")
+
+    def is_in_watchlists(self, show_id):
+        cur = self.conn.cursor()
+
+        sql = 'select count() from watchlist where show_id=?'
+        cur.execute(sql, [show_id])
+
+        return cur.fetchone()[0] > 0
+
+    def add_to_watchlist(self, show_ids):
+        tuple_ids = [(show_id,) for show_id in show_ids]
+        cur = self.conn.cursor()
+
+        sql = 'INSERT INTO watchlist (show_id) VALUES (?)'
+        cur.executemany(sql, tuple_ids)
+
+        self.conn.commit()
+
+    def remove_from_watchlist(self, show_ids):
+        where = ""
+        for show_id in show_ids:
+            where = "{}show_id=? OR ".format(where)
+
+        where = where.rstrip(" OR ")
+
+        cur = self.conn.cursor()
+
+        sql = f'DELETE FROM watchlist WHERE {where}'
+        cur.execute(sql, show_ids)
+
+        self.conn.commit()
+
+    def get_watchlist(self):
+        cur = self.conn.cursor()
+
+        sql = 'select * from watchlist'
+        cur.execute(sql)
+
+        shows = []
+        
+        for result in cur.fetchall():
+            shows.append(self.get_container(result[0]))
+
+        return shows
+
     def print_table(self, table):
         cur = self.conn.cursor()
 
@@ -225,7 +272,7 @@ class Sqlite(DB):
         cur.execute(sql)
 
         for row in cur:
-            print(row)
+            print(tuple(row))
 
         sql = 'select count() from {}'.format(table)
         cur.execute(sql)
