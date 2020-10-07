@@ -18,3 +18,7 @@
   max-height: 3em;
   max-width: 3em;
 }
+
+#add-to-play-list .media {
+  margin: 2px
+}

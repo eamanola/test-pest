@@ -20,7 +20,8 @@ function get_data_id(el) {
   }
 
   if (el) {
-    if(el.classList.contains('js-container'))
+    if(el.classList.contains('js-container') ||
+        el.classList.contains('js-parent'))
       type = "container"
     else if(el.classList.contains('js-media'))
       type = "media"
@@ -229,7 +230,13 @@ function update_add_to_play_list() {
   to_play_list.innerHTML = html
 
   if (html) {
-    setTimeout(function(){ connect_media_items(to_play_list) }, 0)
+    setTimeout(function(){
+      var parents = to_play_list.querySelectorAll('.js-parents')
+      for(var i = 0, il = parents.length; i < il; i++)
+        parents[i].style.display = "initial"
+
+      connect_media_items(to_play_list)
+    }, 0)
   }
 }
 ///////////////////////////////////////////////////////////////////////////////
@@ -313,7 +320,15 @@ function copy_to_play_list(data_id) {
 
   if (media_item){
     var copy = media_item.cloneNode(true)
+    var parents = copy.querySelectorAll('.js-parents')
+    for(var i = 0, il = parents.length; i < il; i++)
+      parents[i].style.display = "initial"
     connect_media_items(copy)
+
+    var navigation_items = copy.querySelectorAll('.js-navigation')
+    for (var i = 0, il = navigation_items.length; i < il; i++) {
+      navigation_items[i].addEventListener('click', onNavigationClick, false)
+    }
 
     document.getElementById('add-to-play-list').appendChild(copy)
 

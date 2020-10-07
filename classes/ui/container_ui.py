@@ -26,7 +26,7 @@ class ContainerUI(object):
         for med in sorted(container.media, key=lambda m: m.title()):
             page = f"""
                     {page}
-                    {MediaUI.html_line(med)}
+                    {MediaUI.html_line(med, parent=container)}
                     """
 
         return page
@@ -41,9 +41,7 @@ class ContainerUI(object):
                 <span
                     class="js-navigation js-container"
                     data-id="{container.parent().id()}"
-                >
-                    {container.parent().title()}
-                </span> &nbsp;
+                >{container.parent().title()}</span> &nbsp;
             '''
         else:
             parent = ""
@@ -63,8 +61,7 @@ class ContainerUI(object):
                 target="_blank"
                 rel="noopener noreferrer"
                 class="extrenal-link">
-                aniDB
-            </a>&nbsp;
+                aniDB</a>&nbsp;
             '''
         else:
             anidb = ""

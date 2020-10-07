@@ -15,25 +15,27 @@ class MediaUI(object):
         return page
 
     @staticmethod
-    def html_line(media, is_title=False):
+    def html_line(media, is_title=False, parent=None):
+
+        parent = media.parent() if parent is None else parent
+        parents = []
+        while(parent and isinstance(parent, (Show, Season, Extra))):
+            parents.append(
+                f'''
+                <span class="js-navigation js-parent" data-id="{parent.id()}">
+                    {parent.title()}</span>&nbsp;
+                <span>/</span>&nbsp;
+                '''
+            )
+            parent = parent.parent()
+
+        parents.reverse()
+        parent_str = ''.join(parents)
+
         if is_title:
             title = f'<span>{media.title()}</span>'
         else:
             title = f'<span class="js-navigation">{media.title()}</span>'
-
-        if is_title and media.parent() and isinstance(
-            media.parent(), (Show, Season, Extra)
-        ):
-            parent = f'''
-            <span
-                class="js-navigation js-container"
-                data-id="{media.parent().id()}"
-            >
-                {media.parent().title()}
-            </span> &nbsp;
-            '''
-        else:
-            parent = ""
 
         if (
             isinstance(media, Identifiable) and
@@ -81,7 +83,10 @@ class MediaUI(object):
         return f'''
             <div class="media js-media" data-id="{media.id()}">
                 <img src="{media.thumbnail()}" />
-                {parent}
+                <span class="js-parents"
+                    {'style="display:none"' if not is_title else ""}>
+                    {parent_str}
+                </span>
                 {title}
                 <span class="right">
                     {anidb}
