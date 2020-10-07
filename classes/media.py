@@ -3,7 +3,6 @@ from classes.container import Show, Season, Extra
 from classes.identifiable import Identifiable
 import os
 import sys
-import subprocess
 
 
 class Media(object):
@@ -62,22 +61,20 @@ class Media(object):
 
                 cmd = [
                     'ffmpeg',
-                    '-ss'
-                    '00:04:00.000',
-                    '-i',
-                    mediafile_full_path,
+                    '-ss 00:04:00.000',
+                    f'-i "{mediafile_full_path}"',
                     '-vf scale=240:-1',
                     '-y',
                     '-vframes 1',
-                    thumbnail_path
+                    f'"{thumbnail_path}"'
                 ]
 
-                subprocess.Popen(cmd)
+                os.system(" ".join(cmd))
 
                 # video shorter than 4 min
                 if not os.path.exists(thumbnail_path):
-                    cmd[2] = "00:00:10.000"
-                    subprocess.Popen(cmd)
+                    cmd[1] = "-ss 00:00:10.000"
+                    os.system(" ".join(cmd))
 
             ret = "/images/thumbnails/{}.png".format(thumbnail)
 

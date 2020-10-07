@@ -92,6 +92,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     ])
                 )
 
+            cur = db.conn.cursor()
+
+            sql = 'select id from containers where type="MediaLibrary"'
+            cur.execute(sql)
+
+            page = ""
+
+            for media_lib in cur.fetchall():
+                page = f"""
+                {page}
+                {ContainerUI.html_page(db.get_container(media_lib[0]))}
+                <br/>
+                """
+
             db.close()
 
         if media_library:

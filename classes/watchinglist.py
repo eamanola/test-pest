@@ -39,6 +39,7 @@ class WatchingList(object):
 
     @staticmethod
     def get_play_next_list(db):
+        db.create_watchlist_table()
         shows = db.get_watchlist()
         remove = []
         play_next = []
