@@ -103,6 +103,10 @@ class File_name_parser(object):
 
         show_name = show_name.replace(".", " ")
 
+        year = File_name_parser.guess_year(file)
+        if year != File_name_parser.UNKNOWN_YEAR:
+            show_name = f"{show_name} ({year})"
+
         return show_name.strip()
 
     @staticmethod

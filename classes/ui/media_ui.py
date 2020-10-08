@@ -15,27 +15,38 @@ class MediaUI(object):
         return page
 
     @staticmethod
-    def html_line(media, is_title=False, parent=None):
+    def html_line(media, is_title=False, parent=None, title=None):
 
         parent = media.parent() if parent is None else parent
         parents = []
         while(parent and isinstance(parent, (Show, Season, Extra))):
             parents.append(
                 f'''
-                <span class="js-navigation js-parent" data-id="{parent.id()}">
+                <span
+                    class="js-navigation js-parent parent"
+                    data-id="{parent.id()}"
+                >
                     {parent.title()}</span>&nbsp;
-                <span>/</span>&nbsp;
+                <span class="parent">/</span>&nbsp;
                 '''
             )
             parent = parent.parent()
 
         parents.reverse()
         parent_str = ''.join(parents)
+        parent_str = f'''
+        <span class="js-parents"
+            {'style="display:none"' if not is_title else ""}>
+            {parent_str}
+        </span>
+        '''
+
+        title = title if title else media.title()
 
         if is_title:
-            title = f'<span>{media.title()}</span>'
+            title_str = f'<span class="title">{title}</span>'
         else:
-            title = f'<span class="js-navigation">{media.title()}</span>'
+            title_str = f'<span class="title js-navigation">{title}</span>'
 
         if (
             isinstance(media, Identifiable) and
@@ -81,13 +92,14 @@ class MediaUI(object):
         '''
 
         return f'''
-            <div class="media js-media" data-id="{media.id()}">
-                <img src="{media.thumbnail()}" />
-                <span class="js-parents"
-                    {'style="display:none"' if not is_title else ""}>
+            <div class="media js-media {
+            "line" if not is_title else ""
+            }" data-id="{media.id()}">
+                <img class="thumbnail" src="{media.thumbnail()}" />
+                <div class="middle">
                     {parent_str}
-                </span>
-                {title}
+                    {title_str}
+                </div>
                 <span class="right">
                     {anidb}
                     {actions}

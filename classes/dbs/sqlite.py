@@ -554,7 +554,10 @@ class Sqlite(DB):
                 result_row['meta_title'],
                 result_row['meta_rating'],
                 result_row['meta_image_name'],
-                result_row['meta_episodes'],
+                sorted([
+                    (lambda x: (int(x[0]), x[1]))(m.split(":::"))
+                    for m in result_row['meta_episodes'].split(";;;")
+                ], key=lambda x: x[0]),
                 result_row['meta_description']
             ))
 

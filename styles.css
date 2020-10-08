@@ -3,17 +3,10 @@
   text-decoration: underline;
 }
 
-.right
-{
-  position: absolute;
-  right: 0px;
-  margin-right: 1em
-}
-
 .container *, .media * {
   vertical-align: top
 }
-
+/*
 #add-to-play-list img,
 #play-next-list img {
   max-height: 3em;
@@ -23,4 +16,42 @@
 #add-to-play-list .media,
 #play-next-list .media {
   margin: 2px
+}*/
+
+.poster {
+  max-width: 10em;
+}
+
+.container.line .poster {
+  margin: 0.1em 0;
+  max-width: 3em;
+}
+ .media.line .thumbnail {
+   margin: 0.1em 0;
+   max-width: 5em;
+}
+
+.container.line .middle,
+.media.line .middle,
+.container.line .actions,
+.media.line .actions {
+  margin:1em 0.5em;
+  display: inline-block;
+}
+
+.container.line .rating {
+  margin-top: 0.3em;
+  display: inline-block;
+}
+.container .description {
+  display: inline-block;
+  max-width: 60%;
+}
+
+.media.line .right,
+.container.line .right
+{
+  position: absolute;
+  right: 0px;
+  margin-right: 1em
 }

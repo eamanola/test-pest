@@ -39,21 +39,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             db = DB.get_instance()
             db.connect()
             container = db.get_container(container_id)
+
+            meta = None
+            if isinstance(container, (Extra, Season)):
+                meta = db.get_container(container.parent().id()).meta()
+            elif isinstance(container, (Show)):
+                meta = container.meta()
+
             db.close()
 
             # skip one item pages
-            # if len(container.containers) + len(container.media) == 1:
-            #     if len(container.containers) == 1:
-            #         new_params = {
-            #             'c': [container.containers[0].id()]
-            #         }
-            #     elif len(container.media) == 1:
-            #         new_params = {
-            #             'm': [container.media[0].id()]
-            #         }
-            #     return self.html(new_params)
+            if len(container.containers) + len(container.media) == 1:
+                if len(container.containers) == 1:
+                    new_params = {
+                        'c': [container.containers[0].id()]
+                    }
+                elif len(container.media) == 1:
+                    new_params = {
+                        'm': [container.media[0].id()]
+                    }
+                return self.html(new_params)
 
-            page = ContainerUI.html_page(container) if container else "errorrs"
+            page = ContainerUI.html_page(container, meta=meta)
 
             if container.__class__.__name__ != "MediaLibrary":
                 media_library = MediaLibrary(container.path())
@@ -85,12 +92,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if isinstance(parent, (Extra, Season)):
                     parent = db.get_container(media.parent()).parent()
 
-                play_next_list_str = (
-                    ''.join([
-                        play_next_list_str,
-                        MediaUI.html_line(media, parent=parent)
-                    ])
-                )
+                play_next_list_str = (''.join([
+                    play_next_list_str,
+                    MediaUI.html_line(media, parent=parent)
+                ]))
 
             cur = db.conn.cursor()
 
@@ -99,7 +104,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             page = ""
 
-            for media_lib in cur.fetchall():
+            medialibs = cur.fetchall()
+            medialibs.reverse()
+
+            for media_lib in medialibs:
                 page = f"""
                 {page}
                 {ContainerUI.html_page(db.get_container(media_lib[0]))}
@@ -353,6 +361,51 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "utf-8"
                 )
             )
+
+        elif 'gic' in params or 'gim' in params:
+            from classes.identifiable import Identifiable
+
+            self.send_response(200)
+            self.send_header("Content-type", "text/json")
+            self.end_headers()
+
+            db = DB.get_instance()
+            db.connect()
+
+            if 'gic' in params:
+                message = f"get container {params['gic'][0]}"
+                identifiable = db.get_container(params['gic'][0])
+
+            elif 'gim' in params:
+                message = f"get media {params['gim'][0]}"
+                identifiable = db.get_media(params['gim'][0])
+
+            if (
+                identifiable and
+                isinstance(identifiable, Identifiable) and
+                AniDB.KEY in identifiable.ext_ids()
+            ):
+                meta_getter = AniDB.get_meta_getter(
+                    identifiable.ext_ids()[AniDB.KEY]
+                )
+                meta = meta_getter.get()
+                db.save_meta([meta])
+                message = "completed"
+            else:
+                message = "fail"
+
+            db.close()
+            self.wfile.write(
+                bytes(
+                    f'''{{
+                        "action":"get_info",
+                        "data_id":"{params['gic'][0]
+                            if params['gic'] else params['gim'][0]}",
+                        "message": "{message}"
+                    }}'''.replace("\n", " "),
+                    "utf-8"
+                )
+            )
         elif self.path == "/scripts.js":
 
             self.send_response(200)
@@ -391,7 +444,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             ), "rb")
             self.wfile.write(f.read())
             f.close()
-
+        elif self.path == "/favicon.ico":
+            pass
         elif self.path.endswith(".jpg"):
             print('ignore image', self.path)
         else:
@@ -404,7 +458,7 @@ try:
     serverPort = 8080
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 except OSError:
-    serverPort = 8083
+    serverPort = 8084
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 
 print("Server started http://%s:%s" % (hostName, serverPort))

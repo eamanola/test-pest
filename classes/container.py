@@ -47,7 +47,7 @@ class Container(object):
     def title(self):
         raise NotImplementedError()
 
-    def thumbnail(self):
+    def poster(self):
         return ""
 
 
@@ -81,8 +81,14 @@ class Show(MediaLibrary, Identifiable):
         return Container.id(self.show_name())
 
     def title(self):
-        year_str = f" ({self.year()})" if self.year() else ""
-        return self.show_name() + year_str
+        return self.show_name()
+
+    def poster(self):
+        poster = None
+        if self.meta() and self.meta().image_name():
+            poster = self.meta().image_name()
+
+        return poster
 
 
 class Season(Show):

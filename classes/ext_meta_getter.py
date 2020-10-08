@@ -13,7 +13,7 @@ class Ext_Meta_Getter(object):
         self._image_prefix = None
 
     def get(self):
-        if True:
+        if False:
             import os
             import sys
 

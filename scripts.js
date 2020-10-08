@@ -75,8 +75,7 @@ function onNavigationClick(e) {
 function onScanCompleted(responseText) {
   return updatePage();
 
-  var response = JSON.parse(responseText)
-  console.log(response)
+  console.log(responseText.replace(/\s+/g, " "))
 
   var data_id = response.data_id
   var query = '[data-id="' + data_id + '"] .js-scan'
@@ -105,7 +104,7 @@ function onScanClick(e) {
 
 function onIdentifyCompleted(responseText) {
   return updatePage();
-  console.log(responseText)
+  console.log(responseText.replace(/\s+/g, " "))
 }
 
 function onIdentifyClick(e) {
@@ -127,7 +126,7 @@ function onIdentifyClick(e) {
 ///////////////////////////////////////////////////////////////////////////////
 
 function onPlayConfirmed(responseText) {
-  console.log(responseText)
+  console.log(responseText.replace(/\s+/g, " "))
 }
 
 function onPlayClick(e) {
@@ -137,6 +136,40 @@ function onPlayClick(e) {
   var list_str = storage.getItem('add-to-play-list')
   if (list_str) {
     ajax('/?p=' + list_str, onPlayConfirmed)
+  }
+
+  return false
+}
+///////////////////////////////////////////////////////////////////////////////
+
+function onGetInfoCompleted(responseText) {
+  return updatePage();
+  console.log(responseText.replace(/\s+/g, " "))
+}
+
+function onGetInfoClick(e) {
+  e.preventDefault()
+
+  var id_obj = get_data_id(e.target)
+  var data_id = id_obj.data_id
+  var type = id_obj.type
+  var url = undefined
+
+  if (type && data_id) {
+    if (type == "container") {
+      url =  '/?gic=' + data_id
+    } else if (type == "media") {
+      url =  '/?gim=' + data_id
+    }
+  }
+
+  if (url) {
+    ajax(url, onGetInfoCompleted)
+
+    var query = '[data-id="' + data_id + '"] .js-get-info'
+    var el = document.querySelectorAll(query)[0]
+    el.innerHTML = "searching"
+    el.removeEventListener('click', onGetInfoClick, false)
   }
 
   return false
@@ -193,7 +226,7 @@ function update_played_items(data_id, checked) {
 }
 
 function onPlayedSaved(responseText) {
-  console.log(responseText);
+  console.log(responseText.replace(/\s+/g, " "));
 }
 
 function onPlayedClick(e) {
@@ -386,6 +419,11 @@ function init() {
   var navigation_items = document.querySelectorAll('.js-navigation')
   for (var i = 0, il = navigation_items.length; i < il; i++) {
     navigation_items[i].addEventListener('click', onNavigationClick, false)
+  }
+
+  var get_info_items = document.querySelectorAll('.js-get-info')
+  for (var i = 0, il = get_info_items.length; i < il; i++) {
+    get_info_items[i].addEventListener('click', onGetInfoClick, false)
   }
 
   show_play_next_list_parents()
