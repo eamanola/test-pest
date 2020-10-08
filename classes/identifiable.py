@@ -4,6 +4,7 @@ class Identifiable(object):
         super(Identifiable, self).__init__()
         self._year = None
         self._ext_ids = {}
+        self._meta = None
 
     def set_year(self, year):
         self._year = year
@@ -13,3 +14,9 @@ class Identifiable(object):
 
     def ext_ids(self):
         return self._ext_ids
+
+    def set_meta(self, meta):
+        self._meta = meta
+
+    def meta(self):
+        return self._meta

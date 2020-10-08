@@ -16,6 +16,8 @@ class ContainerUI(object):
     @staticmethod
     def html_page(container):
         page = ContainerUI.html_line(container, True)
+        if isinstance(container, Identifiable):
+            print(container.title(), container.meta())
 
         for con in sorted(container.containers, key=lambda c: c.title()):
             page = f"""

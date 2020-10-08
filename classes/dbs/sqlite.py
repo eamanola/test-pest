@@ -109,11 +109,14 @@ class Sqlite(DB):
             SELECT * FROM containers
             LEFT OUTER JOIN identifiables
             ON containers.id = identifiables.id
+            LEFT OUTER JOIN meta
+            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
             WHERE containers.id=?
             """
         cur.execute(sql, [container_id])
 
         result = cur.fetchone()
+
         return_obj = self._container_from_data(result) if result else None
 
         return return_obj
@@ -195,6 +198,8 @@ class Sqlite(DB):
             SELECT * FROM media
             LEFT OUTER JOIN identifiables
             ON media.id = identifiables.id
+            LEFT OUTER JOIN meta
+            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
             WHERE media.id=?
             """
         cur.execute(sql, [media_id])
@@ -259,11 +264,71 @@ class Sqlite(DB):
         cur.execute(sql)
 
         shows = []
-        
+
         for result in cur.fetchall():
             shows.append(self.get_container(result[0]))
 
         return shows
+
+    def _delete_meta(self, meta):
+        where = ""
+        meta_ids = []
+        for m in meta:
+            where = "{}meta_id=? OR ".format(where)
+            meta_ids.append(m.id())
+
+        where = where.rstrip(" OR ")
+
+        cur = self.conn.cursor()
+
+        sql = f'DELETE FROM meta WHERE {where}'
+        cur.execute(sql, meta_ids)
+
+        self.conn.commit()
+
+    def save_meta(self, meta):
+        self._create_meta_table()
+        self._delete_meta(meta)
+
+        data = [
+            (
+                m.id(),
+                m.title(),
+                m.rating(),
+                m.image_name(),
+                ';;;'.join(
+                    [':::'.join([str(e[0]), e[1]]) for e in m.episodes()]
+                ),
+                m.description(),
+            ) for m in meta]
+
+        cur = self.conn.cursor()
+
+        sql = """insert into meta (
+            meta_id,
+            meta_title,
+            meta_rating,
+            meta_image_name,
+            meta_episodes,
+            meta_description
+        ) VALUES (?,?,?,?,?,?)"""
+
+        cur.executemany(sql, data)
+
+        self.conn.commit()
+
+    def _create_meta_table(self):
+        self._create_table(
+            "meta",
+            """(
+                meta_id TEXT,
+                meta_title TEXT,
+                meta_rating REAL,
+                meta_image_name TEXT,
+                meta_episodes TEXT,
+                meta_description TEXT
+            )"""
+        )
 
     def print_table(self, table):
         cur = self.conn.cursor()
@@ -347,6 +412,8 @@ class Sqlite(DB):
             SELECT * FROM containers
             LEFT OUTER JOIN identifiables
             ON containers.id = identifiables.id
+            LEFT OUTER JOIN meta
+            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
             WHERE containers.id=?
             """
         cur.execute(sql, [parent_id])
@@ -384,6 +451,8 @@ class Sqlite(DB):
                 SELECT * FROM containers
                 LEFT OUTER JOIN identifiables
                 ON containers.id = identifiables.id
+                LEFT OUTER JOIN meta
+                ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
                 WHERE {}
                 """.format(where)
             cur.execute(sql, container_ids)
@@ -409,6 +478,8 @@ class Sqlite(DB):
                 SELECT * FROM media
                 LEFT OUTER JOIN identifiables
                 ON media.id = identifiables.id
+                LEFT OUTER JOIN meta
+                ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
                 WHERE {}
                 """.format(where)
             cur.execute(sql, media_ids)
@@ -424,6 +495,8 @@ class Sqlite(DB):
         get_children=True,
         get_parent=True
     ):
+        from classes.meta import Meta
+
         if get_parent and result_row['parent_id']:
             parent = self._get_parent(result_row['parent_id'])
         else:
@@ -471,9 +544,19 @@ class Sqlite(DB):
             return_obj.set_year(result_row['year'])
 
         if result_row['ext_ids']:
-            for ext_id in result_row['ext_ids'].split(","):
-                parts = ext_id.split("=")
+            for ext_id in result_row['ext_ids'].split(";;;"):
+                parts = ext_id.split(":::")
                 return_obj.ext_ids()[parts[0]] = parts[1]
+
+        if result_row['meta_id']:
+            return_obj.set_meta(Meta(
+                result_row['meta_id'],
+                result_row['meta_title'],
+                result_row['meta_rating'],
+                result_row['meta_image_name'],
+                result_row['meta_episodes'],
+                result_row['meta_description']
+            ))
 
         return return_obj
 
@@ -572,10 +655,10 @@ class Sqlite(DB):
     def _get_identifiable_data(self, identifiable):
         ext_ids = []
         for key in identifiable.ext_ids().keys():
-            ext_ids.append(f"{key}={identifiable.ext_ids()[key]}")
+            ext_ids.append(f"{key}:::{identifiable.ext_ids()[key]}")
 
         return (
             identifiable.id(),
-            ','.join(ext_ids),
+            ';;;'.join(ext_ids),
             identifiable.year()
         )

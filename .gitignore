@@ -1,6 +1,7 @@
 __pycache__/
-images/thumbnails/
+images/
 tmp/
 external/
 TODO
 example.db
+data.gz

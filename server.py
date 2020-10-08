@@ -42,16 +42,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             db.close()
 
             # skip one item pages
-            if len(container.containers) + len(container.media) == 1:
-                if len(container.containers) == 1:
-                    new_params = {
-                        'c': [container.containers[0].id()]
-                    }
-                elif len(container.media) == 1:
-                    new_params = {
-                        'm': [container.media[0].id()]
-                    }
-                return self.html(new_params)
+            # if len(container.containers) + len(container.media) == 1:
+            #     if len(container.containers) == 1:
+            #         new_params = {
+            #             'c': [container.containers[0].id()]
+            #         }
+            #     elif len(container.media) == 1:
+            #         new_params = {
+            #             'm': [container.media[0].id()]
+            #         }
+            #     return self.html(new_params)
 
             page = ContainerUI.html_page(container) if container else "errorrs"
 
@@ -373,8 +373,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             f.close()
 
         elif (
-            self.path.startswith("/images/thumbnails/") and
-            self.path.endswith(".png")
+            (
+                self.path.startswith("/images/thumbnails/") and
+                self.path.endswith(".png")
+            ) or (
+                self.path.startswith("/images/posters/") and
+                self.path.endswith(".jpg")
+            )
         ):
             self.send_response(200)
             self.send_header("Content-type", "image/png")
@@ -388,7 +393,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             f.close()
 
         elif self.path.endswith(".jpg"):
-            print('ignore image')
+            print('ignore image', self.path)
         else:
             print('ignore', self.path)
 

@@ -11,3 +11,7 @@ class Ext_api(object):
     @staticmethod
     def get_title_to_id_file_parser(self):
         raise NotImplementedError()
+
+    @staticmethod
+    def get_meta_getter(self, ext_id):
+        raise NotImplementedError()

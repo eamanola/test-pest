@@ -48,6 +48,24 @@ class DB(object):
     def delete_media(self, media):
         raise NotImplementedError()
 
+    def create_watchlist_table(self):
+        raise NotImplementedError()
+
+    def is_in_watchlists(self, show_id):
+        raise NotImplementedError()
+
+    def add_to_watchlist(self, show_ids):
+        raise NotImplementedError()
+
+    def remove_from_watchlist(self, show_ids):
+        raise NotImplementedError()
+
+    def get_watchlist(self):
+        raise NotImplementedError()
+
+    def save_meta(self, meta):
+        raise NotImplementedError()
+
     @staticmethod
     def get_instance():
         instance = None
