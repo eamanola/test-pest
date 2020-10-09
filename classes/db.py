@@ -27,7 +27,7 @@ class DB(object):
     def create_containers_table(self):
         raise NotImplementedError()
 
-    def update_containers(self, containers):
+    def update_containers(self, containers, update_identifiables=True):
         raise NotImplementedError()
 
     def get_container(self, container):
@@ -39,7 +39,12 @@ class DB(object):
     def create_media_table(self):
         raise NotImplementedError()
 
-    def update_media(self, media):
+    def update_media(
+        self,
+        media,
+        update_identifiables=True,
+        update_media_states=True
+    ):
         raise NotImplementedError()
 
     def get_media(self, media):

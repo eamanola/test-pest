@@ -68,7 +68,7 @@ class Sqlite(DB):
         )
         self._create_identifiables_table()
 
-    def update_containers(self, containers):
+    def update_containers(self, containers, update_identifiables=True):
 
         self.delete_containers(containers)
 
@@ -91,9 +91,10 @@ class Sqlite(DB):
 
         cur.executemany(sql, data)
 
-        self._update_identifiables(
-            [i for i in containers if isinstance(i, Identifiable)]
-        )
+        if update_identifiables:
+            self._update_identifiables(
+                [i for i in containers if isinstance(i, Identifiable)]
+            )
 
         self.conn.commit()
 
@@ -150,17 +151,20 @@ class Sqlite(DB):
                 subtitles TEXT,
                 episode_number INTEGER,
                 title TEXT,
-                flags TEXT,
-                played INTEGER
+                flags TEXT
             )"""
         )
         self._create_identifiables_table()
+        self._create_media_states_table()
 
-    def update_media(self, media):
+    def update_media(
+        self,
+        media,
+        update_identifiables=True,
+        update_media_states=True
+    ):
 
         self.delete_media(media)
-
-        where, ids = self._where_ids(media)
 
         data = [self._get_media_data(m) for m in media]
 
@@ -174,15 +178,20 @@ class Sqlite(DB):
             subtitles,
             episode_number,
             title,
-            flags,
-            played
-        ) VALUES (?,?,?,?,?,?,?,?,?)"""
+            flags
+        ) VALUES (?,?,?,?,?,?,?,?)"""
 
         cur.executemany(sql, data)
 
-        self._update_identifiables(
-            [i for i in media if isinstance(i, Identifiable)]
-        )
+        if update_identifiables:
+            self._update_identifiables(
+                [i for i in media if isinstance(i, Identifiable)]
+            )
+
+        if update_media_states:
+            self._update_media_states(
+                [(m.id(), m.played()) for m in media]
+            )
 
         self.conn.commit()
 
@@ -199,6 +208,8 @@ class Sqlite(DB):
             SELECT * FROM media
             LEFT OUTER JOIN identifiables
             ON media.id = identifiables.id
+            LEFT OUTER JOIN media_states
+            ON media.id = media_states.media_id
             LEFT OUTER JOIN meta
             ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
             WHERE media.id=?
@@ -401,8 +412,7 @@ class Sqlite(DB):
             ','.join(media.subtitles),
             media.episode_number() if isinstance(media, Episode) else None,
             media.title() if isinstance(media, Movie) else None,
-            flags,
-            1 if media.played() else 0
+            flags
         )
 
     def _get_parent(self, parent_id):
@@ -444,7 +454,9 @@ class Sqlite(DB):
             left outer join media
             on p.media like '%' || media.id || '%'
             or c.media like '%' || media.id || '%'
-            where p.id=? and media.played='0' """
+            left outer join media_states
+            on media.id = media_states.media_id
+            where p.id=? and media_states.played='0' """
 
         cur.execute(sql, [container_id])
 
@@ -505,6 +517,8 @@ class Sqlite(DB):
                 SELECT * FROM media
                 LEFT OUTER JOIN identifiables
                 ON media.id = identifiables.id
+                LEFT OUTER JOIN media_states
+                ON media.id = media_states.media_id
                 LEFT OUTER JOIN meta
                 ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
                 WHERE {}
@@ -650,16 +664,23 @@ class Sqlite(DB):
     def _create_identifiables_table(self):
         self._create_table(
             "identifiables",
-            # type: Episode|Movie
-            # subtitles: comma separated list
-            # title: None for Episode
-            # flags: is_oad is_ncop is_nced
+
             """(
                 id TEXT,
                 ext_ids TEXT,
                 year INTEGER
             )"""
-            )
+        )
+
+    def _create_media_states_table(self):
+        self._create_table(
+            "media_states",
+
+            """(
+                media_id TEXT,
+                played INTEGER
+            )"""
+        )
 
     def _update_identifiables(self, identifiables):
 
@@ -681,6 +702,21 @@ class Sqlite(DB):
 
         self.conn.commit()
 
+    def _update_media_states(self, media_states):
+
+        self._delete_media_states(media_states)
+
+        cur = self.conn.cursor()
+
+        sql = """INSERT INTO media_states (
+            media_id,
+            played
+        ) VALUES (?,?)"""
+
+        cur.executemany(sql, media_states)
+
+        self.conn.commit()
+
     def _delete_identifiables(self, identifiables):
         if not len(identifiables):
             return
@@ -690,6 +726,25 @@ class Sqlite(DB):
         cur = self.conn.cursor()
 
         sql = 'DELETE FROM identifiables WHERE {}'.format(where)
+        cur.execute(sql, ids)
+
+        self.conn.commit()
+
+    def _delete_media_states(self, media_states):
+        if not len(media_states):
+            return
+
+        where = ""
+        ids = []
+        for media_id in [ms[0] for ms in media_states]:
+            where = f"{where}media_id=? OR "
+            ids.append(media_id)
+
+        where = where.rstrip(" OR ")
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM media_states WHERE {}'.format(where)
         cur.execute(sql, ids)
 
         self.conn.commit()

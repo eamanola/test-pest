@@ -160,10 +160,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             db.connect()
 
             container = db.get_container(container_id)
-
             containers, media = collect_objs(container)
+            containers.append(container)
             db.delete_containers(containers)
             db.delete_media(media)
+
             container.containers.clear()
             container.media.clear()
 
@@ -184,8 +185,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 db.create_containers_table()
                 db.create_media_table()
 
-                db.update_containers(containers)
-                db.update_media(media)
+                db.update_containers(containers, update_identifiables=False)
+                db.update_media(
+                    media,
+                    update_identifiables=False,
+                    update_media_states=False
+                )
 
             db.close()
 
