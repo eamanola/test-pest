@@ -179,7 +179,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if result:
                 containers, media = collect_objs(result)
-                containers.append(container)
+                containers.append(result)
 
                 db.create_containers_table()
                 db.create_media_table()
