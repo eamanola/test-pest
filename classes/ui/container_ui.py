@@ -30,6 +30,7 @@ class ContainerUI(object):
 
         for med in sorted(container.media, key=lambda m: m.title()):
             title = None
+            summary = None
             if use_meta_titles:
                 meta_episode = [
                     m for m in meta.episodes()
@@ -38,13 +39,15 @@ class ContainerUI(object):
                 if len(meta_episode):
                     meta_episode = meta_episode[0]
                     title = f'{str(meta_episode[0])}. {meta_episode[1]}'
+                    summary = meta_episode[2] if meta_episode[2] else None
 
             page = f"""
                     {page}
                     {MediaUI.html_line(
                         med,
                         parent=container,
-                        title=title
+                        title=title,
+                        summary=summary
                     )}
                     """
 

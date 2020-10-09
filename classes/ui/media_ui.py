@@ -16,7 +16,13 @@ class MediaUI(object):
         return page
 
     @staticmethod
-    def html_line(media, is_title=False, parent=None, title=None):
+    def html_line(
+        media,
+        is_title=False,
+        parent=None,
+        title=None,
+        summary=None
+    ):
 
         img_str = ""
         if isinstance(media, Movie):
@@ -26,6 +32,13 @@ class MediaUI(object):
 
         if not img_str:
             img_str = f'<img class="thumbnail" src="{media.thumbnail()}" />'
+
+        summary_str = ""
+        if summary and is_title:
+            summary_str = f'''
+                <span class="summary">
+                    {summary}
+                </span>'''.strip()
 
         parent = media.parent() if parent is None else parent
         parents = []
@@ -112,6 +125,7 @@ class MediaUI(object):
             "line" if not is_title else ""
             }" data-id="{media.id()}">
                 {img_str}
+                {summary_str}
                 <div class="middle">
                     {parent_str}
                     {title_str}

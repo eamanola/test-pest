@@ -298,7 +298,7 @@ class Sqlite(DB):
                 m.rating(),
                 m.image_name(),
                 ';;;'.join(
-                    [':::'.join([str(e[0]), e[1]]) for e in m.episodes()]
+                    [':::'.join([str(e[0]), e[1], e[2]]) for e in m.episodes()]
                 ),
                 m.description(),
             ) for m in meta]
@@ -581,9 +581,9 @@ class Sqlite(DB):
                 result_row['meta_rating'],
                 result_row['meta_image_name'],
                 sorted([
-                    (lambda x: (int(x[0]), x[1]))(m.split(":::"))
+                    (lambda x: (int(x[0]), x[1], x[2]))(m.split(":::"))
                     for m in result_row['meta_episodes'].split(";;;")
-                ], key=lambda x: x[0]),
+                ], key=lambda x: x[0]) if result_row['meta_episodes'] else [],
                 result_row['meta_description']
             ))
 
@@ -639,9 +639,9 @@ class Sqlite(DB):
                 result_row['meta_rating'],
                 result_row['meta_image_name'],
                 sorted([
-                    (lambda x: (int(x[0]), x[1]))(m.split(":::"))
+                    (lambda x: (int(x[0]), x[1], x[2]))(m.split(":::"))
                     for m in result_row['meta_episodes'].split(";;;")
-                ], key=lambda x: x[0]),
+                ], key=lambda x: x[0]) if result_row['meta_episodes'] else [],
                 result_row['meta_description']
             ))
 

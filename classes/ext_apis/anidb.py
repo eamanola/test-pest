@@ -60,9 +60,23 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         _episodes = root.findall("./episodes/episode/epno[@type = '1']/..")
         namespace = "http://www.w3.org/XML/1998/namespace"
         for episode in _episodes:
+            episode_data = []
+
+            episode_num = int(episode.find('./epno').text)
+
+            episode_summary = ""
+            summary = episode.find('./summary')
+            if summary is not None:
+                episode_summary = summary.text
+
+            episode_title = episode.find(
+                f'./title[@{{{namespace}}}lang="en"]'
+            ).text
+
             episodes.append((
-                int(episode.find('./epno').text),
-                episode.find(f'./title[@{{{namespace}}}lang="en"]').text
+                episode_num,
+                episode_title,
+                episode_summary
             ))
 
         temp_rating = float(root.find('./ratings/temporary').text)
