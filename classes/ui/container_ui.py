@@ -89,9 +89,16 @@ class ContainerUI(object):
             container.meta().rating()
         ):
             rating_str = f'''
-                <span class="rating">
+                <span class="rating middle-line2">
                     {container.meta().rating()} / 10
-                </span>'''.strip()
+                </span>&nbsp;'''.strip()
+
+        unplayed_str = ""
+        if (container.unplayed_count() > 0):
+            unplayed_str = f'''
+                <span class="unplayed middle-line2">
+                    [{container.unplayed_count()}]
+                </span>&nbsp;'''.strip()
 
         if (
             isinstance(container, Identifiable) and
@@ -146,6 +153,7 @@ class ContainerUI(object):
                     {title}
                     <br />
                     {rating_str}
+                    {unplayed_str}
                 </div>
                 <span class="right">
                     {actions}

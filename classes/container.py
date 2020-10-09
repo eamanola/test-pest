@@ -9,6 +9,7 @@ class Container(object):
         self.containers = []
         self.media = []
         self._parent = parent
+        self._unplayed_count = 0
 
     def parent(self):
         return self._parent
@@ -49,6 +50,12 @@ class Container(object):
 
     def poster(self):
         return ""
+
+    def unplayed_count(self):
+        return self._unplayed_count
+
+    def set_unplayed_count(self, unplayed_count):
+        self._unplayed_count = unplayed_count
 
 
 class MediaLibrary(Container):

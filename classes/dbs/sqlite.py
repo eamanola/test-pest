@@ -432,6 +432,28 @@ class Sqlite(DB):
 
         return parent
 
+    def _get_unplayed_count(self, container_id):
+        count = 0
+
+        cur = self.conn.cursor()
+
+        sql = """
+            select count(*) from containers p
+            left outer join containers c
+            on p.containers like '%' || c.id || '%'
+            left outer join media
+            on p.media like '%' || media.id || '%'
+            or c.media like '%' || media.id || '%'
+            where p.id=? and media.played='0' """
+
+        cur.execute(sql, [container_id])
+
+        result = cur.fetchall()
+        if result:
+            count = result[0][0]
+
+        return count
+
     def _get_container_children(self, result):
         container_ids = [item for item in result[2].split(",") if item.strip()]
         media_ids = [item for item in result[3].split(",") if item.strip()]
@@ -459,11 +481,15 @@ class Sqlite(DB):
             cur.execute(sql, container_ids)
 
             for result in cur.fetchall():
-                containers.append(self._container_from_data(
+                container = self._container_from_data(
                     result,
                     get_children=False,
                     get_parent=False
-                ))
+                )
+                container.set_unplayed_count(
+                    self._get_unplayed_count(container.id())
+                )
+                containers.append(container)
 
         if len(media_ids):
             where = ""
