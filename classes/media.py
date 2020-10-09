@@ -170,5 +170,13 @@ class Movie(Media, Identifiable):
             thumbnail = self.title()
 
         thumbnail = thumbnail.replace(" ", ".")
+        thumbnail = super().thumbnail(thumbnail, create_ifmissing)
 
-        return super().thumbnail(thumbnail, create_ifmissing)
+        return thumbnail
+
+    def poster(self):
+        poster = None
+        if self.meta() and self.meta().image_name():
+            poster = f"/images/posters/{self.meta().image_name()}"
+
+        return poster

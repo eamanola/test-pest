@@ -136,7 +136,7 @@ class ContainerUI(object):
                 js-container" data-id="{container.id()}">
                 <img
                     src="{
-                    "/images/posters/" + container.poster()
+                    container.poster()
                     if container.poster() else ""
                     }"
                     class="poster" />

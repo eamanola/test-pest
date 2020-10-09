@@ -6,6 +6,7 @@ from classes.ui.media_ui import MediaUI
 from classes.ui.container_ui import ContainerUI
 from classes.scanner import Scanner
 from classes.container import MediaLibrary, Show, Season, Extra
+from classes.media import Movie
 from classes.db import DB
 import os
 import sys
@@ -223,9 +224,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if not error:
                 media_type = AniDB.TV_SHOW if container else AniDB.MOVIE
-                show_name = (
-                    container.show_name() if container else movie.title()
-                )
+                if isinstance(item, Movie):
+                    show_name = item.title()
+                elif isinstance(item, Show):
+                    show_name = container.show_name()
+                print(media_type)
                 anidb_id = Identifier(AniDB).guess_id(
                     db,
                     show_name,
@@ -388,7 +391,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     f'''{{
                         "action":"get_info",
                         "data_id":"{params['gic'][0]
-                            if params['gic'] else params['gim'][0]}",
+                            if 'gic' in params else params['gim'][0]}",
                         "message": "{message}"
                     }}'''.replace("\n", " "),
                     "utf-8"

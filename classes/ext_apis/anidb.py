@@ -3,6 +3,7 @@ from classes.ext_api import Ext_api
 from classes.ext_title_to_id_file_parser import Ext_title_to_id_file_parser
 from classes.ext_meta_getter import Ext_Meta_Getter
 
+
 class AniDB(Ext_api):
     KEY = "anidb"
     TV_SHOW = None

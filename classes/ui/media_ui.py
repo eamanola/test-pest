@@ -1,6 +1,7 @@
 from classes.container import Show, Season, Extra
 from classes.identifiable import Identifiable
 from classes.ext_apis.anidb import AniDB
+from classes.media import Movie
 
 
 class MediaUI(object):
@@ -16,6 +17,15 @@ class MediaUI(object):
 
     @staticmethod
     def html_line(media, is_title=False, parent=None, title=None):
+
+        img_str = ""
+        if isinstance(media, Movie):
+            poster = media.poster()
+            if poster:
+                img_str = f'<img class="poster" src="{media.poster()}" />'
+
+        if not img_str:
+            img_str = f'<img class="thumbnail" src="{media.thumbnail()}" />'
 
         parent = media.parent() if parent is None else parent
         parents = []
@@ -41,7 +51,12 @@ class MediaUI(object):
         </span>
         '''
 
-        title = title if title else media.title()
+        if not title:
+            if isinstance(media, Identifiable) and media.meta():
+                title = media.meta().title()
+
+        if not title:
+            title = media.title()
 
         if is_title:
             title_str = f'<span class="title">{title}</span>'
@@ -58,8 +73,8 @@ class MediaUI(object):
                 target="_blank"
                 rel="noopener noreferrer"
                 class="extrenal-link">
-                aniDB
-            </a>&nbsp;
+                aniDB</a>
+            <a href="#" class="js-get-info">Get Info</a>&nbsp;
             '''
         else:
             anidb = ""
@@ -84,6 +99,7 @@ class MediaUI(object):
 
         actions = f'''
             <span class="actions">
+                {anidb}
                 {add_to_play}
                 {played}
                 {scan}
@@ -95,13 +111,12 @@ class MediaUI(object):
             <div class="media js-media {
             "line" if not is_title else ""
             }" data-id="{media.id()}">
-                <img class="thumbnail" src="{media.thumbnail()}" />
+                {img_str}
                 <div class="middle">
                     {parent_str}
                     {title_str}
                 </div>
                 <span class="right">
-                    {anidb}
                     {actions}
                 </span>
             </div>

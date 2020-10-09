@@ -3,6 +3,7 @@ from classes.db import DB
 from classes.container import Container, MediaLibrary, Show, Season, Extra
 from classes.media import Media, Episode, Movie
 from classes.identifiable import Identifiable
+from classes.meta import Meta
 
 
 class Sqlite(DB):
@@ -495,7 +496,6 @@ class Sqlite(DB):
         get_children=True,
         get_parent=True
     ):
-        from classes.meta import Meta
 
         if get_parent and result_row['parent_id']:
             parent = self._get_parent(result_row['parent_id'])
@@ -602,9 +602,22 @@ class Sqlite(DB):
             return_obj.set_year(result_row['year'])
 
         if result_row['ext_ids']:
-            for ext_id in result_row['ext_ids'].split(","):
-                parts = ext_id.split("=")
+            for ext_id in result_row['ext_ids'].split(";;;"):
+                parts = ext_id.split(":::")
                 return_obj.ext_ids()[parts[0]] = parts[1]
+
+        if result_row['meta_id']:
+            return_obj.set_meta(Meta(
+                result_row['meta_id'],
+                result_row['meta_title'],
+                result_row['meta_rating'],
+                result_row['meta_image_name'],
+                sorted([
+                    (lambda x: (int(x[0]), x[1]))(m.split(":::"))
+                    for m in result_row['meta_episodes'].split(";;;")
+                ], key=lambda x: x[0]),
+                result_row['meta_description']
+            ))
 
         return return_obj
 
