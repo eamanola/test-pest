@@ -35,7 +35,6 @@ class ContainerUI(object):
                     m for m in meta.episodes()
                     if m[0] == med.episode_number()
                 ]
-                print(meta_episode, med.episode_number())
                 if len(meta_episode):
                     meta_episode = meta_episode[0]
                     title = f'{str(meta_episode[0])}. {meta_episode[1]}'

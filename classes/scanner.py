@@ -12,8 +12,6 @@ class Scanner(object):
     @staticmethod
     def scan(file_paths, root_container):
         for file_path in file_paths:
-            # print(file_path)
-
             current_container = root_container
 
             show_name = File_name_parser.guess_show_name(file_path)
@@ -202,7 +200,11 @@ class Scanner(object):
     def scan_media_library(media_library):
         file_paths = Scanner.filter_media_library(media_library)
 
-        return Scanner.scan(file_paths, media_library)
+        result = Scanner.scan(file_paths, media_library)
+
+        Scanner._remove_singles(result)
+
+        return result
 
     @staticmethod
     def scan_show(show):
@@ -211,7 +213,11 @@ class Scanner(object):
         media_library = MediaLibrary(show.path())
         Scanner.scan(file_paths, media_library)
 
-        return media_library.find_container(show.id())
+        result = media_library.find_container(show.id())
+
+        Scanner._remove_singles(result)
+
+        return result
 
     @staticmethod
     def scan_season(season):
@@ -220,7 +226,11 @@ class Scanner(object):
         media_library = MediaLibrary(season.path())
         Scanner.scan(file_paths, media_library)
 
-        return media_library.find_container(season.id())
+        result = media_library.find_container(season.id())
+
+        Scanner._remove_singles(result)
+
+        return result
 
     @staticmethod
     def scan_extra(extra):
@@ -229,4 +239,32 @@ class Scanner(object):
         media_library = MediaLibrary(extra.path())
         Scanner.scan(file_paths, media_library)
 
-        return media_library.find_container(extra.id())
+        result = media_library.find_container(extra.id())
+
+        Scanner._remove_singles(result)
+
+        return result
+
+    @staticmethod
+    def _remove_singles(container):
+        if isinstance(container, (Extra, Season, Show)):
+            if len(container.containers) == 1 and len(container.media) == 0:
+                remove = container.containers[0]
+
+                for con in remove.containers:
+                    con._parent = container
+                    container.containers.append(con)
+
+                for med in remove.media:
+                    med._parent = container
+                    container.media.append(med)
+
+                remove.containers.clear()
+                remove.media.clear()
+
+                container.containers.remove(remove)
+
+                Scanner._remove_singles(container)
+
+        for con in container.containers:
+            Scanner._remove_singles(con)

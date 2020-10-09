@@ -56,7 +56,6 @@ class WatchingList(object):
                 print('removing', show.title())
                 remove.append(show.id())
             else:
-                print(show.title(), media.title())
                 play_next.append(media)
 
         if len(remove) > 0:

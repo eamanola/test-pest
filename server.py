@@ -48,18 +48,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             db.close()
 
-            # skip one item pages
-            if len(container.containers) + len(container.media) == 1:
-                if len(container.containers) == 1:
-                    new_params = {
-                        'c': [container.containers[0].id()]
-                    }
-                elif len(container.media) == 1:
-                    new_params = {
-                        'm': [container.media[0].id()]
-                    }
-                return self.html(new_params)
-
             page = ContainerUI.html_page(container, meta=meta)
 
             if container.__class__.__name__ != "MediaLibrary":
@@ -446,8 +434,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             f.close()
         elif self.path == "/favicon.ico":
             pass
-        elif self.path.endswith(".jpg"):
-            print('ignore image', self.path)
         else:
             print('ignore', self.path)
 
