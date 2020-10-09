@@ -231,7 +231,11 @@ class File_name_parser(object):
     @staticmethod
     def is_extra(file):
         file_removed_tags = File_name_parser.remove_tags(file)
-        return File_name_parser.re_extra.search(file_removed_tags) is not None
+        return (
+            File_name_parser.re_extra.search(file_removed_tags) is not None or
+            File_name_parser.is_ncop(file) or
+            File_name_parser.is_nced(file)
+        )
 
     @staticmethod
     def is_ncop(file):

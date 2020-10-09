@@ -25,7 +25,14 @@ class Scanner(object):
             is_ncop = File_name_parser.is_ncop(file_path)
             is_nced = File_name_parser.is_nced(file_path)
 
-            is_show = season_number or episode_number
+            is_show = (
+                season_number or
+                episode_number or
+                is_extra or
+                is_oad or
+                is_ncop or
+                is_nced
+            )
             is_movie = not is_show
 
             if not year:
@@ -37,6 +44,7 @@ class Scanner(object):
                     show_name,
                     parent=current_container
                 )
+
                 existing = current_container.get_container(show.id())
                 if existing:
                     show = existing
@@ -78,7 +86,7 @@ class Scanner(object):
 
                     current_container = extra
 
-                if episode_number:
+                if episode_number or is_oad or is_ncop or is_nced:
                     media = Episode(
                         file_path,
                         episode_number,

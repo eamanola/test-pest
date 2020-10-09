@@ -120,10 +120,12 @@ class Episode(Media):
         else:
             prefix = "Episode"
 
-        return "{} {:02d}".format(
-            prefix,
-            self.episode_number()
-        )
+        if self.episode_number():
+            title = "{} {:02d}".format(prefix, self.episode_number())
+        else:
+            title = prefix
+
+        return title
 
     def thumbnail(self, create_ifmissing=True):
         thumbnail = self.title()
