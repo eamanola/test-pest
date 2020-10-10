@@ -46,7 +46,9 @@ function updatePage() {
     }
   )
 }
+
 ///////////////////////////////////////////////////////////////////////////////
+
 function onNavigationClick(e) {
   e.preventDefault();
 
@@ -70,6 +72,7 @@ function onNavigationClick(e) {
 
   return false
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function onScanCompleted(responseText) {
@@ -100,6 +103,7 @@ function onScanClick(e) {
 
   return false
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function onIdentifyCompleted(responseText) {
@@ -123,6 +127,7 @@ function onIdentifyClick(e) {
 
   return false
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function onPlayConfirmed(responseText) {
@@ -140,6 +145,7 @@ function onPlayClick(e) {
 
   return false
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function onGetInfoCompleted(responseText) {
@@ -174,6 +180,7 @@ function onGetInfoClick(e) {
 
   return false
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function connect_media_items(parent) {
@@ -201,6 +208,7 @@ function disconnect_media_items(parent) {
     played_items[i].removeEventListener('click', onPlayedClick, false)
   }
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function update_played_items(data_id, checked) {
@@ -242,6 +250,7 @@ function onPlayedClick(e) {
 
   return false
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function update_play_clear_buttons() {
@@ -272,6 +281,7 @@ function update_add_to_play_list() {
     }, 0)
   }
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 
 function onClearPlayClick(e) {
@@ -288,8 +298,8 @@ function onClearPlayClick(e) {
 
   return false
 }
-///////////////////////////////////////////////////////////////////////////////
 
+///////////////////////////////////////////////////////////////////////////////
 
 function onToggleToPlayClick(e) {
   e.preventDefault();
@@ -353,9 +363,11 @@ function copy_to_play_list(data_id) {
 
   if (media_item){
     var copy = media_item.cloneNode(true)
+
     var parents = copy.querySelectorAll('.js-parents')
     for(var i = 0, il = parents.length; i < il; i++)
       parents[i].style.display = "initial"
+
     connect_media_items(copy)
 
     var navigation_items = copy.querySelectorAll('.js-navigation')

@@ -3,50 +3,15 @@
   text-decoration: underline;
 }
 
-.container *, .media * {
-  vertical-align: top
-}
-/*
-#add-to-play-list img,
-#play-next-list img {
-  max-height: 3em;
-  max-width: 3em;
+.media.line *,
+.container.line *
+{
+  vertical-align: middle;
 }
 
-#add-to-play-list .media,
-#play-next-list .media {
-  margin: 2px
-}*/
-
-.poster {
-  max-width: 10em;
-}
-
-.media.line .poster,
-.container.line .poster {
-  margin: 0.1em 0;
-  max-width: 3em;
-}
- .media.line .thumbnail {
-   margin: 0.1em 0;
-   max-width: 5em;
-}
-
-.container.line .middle,
-.media.line .middle,
-.container.line .actions,
-.media.line .actions {
-  margin:1em 0.5em;
-  display: inline-block;
-}
-
-.container.line .middle-line2 {
-  margin-top: 0.3em;
-  display: inline-block;
-}
-.container .description {
-  display: inline-block;
-  max-width: 60%;
+.media.line .left,
+.container.line .left
+{
 }
 
 .media.line .right,
@@ -54,5 +19,72 @@
 {
   position: absolute;
   right: 0px;
-  margin-right: 1em
+}
+
+/*
+    Large: 1024 pixels /min-width: 64em
+    Medium: 640 pixels /min-width: 40em
+    Small: smaller than 640px /max-width: 39.9375em
+*/
+@media (max-width: 64em) {
+  .media.line .right,
+  .container.line .right
+  {
+    position: initial;
+    right: initial;
+    max-width: initial;
+
+    display: block;
+  }
+}
+
+.media.line .line1,
+.media.line .line2,
+.container.line .line1,
+.container.line .line2
+{
+  display: inline-block;
+}
+
+.media.line .left .poster,
+.container.line .left .poster
+{
+  max-width: 3em;
+}
+
+.media.line .left .info,
+.container.line .left .info
+{
+  display: inline-block;
+  max-width: 70%;
+}
+
+.media.line .left .info .line1,
+.container.line .left .info .line1 {
+  display: block;
+}
+
+.media.line .thumbnail {
+  max-width: 5em;
+}
+
+.media.page.header .poster,
+.container.page.header .poster {
+  max-width: 30%;
+}
+
+.media.page.header .info,
+.container.page.header .info {
+  display: inline-block;
+  max-width: 60%;
+  vertical-align: top;
+}
+
+.media.page.header .info *,
+.container.page.header .info * {
+  display: block;
+}
+
+.media.page.header .info .parents * {
+  display: inline;
 }

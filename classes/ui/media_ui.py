@@ -11,20 +11,88 @@ class MediaUI(object):
         super(MediaUI, self).__init__()
 
     @staticmethod
-    def html_page(media):
-        page = MediaUI.html_line(media, True)
+    def html_page(media, parents, episode_meta=None):
+
+        print(parents)
+
+        parents_strs = []
+        for parent in parents:
+            parents_strs.append(
+                f'''
+                <span class="js-navigation js-parent" data-id="{parent.id()}">{
+                    parent.title()
+                }</span>
+                '''.strip()
+            )
+        parents_strs.reverse()
+        print(parents_strs)
+        parents_str = ' / '.join(parents_strs)
+        parents_str = f'<span class="parents">[{parents_str}]</span>'
+
+        img_str = ""
+        if isinstance(media, Identifiable):
+            poster = Images.poster(media)
+            if poster:
+                img_str = f'<img src="{poster}" class="poster" />'
+
+        if not img_str:
+            thumbnail = Images.thumbnail(media, create_ifmissing=True)
+            img_str = f'<img src="{thumbnail}" class="poster" />'
+
+        title_str = ""
+        title = None
+        if isinstance(media, Identifiable):
+            if media.meta() and media.meta().title():
+                title = media.meta().title()
+        if not title:
+            if episode_meta:
+                title = f'{episode_meta[0]}. {episode_meta[1]}'
+
+        if not title:
+            title = media.title()
+
+        title_str = f'<span class="title">{title}</span>'
+
+        description = None
+        description_str = ""
+        if (
+            isinstance(media, Identifiable) and
+            media.meta() and
+            media.meta().description()
+        ):
+            description = media.meta().description()
+
+        if not description and episode_meta:
+            description = episode_meta[2]
+
+        if description:
+            description_str = f'''
+                <span class="description">
+                    {description}
+                </span>'''.strip()
+
+        page = f'''
+        <div class="media page header" data-id="{media.id()}">
+            {img_str}
+            <span class="info">
+                {title_str}
+                {parents_str}
+                {description_str}
+                <span style="display:none">
+                </span>
+            </span>
+        </div>
+        '''.strip()
 
         return page
 
     @staticmethod
     def html_line(
         media,
-        is_title=False,
         parent=None,
-        title=None,
-        summary=None
+        title=None
     ):
-
+        # img
         img_str = ""
         if isinstance(media, Identifiable):
             poster = Images.poster(media)
@@ -35,37 +103,26 @@ class MediaUI(object):
             thumbnail = Images.thumbnail(media, create_ifmissing=True)
             img_str = f'<img class="thumbnail" src="{thumbnail}" />'
 
-        summary_str = ""
-        if summary and is_title:
-            summary_str = f'''
-                <span class="summary">
-                    {summary}
-                </span>'''.strip()
+        # parents
+        parent = parent if parent else media.parent()
 
-        parent = media.parent() if parent is None else parent
         parents = []
         while(parent and isinstance(parent, (Show, Season, Extra))):
             parents.append(
                 f'''
-                <span
-                    class="js-navigation js-parent parent"
-                    data-id="{parent.id()}"
-                >
-                    {parent.title()}</span>&nbsp;
-                <span class="parent">/</span>&nbsp;
-                '''
+            <span class="js-navigation js-parent" data-id="{parent.id()}">{
+                parent.title()
+            }</span>'''.strip()
             )
             parent = parent.parent()
-
         parents.reverse()
-        parent_str = ''.join(parents)
-        parent_str = f'''
-        <span class="js-parents"
-            {'style="display:none"' if not is_title else ""}>
-            {parent_str}
-        </span>
-        '''
 
+        parents_str = '/'.join(parents)
+        parents_str = f'''
+        <span class="js-parents" style="display:none">{parents_str}</span>
+        '''.strip()
+
+        # title
         if not title:
             if isinstance(media, Identifiable) and media.meta():
                 title = media.meta().title()
@@ -73,11 +130,17 @@ class MediaUI(object):
         if not title:
             title = media.title()
 
-        if True or is_title:
-            title_str = f'<span class="title">{title}</span>'
-        else:
-            title_str = f'<span class="title js-navigation">{title}</span>'
+        class_str = "js-navigation" if (
+            isinstance(media, Movie) or
+            (
+                not media.is_oad() and
+                not media.is_ncop() and
+                not media.is_nced()
+            )
+        ) else ""
+        title_str = f'<span class="{class_str}">{title}</span>'
 
+        # anidb
         if (
             isinstance(media, Identifiable) and
             AniDB.KEY in media.ext_ids()
@@ -90,18 +153,13 @@ class MediaUI(object):
                 class="extrenal-link">
                 aniDB</a>
             <a href="#" class="js-get-info">Get Info</a>&nbsp;
-            '''
+            '''.strip()
         else:
             anidb = ""
 
-        scan = ''
+        add_to_play_str = '<a href="#" class="js-add-to-play">+Play</a>'
 
-        identify = ''
-        if media.__class__.__name__ == "Movie":
-            identify = '<a href="#" class="js-identify">Identify</a>'
-
-        add_to_play = '<a href="#" class="js-add-to-play">+Play</a>'
-        played = f'''
+        played_str = f'''
             <label>
                 Played
                 <input
@@ -110,30 +168,34 @@ class MediaUI(object):
                     {'checked="checked"' if media.played() else ''}
                     ></input>
             </label>
-            '''
+            '''.strip()
 
-        actions = f'''
-            <span class="actions">
-                {anidb}
-                {add_to_play}
-                {played}
-                {scan}
-                {identify}
-            </span>
-        '''
+        identify_str = ""
+        if isinstance(media, Identifiable):
+            identify_str = '<a href="#" class="js-identify">Identify</a>'
 
         return f'''
-            <div class="media js-media {
-            "line" if not is_title else ""
-            }" data-id="{media.id()}">
-                {img_str}
-                {summary_str}
-                <div class="middle">
-                    {parent_str}
-                    {title_str}
-                </div>
+            <div class="media js-media line" data-id="{media.id()}">
+                <span class="left">
+                    {img_str}
+                    <span class="info">
+                        <span class="line1">
+                            {parents_str}
+                            {title_str}
+                        </span>
+                        <span class="line2" style="display:none">
+                        </span>
+                    </span>
+                </span>
                 <span class="right">
-                    {actions}
+                    <span class="line1">
+                        {anidb}
+                        {add_to_play_str}
+                    </span>
+                    <span class="line2">
+                        {played_str}
+                        {identify_str}
+                    </span>
                 </span>
             </div>
-        '''
+        '''.strip()

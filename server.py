@@ -6,7 +6,8 @@ from classes.ui.media_ui import MediaUI
 from classes.ui.container_ui import ContainerUI
 from classes.scanner import Scanner
 from classes.container import MediaLibrary, Show, Season, Extra
-from classes.media import Movie
+from classes.media import Movie, Episode
+from classes.identifiable import Identifiable
 from classes.db import DB
 import os
 import sys
@@ -57,13 +58,42 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 media_library = None
         elif 'm' in params:
             media_id = params['m'][0]
+            media = None
+            show = None
+            parents = []
+            episode_meta = None
 
             db = DB.get_instance()
             db.connect()
             media = db.get_media(media_id)
+
+            parent = None
+            if isinstance(media, Episode):
+                parent = db.get_container(media.parent())
+                parents.append(parent)
+                while parent and isinstance(parent, (Extra, Season)):
+                    parent = db.get_container(parent.parent())
+                    parents.append(parent)
+
+            if parent and parent.__class__.__name__ == "Show":
+                show = parent
+
             db.close()
 
-            page = MediaUI.html_page(media) if media else "errorrs"
+            if (
+                isinstance(media, Episode) and
+                media.episode_number() and
+                show and
+                isinstance(parent, Identifiable) and
+                show.meta() and
+                show.meta().episodes()
+            ):
+                for episode in show.meta().episodes():
+                    if episode[0] == media.episode_number():
+                        episode_meta = episode
+                        break
+
+            page = MediaUI.html_page(media, parents, episode_meta=episode_meta)
             if media.parent() and media.parent().path():
                 media_library = MediaLibrary(media.parent().path())
             else:
@@ -359,7 +389,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
 
         elif 'gic' in params or 'gim' in params:
-            from classes.identifiable import Identifiable
 
             self.send_response(200)
             self.send_header("Content-type", "text/json")
@@ -459,7 +488,7 @@ try:
     serverPort = 8080
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 except OSError:
-    serverPort = 8085
+    serverPort = 8083
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 
 print("Server started http://%s:%s" % (hostName, serverPort))

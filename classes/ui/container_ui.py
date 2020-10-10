@@ -16,7 +16,39 @@ class ContainerUI(object):
 
     @staticmethod
     def html_page(container, meta=None):
-        page = ContainerUI.html_line(container, True)
+        img_str = ""
+        if isinstance(container, Identifiable):
+            poster = Images.poster(container)
+            if poster:
+                img_str = f'<img src="{poster}" class="poster" />'
+
+        title_str = f'<span class="title">{container.title()}</span>'
+
+        description_str = ""
+        if (
+            isinstance(container, Identifiable) and
+            container.meta() and
+            container.meta().description()
+        ):
+            description_str = f'''
+                <span class="description">
+                    {container.meta().description()}
+                </span>'''.strip()
+
+        scan_str = '<a href="#" class="js-scan">Scan</a>'
+
+        page = f'''
+        <div class="container page header" data-id="{container.id()}">
+            {img_str}
+            <span class="info">
+                {title_str}
+                {description_str}
+                <span>
+                    {scan_str}
+                </span>
+            </span>
+        </div>
+        '''
 
         for con in sorted(container.containers, key=lambda c: c.title()):
             page = f"""
@@ -31,7 +63,6 @@ class ContainerUI(object):
 
         for med in sorted(container.media, key=lambda m: m.title()):
             title = None
-            summary = None
             if use_meta_titles:
                 meta_episode = [
                     m for m in meta.episodes()
@@ -40,15 +71,13 @@ class ContainerUI(object):
                 if len(meta_episode):
                     meta_episode = meta_episode[0]
                     title = f'{str(meta_episode[0])}. {meta_episode[1]}'
-                    summary = meta_episode[2] if meta_episode[2] else None
 
             page = f"""
                     {page}
                     {MediaUI.html_line(
                         med,
                         parent=container,
-                        title=title,
-                        summary=summary
+                        title=title
                     )}
                     """
 
@@ -74,24 +103,9 @@ class ContainerUI(object):
                 >{container.parent().title()}</span> &nbsp;
             '''.strip()
 
-        if is_title:
-            title = f'<span class="title">{container.title()}</span>'
-        else:
-            title = f'''
-                <span class="title js-navigation">{container.title()}</span>
-                '''.strip()
-
-        description_str = ""
-        if (
-            is_title and
-            isinstance(container, Identifiable) and
-            container.meta() and
-            container.meta().description()
-        ):
-            description_str = f'''
-                <span class="description">
-                    {container.meta().description()}
-                </span>'''.strip()
+        title_str = f'''
+            <span class="title js-navigation">{container.title()}</span>
+            '''.strip()
 
         rating_str = ""
         if (
@@ -133,36 +147,31 @@ class ContainerUI(object):
         if container.__class__.__name__ == "Show":
             identify = '<a href="#" class="js-identify">Identify</a>'
 
-        # add_to_play = '<a href="#" class="js-add-to-play">+Play</a>'
-        # played = '<a href="#" class="js-played">Played</a>'
-        add_to_play = ''
-        played = ''
-
-        actions = f'''
-            <span class="actions">
-                {anidb}
-                {add_to_play}
-                {played}
-                {scan}
-                {identify}
-            </span>
-        '''.strip()
-
         return f'''
-            <div class="container
-                {"line" if not is_title else ""}
-                js-container" data-id="{container.id()}">
-                {img_str}
-                {description_str}
-                <div class="middle">
-                    {parent_str}
-                    {title}
-                    <br />
-                    {rating_str}
-                    {unplayed_str}
-                </div>
+            <div class="container line js-container" data-id="{
+                container.id()
+            }">
+                <span class="left">
+                    {img_str}
+                    <span class="info">
+                        <span class="line1">
+                            {parent_str}
+                            {title_str}
+                        </span>
+                        <span class="line2">
+                            {rating_str}
+                            {unplayed_str}
+                        </span>
+                    </span>
+                </span>
                 <span class="right">
-                    {actions}
+                    <span class="line1">
+                        {anidb}
+                    </span>
+                    <span class="line2">
+                        {scan}
+                        {identify}
+                    </span>
                 </span>
             </div>
         '''.strip()
