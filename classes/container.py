@@ -48,9 +48,6 @@ class Container(object):
     def title(self):
         raise NotImplementedError()
 
-    def poster(self):
-        return ""
-
     def unplayed_count(self):
         return self._unplayed_count
 
@@ -89,13 +86,6 @@ class Show(MediaLibrary, Identifiable):
 
     def title(self):
         return self.show_name()
-
-    def poster(self):
-        poster = None
-        if self.meta() and self.meta().image_name():
-            poster = f"/images/posters/{self.meta().image_name()}"
-
-        return poster
 
 
 class Season(Show):

@@ -50,6 +50,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         import gzip
         import xml.etree.ElementTree
         from classes.meta import Meta
+        from classes.images import Images
 
         uncompressed = gzip.decompress(data)
         root = xml.etree.ElementTree.fromstring(uncompressed)
@@ -88,11 +89,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         image_path = f'/images/main/{_image_name}'
         image_name = AniDB_Meta_Getter.IMAGE_PREFIX + _image_name
         filename = 'anib'
-        self.download_image(
-            image_host,
-            image_path,
-            image_name
-        )
+        Images.download_poster(image_host, image_path, image_name)
 
         description = root.find("./description").text.replace("\n", " ")
         return Meta(

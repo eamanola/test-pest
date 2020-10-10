@@ -430,16 +430,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path.endswith(".jpg")
             )
         ):
-            self.send_response(200)
-            self.send_header("Content-type", "image/png")
-            self.end_headers()
-
-            f = open(os.path.join(
+            file_path = os.path.join(
                 sys.path[0],
                 os.sep.join(self.path[1:].split("/"))
-            ), "rb")
-            self.wfile.write(f.read())
-            f.close()
+            )
+
+            if os.path.exists(file_path):
+                self.send_response(200)
+                self.send_header("Content-type", f"image/{file_path[-3:]}")
+                self.end_headers()
+
+                f = open(file_path, "rb")
+                self.wfile.write(f.read())
+                f.close()
+            else:
+                self.send_response(404)
+                self.end_headers()
+
         elif self.path == "/favicon.ico":
             pass
         else:
@@ -452,7 +459,7 @@ try:
     serverPort = 8080
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 except OSError:
-    serverPort = 8084
+    serverPort = 8085
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
 
 print("Server started http://%s:%s" % (hostName, serverPort))

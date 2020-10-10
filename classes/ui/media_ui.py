@@ -2,6 +2,7 @@ from classes.container import Show, Season, Extra
 from classes.identifiable import Identifiable
 from classes.ext_apis.anidb import AniDB
 from classes.media import Movie
+from classes.images import Images
 
 
 class MediaUI(object):
@@ -25,13 +26,14 @@ class MediaUI(object):
     ):
 
         img_str = ""
-        if isinstance(media, Movie):
-            poster = media.poster()
+        if isinstance(media, Identifiable):
+            poster = Images.poster(media)
             if poster:
-                img_str = f'<img class="poster" src="{media.poster()}" />'
+                img_str = f'<img class="poster" src="{poster}" />'
 
         if not img_str:
-            img_str = f'<img class="thumbnail" src="{media.thumbnail()}" />'
+            thumbnail = Images.thumbnail(media, create_ifmissing=True)
+            img_str = f'<img class="thumbnail" src="{thumbnail}" />'
 
         summary_str = ""
         if summary and is_title:

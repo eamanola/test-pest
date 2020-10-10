@@ -1,8 +1,6 @@
 import hashlib
 from classes.container import Show, Season, Extra
 from classes.identifiable import Identifiable
-import os
-import sys
 
 
 class Media(object):
@@ -33,52 +31,8 @@ class Media(object):
     def title(self):
         raise NotImplementedError()
 
-    def thumbnail(self, thumbnail, create_ifmissing=True):
-        ret = None
-
-        if (
-            create_ifmissing and
-            thumbnail and
-            self.file_path() and
-            self.parent()
-        ):
-            THUMBNAIL_FOLDER = os.path.join(
-                sys.path[0],
-                'images',
-                'thumbnails'
-            )
-
-            thumbnail_path = os.path.join(THUMBNAIL_FOLDER, f"{thumbnail}.png")
-
-            if not os.path.exists(thumbnail_path):
-                if not os.path.exists(THUMBNAIL_FOLDER):
-                    os.makedirs(THUMBNAIL_FOLDER)
-
-                mediafile_full_path = os.path.join(
-                    self.parent().path(),
-                    self.file_path()
-                )
-
-                cmd = [
-                    'ffmpeg',
-                    '-ss 00:04:00.000',
-                    f'-i "{mediafile_full_path}"',
-                    '-vf scale=240:-1',
-                    '-y',
-                    '-vframes 1',
-                    f'"{thumbnail_path}"'
-                ]
-
-                os.system(" ".join(cmd))
-
-                # video shorter than 4 min
-                if not os.path.exists(thumbnail_path):
-                    cmd[1] = "-ss 00:00:10.000"
-                    os.system(" ".join(cmd))
-
-            ret = "/images/thumbnails/{}.png".format(thumbnail)
-
-        return ret
+    def thumbnail(self, thumbnail):
+        raise NotImplementedError()
 
 
 class Episode(Media):
@@ -127,7 +81,7 @@ class Episode(Media):
 
         return title
 
-    def thumbnail(self, create_ifmissing=True):
+    def thumbnail(self):
         thumbnail = self.title()
 
         if self.parent() and isinstance(self.parent(), (Extra, Season, Show)):
@@ -154,7 +108,7 @@ class Episode(Media):
 
         thumbnail = thumbnail.replace(" ", ".")
 
-        return super().thumbnail(thumbnail, create_ifmissing)
+        return thumbnail
 
 
 class Movie(Media, Identifiable):
@@ -172,13 +126,5 @@ class Movie(Media, Identifiable):
             thumbnail = self.title()
 
         thumbnail = thumbnail.replace(" ", ".")
-        thumbnail = super().thumbnail(thumbnail, create_ifmissing)
 
         return thumbnail
-
-    def poster(self):
-        poster = None
-        if self.meta() and self.meta().image_name():
-            poster = f"/images/posters/{self.meta().image_name()}"
-
-        return poster

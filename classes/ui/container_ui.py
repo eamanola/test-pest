@@ -2,6 +2,7 @@ from classes.container import Season, Show, Extra
 from classes.ui.media_ui import MediaUI
 from classes.identifiable import Identifiable
 from classes.ext_apis.anidb import AniDB
+from classes.images import Images
 
 
 class ContainerUI(object):
@@ -55,6 +56,13 @@ class ContainerUI(object):
 
     @staticmethod
     def html_line(container, is_title=False, parent=None, meta=None):
+
+        img_str = ""
+        if isinstance(container, Identifiable):
+            poster = Images.poster(container)
+            if poster:
+                img_str = f'<img src="{poster}" class="poster" />'
+
         parent_str = ""
         if (container.parent() and (
             isinstance(container.parent(), (Show, Season, Extra))
@@ -144,12 +152,7 @@ class ContainerUI(object):
             <div class="container
                 {"line" if not is_title else ""}
                 js-container" data-id="{container.id()}">
-                <img
-                    src="{
-                    container.poster()
-                    if container.poster() else ""
-                    }"
-                    class="poster" />
+                {img_str}
                 {description_str}
                 <div class="middle">
                     {parent_str}
