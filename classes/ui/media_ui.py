@@ -73,7 +73,7 @@ class MediaUI(object):
         if not title:
             title = media.title()
 
-        if is_title:
+        if True or is_title:
             title_str = f'<span class="title">{title}</span>'
         else:
             title_str = f'<span class="title js-navigation">{title}</span>'
