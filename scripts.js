@@ -51,6 +51,7 @@ function updatePage() {
 
 function onNavigationClick(e) {
   e.preventDefault();
+  e.stopPropagation();
 
   var id_obj = get_data_id(e.target)
   var type = id_obj.type
@@ -89,6 +90,7 @@ function onScanCompleted(responseText) {
 
 function onScanClick(e) {
   e.preventDefault();
+  e.stopPropagation();
 
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
@@ -113,6 +115,7 @@ function onIdentifyCompleted(responseText) {
 
 function onIdentifyClick(e) {
   e.preventDefault();
+  e.stopPropagation();
 
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
@@ -135,12 +138,29 @@ function onPlayConfirmed(responseText) {
 }
 
 function onPlayClick(e) {
-  if (e && e.preventDefault)
+  if (e && e.preventDefault) {
     e.preventDefault();
+    e.stopPropagation();
+  }
 
   var list_str = storage.getItem('add-to-play-list')
   if (list_str) {
     ajax('/?p=' + list_str, onPlayConfirmed)
+  }
+
+  return false
+}
+
+function onPlaySingleClick(e) {
+  if (e && e.preventDefault) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  var data_id = get_data_id(e.target).data_id
+
+  if (data_id) {
+    ajax('/?p=' + data_id, onPlayConfirmed)
   }
 
   return false
@@ -154,7 +174,8 @@ function onGetInfoCompleted(responseText) {
 }
 
 function onGetInfoClick(e) {
-  e.preventDefault()
+  e.preventDefault();
+  e.stopPropagation();
 
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
@@ -193,6 +214,11 @@ function connect_media_items(parent) {
   for (var i = 0, il = played_items.length; i < il; i++) {
     played_items[i].addEventListener('click', onPlayedClick, false)
   }
+
+  var play_items = parent.querySelectorAll('.js-play')
+  for (var i = 0, il = play_items.length; i < il; i++) {
+    play_items[i].addEventListener('click', onPlaySingleClick, false)
+  }
 }
 
 function disconnect_media_items(parent) {
@@ -206,6 +232,11 @@ function disconnect_media_items(parent) {
   var played_items = parent.querySelectorAll('.js-played')
   for (var i = 0, il = played_items.length; i < il; i++) {
     played_items[i].removeEventListener('click', onPlayedClick, false)
+  }
+
+  var play_items = parent.querySelectorAll('.js-play')
+  for (var i = 0, il = play_items.length; i < il; i++) {
+    play_items[i].removeEventListener('click', onPlaySingleClick, false)
   }
 }
 
@@ -286,6 +317,7 @@ function update_add_to_play_list() {
 
 function onClearPlayClick(e) {
   e.preventDefault();
+  e.stopPropagation();
 
   disconnect_media_items(document.getElementById('add-to-play-list'))
 
@@ -303,6 +335,7 @@ function onClearPlayClick(e) {
 
 function onToggleToPlayClick(e) {
   e.preventDefault();
+  e.stopPropagation();
 
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id

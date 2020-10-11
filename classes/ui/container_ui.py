@@ -97,14 +97,12 @@ class ContainerUI(object):
             isinstance(container.parent(), (Show, Season, Extra))
         )):
             parent_str = f'''
-                <span
-                    class="parent js-navigation js-container"
-                    data-id="{container.parent().id()}"
-                >{container.parent().title()}</span> &nbsp;
+                <span class="parent js-navigation js-container" data-id="{
+                container.parent().id()}">{container.parent().title()}</span>
             '''.strip()
 
         title_str = f'''
-            <span class="title js-navigation">{container.title()}</span>
+            <span class="title">{container.title()}</span>
             '''.strip()
 
         rating_str = ""
@@ -116,14 +114,14 @@ class ContainerUI(object):
             rating_str = f'''
                 <span class="rating middle-line2">
                     {container.meta().rating()} / 10
-                </span>&nbsp;'''.strip()
+                </span>'''.strip()
 
         unplayed_str = ""
         if (container.unplayed_count() > 0):
             unplayed_str = f'''
                 <span class="unplayed middle-line2">
                     [{container.unplayed_count()}]
-                </span>&nbsp;'''.strip()
+                </span>'''.strip()
 
         if (
             isinstance(container, Identifiable) and
@@ -136,7 +134,7 @@ class ContainerUI(object):
                 rel="noopener noreferrer"
                 class="extrenal-link">
                 aniDB</a>
-            <a href="#" class="js-get-info">Get Info</a>&nbsp;
+            <a href="#" class="js-get-info">Get Info</a>
             '''.strip()
         else:
             anidb = ""
@@ -148,7 +146,7 @@ class ContainerUI(object):
             identify = '<a href="#" class="js-identify">Identify</a>'
 
         return f'''
-            <div class="container line js-container" data-id="{
+            <div class="container line js-navigation js-container" data-id="{
                 container.id()
             }">
                 <span class="left">

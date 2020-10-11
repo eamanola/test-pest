@@ -30,14 +30,15 @@ class MediaUI(object):
         parents_str = f'<span class="parents">[{parents_str}]</span>'
 
         img_str = ""
+        img_src = None
         if isinstance(media, Identifiable):
-            poster = Images.poster(media)
-            if poster:
-                img_str = f'<img src="{poster}" class="poster" />'
+            img_src = Images.poster(media)
 
-        if not img_str:
-            thumbnail = Images.thumbnail(media, create_ifmissing=True)
-            img_str = f'<img src="{thumbnail}" class="poster" />'
+        if not img_src:
+            img_src = Images.thumbnail(media, create_ifmissing=True)
+
+        if img_src:
+            img_str = f'<img src="{img_src}" class="poster" />'
 
         title_str = ""
         title = None
@@ -94,14 +95,18 @@ class MediaUI(object):
     ):
         # img
         img_str = ""
+        img_src = None
+        img_class = None
         if isinstance(media, Identifiable):
-            poster = Images.poster(media)
-            if poster:
-                img_str = f'<img class="poster" src="{poster}" />'
+            img_src = Images.poster(media)
+            img_class = "poster"
 
-        if not img_str:
-            thumbnail = Images.thumbnail(media, create_ifmissing=True)
-            img_str = f'<img class="thumbnail" src="{thumbnail}" />'
+        if not img_src:
+            img_src = Images.thumbnail(media, create_ifmissing=True)
+            img_class = "thumbnail"
+
+        if img_src:
+            img_str = f'<img src="{img_src}" class="js-play {img_class}" />'
 
         # parents
         parent = parent if parent else media.parent()
@@ -183,18 +188,21 @@ class MediaUI(object):
                             {parents_str}
                             {title_str}
                         </span>
-                        <span class="line2" style="display:none">
+                        <span class="line2" class="right">
+                            {add_to_play_str}
+                            {played_str}
+                            {identify_str}
                         </span>
                     </span>
                 </span>
                 <span class="right">
                     <span class="line1">
                         {anidb}
-                        {add_to_play_str}
+                    <!-- {add_to_play_str} -->
                     </span>
                     <span class="line2">
-                        {played_str}
-                        {identify_str}
+                        <!-- {played_str} -->
+                        <!-- {identify_str} -->
                     </span>
                 </span>
             </div>
