@@ -336,9 +336,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     '--slang=en,eng'
                 ] + file_paths
 
-                cmd = cmd_mpv
+                cmd_play = [
+                    os.path.join(sys.path[0], 'play.sh')
+                ] + file_paths
+
+                cmd = cmd_play
                 subprocess.Popen(cmd)
                 print(" ".join(cmd))
+
                 # os.system(cmd)
                 WatchingList.started_play(db, media)
             db.close()
