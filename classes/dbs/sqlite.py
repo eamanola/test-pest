@@ -3,7 +3,7 @@ from classes.db import DB
 from classes.container import Container, MediaLibrary, Show, Season, Extra
 from classes.media import Media, Episode, Movie
 from classes.identifiable import Identifiable
-from classes.meta import Meta
+from classes.meta import Meta, Episode_Meta
 
 
 class Sqlite(DB):
@@ -309,7 +309,11 @@ class Sqlite(DB):
                 m.rating(),
                 m.image_name(),
                 ';;;'.join(
-                    [':::'.join([str(e[0]), e[1], e[2]]) for e in m.episodes()]
+                    [':::'.join([
+                        str(e.episode_number()),
+                        e.title(),
+                        e.summary()
+                    ]) for e in m.episodes()]
                 ),
                 m.description(),
             ) for m in meta]
@@ -595,9 +599,11 @@ class Sqlite(DB):
                 result_row['meta_rating'],
                 result_row['meta_image_name'],
                 sorted([
-                    (lambda x: (int(x[0]), x[1], x[2]))(m.split(":::"))
+                    (lambda x:
+                        Episode_Meta(int(x[0]), x[1], x[2]))(m.split(":::"))
                     for m in result_row['meta_episodes'].split(";;;")
-                ], key=lambda x: x[0]) if result_row['meta_episodes'] else [],
+                ], key=lambda x: x.episode_number())
+                if result_row['meta_episodes'] else [],
                 result_row['meta_description']
             ))
 
@@ -653,9 +659,11 @@ class Sqlite(DB):
                 result_row['meta_rating'],
                 result_row['meta_image_name'],
                 sorted([
-                    (lambda x: (int(x[0]), x[1], x[2]))(m.split(":::"))
+                    (lambda x:
+                        Episode_Meta(int(x[0]), x[1], x[2]))(m.split(":::"))
                     for m in result_row['meta_episodes'].split(";;;")
-                ], key=lambda x: x[0]) if result_row['meta_episodes'] else [],
+                ], key=lambda x: x.episode_number())
+                if result_row['meta_episodes'] else [],
                 result_row['meta_description']
             ))
 

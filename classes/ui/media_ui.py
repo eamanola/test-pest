@@ -52,7 +52,7 @@ class MediaUI(object):
                 parent.meta().episodes()
             ):
                 for episode in parent.meta().episodes():
-                    if episode[0] == media.episode_number():
+                    if episode.episode_number() == media.episode_number():
                         episode_meta = episode
                         break
 
@@ -63,7 +63,8 @@ class MediaUI(object):
                 title = media.meta().title()
         if not title:
             if episode_meta:
-                title = f'{episode_meta[0]}. {episode_meta[1]}'
+                title = f'''{episode_meta.episode_number()}. {
+                    episode_meta.title()}'''
 
         if not title:
             title = media.title()
@@ -80,7 +81,7 @@ class MediaUI(object):
             description = media.meta().description()
 
         if not description and episode_meta:
-            description = episode_meta[2]
+            description = episode_meta.summary()
 
         if description:
             description_str = f'''
@@ -152,7 +153,7 @@ class MediaUI(object):
                 parent.meta().episodes()
             ):
                 for episode in parent.meta().episodes():
-                    if episode[0] == media.episode_number():
+                    if episode.episode_number() == media.episode_number():
                         episode_meta = episode
                         break
 
@@ -163,7 +164,8 @@ class MediaUI(object):
             not media.is_extra() and
             episode_meta
         ):
-            title = f'{episode_meta[0]}. {episode_meta[1]}'
+            title = f'''{episode_meta.episode_number()}. {
+                episode_meta.title()}'''
 
         if not title:
             if isinstance(media, Identifiable) and media.meta():

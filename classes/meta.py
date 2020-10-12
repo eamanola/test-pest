@@ -27,3 +27,22 @@ class Meta(object):
 
     def description(self):
         return self._description
+
+
+class Episode_Meta(object):
+
+    def __init__(self, episode_number, title, summary):
+        super(Episode_Meta, self).__init__()
+
+        self._episode_number = episode_number
+        self._title = title
+        self._summary = summary
+
+    def episode_number(self):
+        return self._episode_number
+
+    def title(self):
+        return self._title
+
+    def summary(self):
+        return self._summary
