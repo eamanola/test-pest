@@ -580,9 +580,11 @@ class Sqlite(DB):
 
             for c in containers:
                 return_obj.containers.append(c)
+                c.set_parent(return_obj)
 
             for m in media:
                 return_obj.media.append(m)
+                m.set_parent(return_obj)
 
         if result_row['year']:
             return_obj.set_year(result_row['year'])

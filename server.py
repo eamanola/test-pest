@@ -102,6 +102,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     MediaUI.html_line(media)
                 ]))
 
+            if play_next_list_str:
+                play_next_list_str = (''.join([
+                    '<div class="container page header">',
+                    'Day\'s Menu',
+                    '</div>\n',
+                    play_next_list_str
+                ]))
+
             cur = db.conn.cursor()
 
             sql = 'select id from containers where type="MediaLibrary"'

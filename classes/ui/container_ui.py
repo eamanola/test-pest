@@ -60,7 +60,7 @@ class ContainerUI(object):
             parent_str = ''.join([
                 '<span class="parent js-navigation js-container" ',
                 f'data-id="{container.parent().id()}">',
-                {container.parent().title()},
+                container.parent().title(),
                 '</span>'
             ])
 
@@ -142,7 +142,6 @@ class ContainerUI(object):
                 """
 
         for med in sorted(container.media, key=lambda m: m.title()):
-            med.set_parent(container)
             page = f"""
                     {page}
                     {MediaUI.html_line(med)}
@@ -179,32 +178,3 @@ class ContainerUI(object):
             '  </span>',
             '</div>\n'
         ])
-
-        f'''
-            <div class="container line js-navigation js-container" data-id="{
-                container.id()
-            }">
-                <span class="left">
-                    {img_str}
-                    <span class="info">
-                        <span class="line1">
-                            {parent_str}
-                            {title_str}
-                        </span>
-                        <span class="line2">
-                            {rating_str}
-                            {unplayed_str}
-                        </span>
-                    </span>
-                </span>
-                <span class="right">
-                    <span class="line1">
-                        {anidb}
-                    </span>
-                    <span class="line2">
-                        {scan}
-                        {identify}
-                    </span>
-                </span>
-            </div>
-        '''.strip()
