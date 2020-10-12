@@ -26,13 +26,14 @@ class MediaUI(object):
                 '</span>'
             ])
 
-
-
         return img_str if img_src else ""
 
     def _title_str(media, episode_meta, navigation=True):
         title = None
-        if (episode_meta):
+        if isinstance(media, Episode) and media.is_extra():
+            title = media.title()
+
+        if not title and episode_meta:
             title = '. '.join([
                 str(episode_meta.episode_number()),
                 episode_meta.title()
