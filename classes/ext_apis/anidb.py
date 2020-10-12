@@ -49,7 +49,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
     def parse(self, data):
         import gzip
         import xml.etree.ElementTree
-        from classes.meta import Meta
+        from classes.meta import Meta, Episode_Meta
         from classes.images import Images
 
         uncompressed = gzip.decompress(data)
@@ -74,7 +74,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
                 f'./title[@{{{namespace}}}lang="en"]'
             ).text
 
-            episodes.append((
+            episodes.append(Episode_Meta(
                 episode_num,
                 episode_title,
                 episode_summary

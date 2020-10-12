@@ -195,6 +195,14 @@ class MediaUI(object):
             ):
                 episode_meta = parent.meta().get_episode(media)
 
+        anidb_str = MediaUI._anidb_str(media)
+        identify_str = MediaUI._identify_str(media)
+
+        if anidb_str or identify_str:
+            right_style = ""
+        else:
+            right_style = ' style="display:none"'
+
         return ''.join(line.lstrip() for line in [
             f'<div class="media js-media line" data-id="{media.id()}">',
             '   <span class="left">',
@@ -210,12 +218,10 @@ class MediaUI(object):
             '           </span>',
             '       </span>',
             '   </span>',
-            '   <span class="right">',
-            '       <span class="line1">',
-            f'          {MediaUI._anidb_str(media)}',
-            '       </span>',
-            f'      <span class="line2">',
-            f'          {MediaUI._identify_str(media)}',
+            f'   <span class="right"{right_style}>',
+            f'       <span class="line1">',
+            f'          {anidb_str}',
+            f'          {identify_str}',
             '       </span>',
             '   </span>',
             '</div>\n'

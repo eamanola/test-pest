@@ -93,7 +93,7 @@ class ContainerUI(object):
 
         return unplayed_str if unplayed_str else ""
 
-    def _anidb_str(container):
+    def _anidb_str(container, show_ifneeded=True):
         from classes.ext_apis.anidb import AniDB
         anidb_str = None
 
@@ -101,22 +101,32 @@ class ContainerUI(object):
             isinstance(container, Identifiable) and
             AniDB.KEY in container.ext_ids()
         ):
-            anidb_str = ''.join([
+            anidb_str = [
                 '<a href="'
                 f'https://anidb.net/anime/{container.ext_ids()[AniDB.KEY]}'
                 '" target="_blank" rel="noopener noreferrer" ',
                 'class="external-link js-external-link">',
                 'aniDB',
-                '</a>',
-                '<a href="#" class="js-get-info">Get Info</a>'
-            ])
+                '</a>'
+            ]
+
+            if not show_ifneeded or not container.meta():
+                anidb_str.append(
+                    '<a href="#" class="js-get-info">Get Info</a>'
+                )
+            anidb_str = ''.join(anidb_str)
 
         return anidb_str if anidb_str else ""
 
-    def _identify_str(container):
+    def _identify_str(container, show_ifneeded=True):
         identify_str = None
 
-        if container.__class__.__name__ == "Show":
+        show_identify = not show_ifneeded or (
+            isinstance(container, Identifiable) and
+            len(container.ext_ids()) == 0
+        )
+
+        if show_identify and container.__class__.__name__ == "Show":
             identify_str = '<a href="#" class="js-identify">Identify</a>'
 
         return identify_str if identify_str else ""
@@ -128,9 +138,11 @@ class ContainerUI(object):
             f'<div class="container page header" data-id="{container.id()}">',
             f'  {ContainerUI._img_str(container)}',
             '   <span class="info">',
-            f'      {ContainerUI._title_str(container, include_parents=True)}',
-            f'      {ContainerUI._description_str(container)}',
-            f'      {ContainerUI._scan_str}',
+            f'    {ContainerUI._title_str(container, include_parents=True)}',
+            f'    {ContainerUI._description_str(container)}',
+            f'    {ContainerUI._scan_str}',
+            f'    {ContainerUI._identify_str(container, show_ifneeded=False)}',
+            f'    {ContainerUI._anidb_str(container, show_ifneeded=False)}'
             '   </span>',
             '</div>\n'
         ]])
@@ -170,10 +182,8 @@ class ContainerUI(object):
             '  <span class="right">',
             '      <span class="line1">',
             f'          {ContainerUI._anidb_str(container)}',
-            '      </span>',
-            '      <span class="line2">',
             f'          {ContainerUI._scan_str}',
-            f'          {ContainerUI._identify_str(container)}',
+            f'          {ContainerUI._identify_str(container)}'
             '      </span>',
             '  </span>',
             '</div>\n'
