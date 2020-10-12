@@ -35,7 +35,7 @@ class ContainerUI(object):
                 '</span>'
             ])
 
-        return description_str
+        return description_str if description_str else ""
 
     _scan_str = '<a href="#" class="js-scan">Scan</a>'
 
@@ -110,7 +110,7 @@ class ContainerUI(object):
         return identify_str if identify_str else ""
 
     @staticmethod
-    def html_page(container, meta=None):
+    def html_page(container):
         from classes.ui.media_ui import MediaUI
         page = f'''
         <div class="container page header" data-id="{container.id()}">
@@ -131,29 +131,11 @@ class ContainerUI(object):
                 {ContainerUI.html_line(con)}
                 """
 
-        use_meta_titles = (
-            meta is not None and
-            not isinstance(container, Extra)
-        )
-
         for med in sorted(container.media, key=lambda m: m.title()):
-            title = None
-            if use_meta_titles:
-                meta_episode = [
-                    m for m in meta.episodes()
-                    if m[0] == med.episode_number()
-                ]
-                if len(meta_episode):
-                    meta_episode = meta_episode[0]
-                    title = f'{str(meta_episode[0])}. {meta_episode[1]}'
-
+            med.set_parent(container)
             page = f"""
                     {page}
-                    {MediaUI.html_line(
-                        med,
-                        parent=container,
-                        title=title
-                    )}
+                    {MediaUI.html_line(med)}
                     """
 
         return page

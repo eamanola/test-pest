@@ -22,6 +22,9 @@ class Media(object):
     def parent(self):
         return self._parent
 
+    def set_parent(self, parent):
+        self._parent = parent
+
     def played(self):
         return self._played
 

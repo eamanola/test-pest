@@ -14,6 +14,9 @@ class Container(object):
     def parent(self):
         return self._parent
 
+    def set_parent(self, parent):
+        self._parent = parent
+
     def get_container(self, container_id):
         for container in self.containers:
             if container.id() == container_id:

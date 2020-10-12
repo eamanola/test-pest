@@ -42,20 +42,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             db.connect()
             container = db.get_container(container_id)
 
-            meta = None
             if isinstance(container, (Extra, Season)):
-                meta = db.get_container(container.parent().id()).meta()
-            elif isinstance(container, (Show)):
-                meta = container.meta()
+                parent = container.parent()
+                while parent and not isinstance(parent, Identifiable):
+                    parent.set_parent(db.get_container(parent.parent()))
+                    parent = parent.parent()
 
             db.close()
 
-            page = ContainerUI.html_page(container, meta=meta)
+            page = ContainerUI.html_page(container)
 
             if container.__class__.__name__ != "MediaLibrary":
                 media_library = MediaLibrary(container.path())
             else:
                 media_library = None
+
         elif 'm' in params:
             media_id = params['m'][0]
             media = None
@@ -67,33 +68,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             db.connect()
             media = db.get_media(media_id)
 
-            parent = None
             if isinstance(media, Episode):
-                parent = db.get_container(media.parent())
-                parents.append(parent)
-                while parent and isinstance(parent, (Extra, Season)):
-                    parent = db.get_container(parent.parent())
-                    parents.append(parent)
-
-            if parent and parent.__class__.__name__ == "Show":
-                show = parent
+                media.set_parent(db.get_container(media.parent()))
+                parent = media.parent()
+                while parent and not isinstance(parent, Identifiable):
+                    parent.set_parent(db.get_container(parent.parent()))
+                    parent = parent.parent()
 
             db.close()
 
-            if (
-                isinstance(media, Episode) and
-                media.episode_number() and
-                show and
-                isinstance(show, Identifiable) and
-                show.meta() and
-                show.meta().episodes()
-            ):
-                for episode in show.meta().episodes():
-                    if episode[0] == media.episode_number():
-                        episode_meta = episode
-                        break
-
-            page = MediaUI.html_page(media, parents, episode_meta=episode_meta)
+            page = MediaUI.html_page(media)
             if media.parent() and media.parent().path():
                 media_library = MediaLibrary(media.parent().path())
             else:
@@ -107,31 +91,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             play_next = WatchingList.get_play_next_list(db)
 
             for media in play_next:
-                parent = media.parent()
-                if isinstance(parent, (Extra, Season)):
-                    parent = db.get_container(media.parent()).parent()
-
-                episode_meta = None
-                title = None
-                if (
-                    isinstance(media, Episode) and
-                    media.episode_number() and
-                    parent and
-                    isinstance(parent, Identifiable) and
-                    parent.meta() and
-                    parent.meta().episodes()
-                ):
-                    for episode in parent.meta().episodes():
-                        if episode[0] == media.episode_number():
-                            episode_meta = episode
-                            break
-
-                    if episode_meta:
-                        title = f'{episode_meta[0]}. {episode_meta[1]}'
+                if isinstance(media, Episode):
+                    parent = media.parent()
+                    while parent and not isinstance(parent, Identifiable):
+                        parent.set_parent(db.get_container(parent.parent()))
+                        parent = parent.parent()
 
                 play_next_list_str = (''.join([
                     play_next_list_str,
-                    MediaUI.html_line(media, parent=parent, title=title)
+                    MediaUI.html_line(media)
                 ]))
 
             cur = db.conn.cursor()

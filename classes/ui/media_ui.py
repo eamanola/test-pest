@@ -1,7 +1,7 @@
 from classes.container import Show, Season, Extra
 from classes.identifiable import Identifiable
 from classes.ext_apis.anidb import AniDB
-from classes.media import Movie
+from classes.media import Movie, Episode
 from classes.images import Images
 
 
@@ -11,12 +11,11 @@ class MediaUI(object):
         super(MediaUI, self).__init__()
 
     @staticmethod
-    def html_page(media, parents, episode_meta=None):
-
-        print(parents)
+    def html_page(media):
 
         parents_strs = []
-        for parent in parents:
+        parent = media.parent()
+        while parent and isinstance(parent, (Extra, Season, Show)):
             parents_strs.append(
                 f'''
                 <span class="js-navigation js-parent" data-id="{parent.id()}">{
@@ -24,6 +23,7 @@ class MediaUI(object):
                 }</span>
                 '''.strip()
             )
+            parent = parent.parent()
         parents_strs.reverse()
         print(parents_strs)
         parents_str = ' / '.join(parents_strs)
@@ -39,6 +39,22 @@ class MediaUI(object):
 
         if img_src:
             img_str = f'<img src="{img_src}" class="poster" />'
+
+        episode_meta = None
+        if isinstance(media, Episode) and media.episode_number():
+            parent = media.parent()
+            while(parent and not parent.meta()):
+                parent = parent.parent()
+            if (
+                parent and
+                isinstance(parent, Identifiable) and
+                parent.meta() and
+                parent.meta().episodes()
+            ):
+                for episode in parent.meta().episodes():
+                    if episode[0] == media.episode_number():
+                        episode_meta = episode
+                        break
 
         title_str = ""
         title = None
@@ -88,11 +104,7 @@ class MediaUI(object):
         return page
 
     @staticmethod
-    def html_line(
-        media,
-        parent=None,
-        title=None
-    ):
+    def html_line(media):
         # img
         img_str = ""
         img_src = None
@@ -109,7 +121,7 @@ class MediaUI(object):
             img_str = f'<img src="{img_src}" class="js-play {img_class}" />'
 
         # parents
-        parent = parent if parent else media.parent()
+        parent = media.parent()
 
         parents = []
         while(parent and isinstance(parent, (Show, Season, Extra))):
@@ -127,7 +139,28 @@ class MediaUI(object):
         <span class="js-parents" style="display:none">{parents_str}</span>
         '''.strip()
 
+        episode_meta = None
+        if isinstance(media, Episode) and media.episode_number():
+            parent = media.parent()
+            while parent and not parent.meta():
+                parent = parent.parent()
+
+            if (
+                parent and
+                isinstance(parent, Identifiable) and
+                parent.meta() and
+                parent.meta().episodes()
+            ):
+                for episode in parent.meta().episodes():
+                    if episode[0] == media.episode_number():
+                        episode_meta = episode
+                        break
+
         # title
+        title = None
+        if episode_meta:
+            title = f'{episode_meta[0]}. {episode_meta[1]}'
+
         if not title:
             if isinstance(media, Identifiable) and media.meta():
                 title = media.meta().title()
