@@ -43,18 +43,18 @@ class MediaUI(object):
         episode_meta = None
         if isinstance(media, Episode) and media.episode_number():
             parent = media.parent()
-            while(parent and not parent.meta()):
+            while(
+                parent and
+                not (isinstance(parent, Identifiable) and parent.meta())
+            ):
                 parent = parent.parent()
+
             if (
                 parent and
                 isinstance(parent, Identifiable) and
-                parent.meta() and
-                parent.meta().episodes()
+                parent.meta()
             ):
-                for episode in parent.meta().episodes():
-                    if episode.episode_number() == media.episode_number():
-                        episode_meta = episode
-                        break
+                episode_meta = parent.meta().get_episode(media)
 
         title_str = ""
         title = None
@@ -143,19 +143,18 @@ class MediaUI(object):
         episode_meta = None
         if isinstance(media, Episode) and media.episode_number():
             parent = media.parent()
-            while parent and not parent.meta():
+            while (
+                parent and
+                not (isinstance(parent, Identifiable) and parent.meta())
+            ):
                 parent = parent.parent()
 
             if (
                 parent and
                 isinstance(parent, Identifiable) and
-                parent.meta() and
-                parent.meta().episodes()
+                parent.meta()
             ):
-                for episode in parent.meta().episodes():
-                    if episode.episode_number() == media.episode_number():
-                        episode_meta = episode
-                        break
+                episode_meta = parent.meta().get_episode(media)
 
         # title
         title = None

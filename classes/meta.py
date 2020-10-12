@@ -28,6 +28,17 @@ class Meta(object):
     def description(self):
         return self._description
 
+    def get_episode(self, episode):
+        meta = None
+
+        if episode.episode_number():
+            for episode_meta in self.episodes():
+                if episode_meta.episode_number() == episode.episode_number():
+                    meta = episode_meta
+                    break
+
+        return meta
+
 
 class Episode_Meta(object):
 
