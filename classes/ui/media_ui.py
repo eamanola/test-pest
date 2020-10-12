@@ -106,7 +106,7 @@ class MediaUI(object):
 
         return description_str if description else ""
 
-    def _anidb_str(media):
+    def _anidb_str(media, show_ifneeded=True):
         from classes.ext_apis.anidb import AniDB
         anidb_str = None
 
@@ -114,15 +114,20 @@ class MediaUI(object):
             isinstance(media, Identifiable) and
             AniDB.KEY in media.ext_ids()
         ):
-            anidb_str = ''.join([
+            anidb_str = [
                 '<a href="'
                 f'https://anidb.net/anime/{media.ext_ids()[AniDB.KEY]}'
                 '" target="_blank" rel="noopener noreferrer" ',
                 'class="external-link js-external-link">',
                 'aniDB',
-                '</a>',
-                '<a href="#" class="js-get-info">Get Info</a>'
-            ])
+                '</a>'
+            ]
+
+            if not show_ifneeded or not media.meta():
+                anidb_str.append(
+                    '<a href="#" class="js-get-info">Get Info</a>'
+                )
+            anidb_str = ''.join(anidb_str)
 
         return anidb_str if anidb_str else ""
 
@@ -135,12 +140,18 @@ class MediaUI(object):
             '/><span>Played</span></label>'
         ])
 
-    def _identify_str(media):
-        identify_str = ""
-        if isinstance(media, Identifiable):
+    def _identify_str(media, show_ifneeded=True):
+        identify_str = None
+
+        show_identify = not show_ifneeded or (
+            isinstance(media, Identifiable) and
+            len(media.ext_ids()) == 0
+        )
+
+        if show_identify and isinstance(media, Identifiable):
             identify_str = '<a href="#" class="js-identify">Identify</a>'
 
-        return identify_str
+        return identify_str if identify_str else ""
 
     @staticmethod
     def html_page(media):
@@ -171,6 +182,8 @@ class MediaUI(object):
                     )}''',
             f'      {MediaUI._parents_str(media)}',
             f'      {MediaUI._description_str(media, episode_meta)}',
+            f'      {MediaUI._identify_str(media, show_ifneeded=False)}',
+            f'      {MediaUI._anidb_str(media, show_ifneeded=False)}'
             '   </span>',
             '</div>'
         ]])
