@@ -18,8 +18,20 @@ class ContainerUI(object):
 
         return img_str if img_str else ""
 
-    def _title_str(container):
-        return f'<span class="title">{container.title()}</span>'
+    def _title_str(container, include_parents=False):
+        parents_str = ""
+
+        if include_parents:
+            parent_title_strs = []
+            parent = container.parent()
+            while parent and parent.__class__.__name__ != "MediaLibrary":
+                parent_title_strs.append(parent.title())
+                parent = parent.parent()
+
+            if len(parent_title_strs):
+                parents_str = f'[{"/".join(parent_title_strs)}] '
+
+        return f'<span class="title">{parents_str}{container.title()}</span>'
 
     def _description_str(container):
         description_str = None
@@ -112,18 +124,16 @@ class ContainerUI(object):
     @staticmethod
     def html_page(container):
         from classes.ui.media_ui import MediaUI
-        page = f'''
-        <div class="container page header" data-id="{container.id()}">
-            {ContainerUI._img_str(container)}
-            <span class="info">
-                {ContainerUI._title_str(container)}
-                {ContainerUI._description_str(container)}
-                <span>
-                    {ContainerUI._scan_str}
-                </span>
-            </span>
-        </div>
-        '''
+        page = ''.join([line.lstrip() for line in [
+            f'<div class="container page header" data-id="{container.id()}">',
+            f'  {ContainerUI._img_str(container)}',
+            '   <span class="info">',
+            f'      {ContainerUI._title_str(container, include_parents=True)}',
+            f'      {ContainerUI._description_str(container)}',
+            f'      {ContainerUI._scan_str}',
+            '   </span>',
+            '</div>\n'
+        ]])
 
         for con in sorted(container.containers, key=lambda c: c.title()):
             page = f"""

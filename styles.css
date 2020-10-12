@@ -1,4 +1,4 @@
-.js-navigation
+.js-navigation, .js-played + *
 {
   text-decoration: underline;
 }
@@ -9,7 +9,7 @@
   vertical-align: middle;
 }
 
-.media.line,
+.media,
 .container
 {
   border: 1px solid #fff;
@@ -107,12 +107,14 @@
   display: block;
 }
 
+.media.page.header,
 .container.page.header {
     margin-top: 1em;
     background: #ddd;
     border: 1px solid #ddd
 }
 
+.media.page.header .title,
 .container.page.header .title {
   font-size: 1.2em;
 }
