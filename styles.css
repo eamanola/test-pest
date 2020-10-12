@@ -85,6 +85,10 @@
   padding: 0.2em;
 }
 
+.poster, .thumbnail {
+    border-radius: 0.3em;
+}
+
 .media.line .left .poster,
 .container.line .left .poster
 {
@@ -138,4 +142,17 @@
 
 .media.page.header .info .parents * {
   display: inline;
+}
+
+.js-play:hover {
+  opacity: 0.3;
+  transition: opacity 0.5s;
+}
+
+.js-play-wrapper {
+  background-repeat: no-repeat;
+  background-image: url(/images/www/play-icon.png);
+  background-size: contain;
+  background-position: center;
+  display: inline-block;
 }

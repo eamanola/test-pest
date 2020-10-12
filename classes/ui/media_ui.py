@@ -20,7 +20,13 @@ class MediaUI(object):
             class_str = "thumbnail"
 
         if img_src:
-            img_str = f'<img src="{img_src}" class="{class_str}" />'
+            img_str = ''.join([
+                '<span class="js-play-wrapper">',
+                f'<img src="{img_src}" class="js-play {class_str}" />',
+                '</span>'
+            ])
+
+
 
         return img_str if img_src else ""
 

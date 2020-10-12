@@ -455,7 +455,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             ) or (
                 self.path.startswith("/images/posters/") and
                 self.path.endswith(".jpg")
-            )
+            ) or self.path == "/images/www/play-icon.png"
         ):
             file_path = os.path.join(
                 sys.path[0],
