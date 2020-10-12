@@ -125,7 +125,7 @@
 
 .media.page.header .poster,
 .container.page.header .poster {
-  max-width: 30%;
+  max-width: 15em;
 }
 
 .media.page.header .info,
@@ -133,6 +133,11 @@
   display: inline-block;
   max-width: 60%;
   vertical-align: top;
+}
+
+.container.page.header > * + .info,
+.media.page.header > * + .info {
+  padding-left: 1em
 }
 
 .media.page.header .info *,
@@ -155,4 +160,8 @@
   background-size: contain;
   background-position: center;
   display: inline-block;
+}
+
+.media.page.header .js-play-wrapper {
+  background-size: auto;
 }
