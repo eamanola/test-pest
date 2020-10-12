@@ -118,7 +118,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             page = ""
 
             medialibs = cur.fetchall()
-            medialibs.reverse()
+            # medialibs.reverse()
 
             for media_lib in medialibs:
                 page = f"""
@@ -143,7 +143,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     <title>test-pest</title>
                     <link rel="stylesheet" href="styles.css">
                 </head>
-                <body>
+                <body class="grid">
                     <a href="/">Home</a>
                     {media_library}
                     <div id="add-to-play-list"></div>

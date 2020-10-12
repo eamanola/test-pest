@@ -103,7 +103,6 @@
 .container.line .left .info
 {
   display: inline-block;
-  max-width: 70%;
 }
 
 .media.line .left .info .line1,
@@ -163,5 +162,35 @@
 }
 
 .media.page.header .js-play-wrapper {
+  background-size: auto;
+}
+
+.grid .media.line.movie,
+.grid .container.line {
+  display: inline-block;
+  width: 10em;
+  vertical-align: top;
+}
+
+.grid .media.line.movie .left .poster,
+.grid .container.line .left .poster {
+  max-width: 10em;
+  display: block;
+  margin: 0 auto;
+}
+
+.grid .media.line.movie .left,
+.grid .media.line.movie .right,
+.grid .container.line .left,
+.grid .container.line .right {
+  display: block;
+}
+
+.grid .media.line.movie .right,
+.grid .container.line .right {
+  position: initial
+}
+
+.grid .media.line.movie .js-play-wrapper {
   background-size: auto;
 }

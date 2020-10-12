@@ -216,8 +216,13 @@ class MediaUI(object):
         else:
             right_style = ' style="display:none"'
 
+        is_movie = ""
+        if isinstance(media, Movie):
+            is_movie = " movie"
+
         return ''.join(line.lstrip() for line in [
-            f'<div class="media js-media line" data-id="{media.id()}">',
+            f'<div class="media{is_movie} js-media line"',
+            f' data-id="{media.id()}">',
             '   <span class="left">',
             f'      {MediaUI._img_str(media)}',
             '       <span class="info">',
