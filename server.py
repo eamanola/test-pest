@@ -84,7 +84,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 isinstance(media, Episode) and
                 media.episode_number() and
                 show and
-                isinstance(parent, Identifiable) and
+                isinstance(show, Identifiable) and
                 show.meta() and
                 show.meta().episodes()
             ):
@@ -111,9 +111,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if isinstance(parent, (Extra, Season)):
                     parent = db.get_container(media.parent()).parent()
 
+                episode_meta = None
+                title = None
+                if (
+                    isinstance(media, Episode) and
+                    media.episode_number() and
+                    parent and
+                    isinstance(parent, Identifiable) and
+                    parent.meta() and
+                    parent.meta().episodes()
+                ):
+                    for episode in parent.meta().episodes():
+                        if episode[0] == media.episode_number():
+                            episode_meta = episode
+                            break
+
+                    if episode_meta:
+                        title = f'{episode_meta[0]}. {episode_meta[1]}'
+
                 play_next_list_str = (''.join([
                     play_next_list_str,
-                    MediaUI.html_line(media, parent=parent)
+                    MediaUI.html_line(media, parent=parent, title=title)
                 ]))
 
             cur = db.conn.cursor()
