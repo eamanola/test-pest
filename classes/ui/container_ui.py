@@ -1,50 +1,125 @@
-from classes.container import Season, Show, Extra
-from classes.ui.media_ui import MediaUI
+from classes.container import Show, Season, Extra
 from classes.identifiable import Identifiable
-from classes.ext_apis.anidb import AniDB
-from classes.images import Images
 
 
 class ContainerUI(object):
 
-    def __init__(self, container):
+    def __init__(self):
         super(ContainerUI, self).__init__()
-        self._container = container
 
-    def container(self):
-        return self._container
+    def _img_str(container):
+        from classes.images import Images
+        img_str = None
 
-    @staticmethod
-    def html_page(container, meta=None):
-        img_str = ""
         if isinstance(container, Identifiable):
             poster = Images.poster(container)
             if poster:
                 img_str = f'<img src="{poster}" class="poster" />'
 
-        title_str = f'<span class="title">{container.title()}</span>'
+        return img_str if img_str else ""
 
-        description_str = ""
+    def _title_str(container):
+        return f'<span class="title">{container.title()}</span>'
+
+    def _description_str(container):
+        description_str = None
+
         if (
             isinstance(container, Identifiable) and
             container.meta() and
             container.meta().description()
         ):
-            description_str = f'''
-                <span class="description">
-                    {container.meta().description()}
-                </span>'''.strip()
+            description_str = ''.join([
+                '<span class="description">',
+                container.meta().description(),
+                '</span>'
+            ])
 
-        scan_str = '<a href="#" class="js-scan">Scan</a>'
+        return description_str
 
+    _scan_str = '<a href="#" class="js-scan">Scan</a>'
+
+    def _parent_str(container):
+        parent_str = None
+
+        if (container.parent() and (
+            isinstance(container.parent(), (Show, Season, Extra))
+        )):
+            parent_str = ''.join([
+                '<span class="parent js-navigation js-container" ',
+                f'data-id="{container.parent().id()}">',
+                {container.parent().title()},
+                '</span>'
+            ])
+
+        return parent_str if parent_str else ""
+
+    def _rating_str(container):
+        rating_str = None
+        if (
+            isinstance(container, Identifiable) and
+            container.meta() and
+            container.meta().rating()
+        ):
+            rating_str = ''.join([
+                '<span class="rating">',
+                f'{container.meta().rating()} / 10',
+                '</span>'
+            ])
+
+        return rating_str if rating_str else ""
+
+    def _unplayed_str(container):
+        unplayed_str = None
+
+        if (container.unplayed_count() > 0):
+            unplayed_str = ''.join([
+                '<span class="unplayed">',
+                f'[{container.unplayed_count()}]',
+                '</span>'
+            ])
+
+        return unplayed_str if unplayed_str else ""
+
+    def _anidb_str(container):
+        from classes.ext_apis.anidb import AniDB
+        anidb_str = None
+
+        if (
+            isinstance(container, Identifiable) and
+            AniDB.KEY in container.ext_ids()
+        ):
+            anidb_str = ''.join([
+                '<a href="'
+                f'https://anidb.net/anime/{container.ext_ids()[AniDB.KEY]}'
+                '" target="_blank" rel="noopener noreferrer" ',
+                'class="external-link js-external-link">',
+                'aniDB',
+                '</a>',
+                '<a href="#" class="js-get-info">Get Info</a>'
+            ])
+
+        return anidb_str if anidb_str else ""
+
+    def _identify_str(container):
+        identify_str = None
+
+        if container.__class__.__name__ == "Show":
+            identify_str = '<a href="#" class="js-identify">Identify</a>'
+
+        return identify_str if identify_str else ""
+
+    @staticmethod
+    def html_page(container, meta=None):
+        from classes.ui.media_ui import MediaUI
         page = f'''
         <div class="container page header" data-id="{container.id()}">
-            {img_str}
+            {ContainerUI._img_str(container)}
             <span class="info">
-                {title_str}
-                {description_str}
+                {ContainerUI._title_str(container)}
+                {ContainerUI._description_str(container)}
                 <span>
-                    {scan_str}
+                    {ContainerUI._scan_str}
                 </span>
             </span>
         </div>
@@ -85,67 +160,35 @@ class ContainerUI(object):
 
     @staticmethod
     def html_line(container, is_title=False, parent=None, meta=None):
+        return ''.join(line.lstrip() for line in [
+            '<div class="container line js-navigation js-container" ',
+            f'data-id="{container.id()}">',
+            '<span class="left">',
+            f'      {ContainerUI._img_str(container)}',
+            '      <span class="info">',
+            '          <span class="line1">',
+            f'              {ContainerUI._parent_str(container)}',
+            f'              {ContainerUI._title_str(container)}',
+            '          </span>',
+            '          <span class="line2">',
+            f'              {ContainerUI._rating_str(container)}',
+            f'              {ContainerUI._unplayed_str(container)}',
+            '          </span>',
+            '      </span>',
+            '  </span>',
+            '  <span class="right">',
+            '      <span class="line1">',
+            f'          {ContainerUI._anidb_str(container)}',
+            '      </span>',
+            '      <span class="line2">',
+            f'          {ContainerUI._scan_str}',
+            f'          {ContainerUI._identify_str(container)}',
+            '      </span>',
+            '  </span>',
+            '</div>\n'
+        ])
 
-        img_str = ""
-        if isinstance(container, Identifiable):
-            poster = Images.poster(container)
-            if poster:
-                img_str = f'<img src="{poster}" class="poster" />'
-
-        parent_str = ""
-        if (container.parent() and (
-            isinstance(container.parent(), (Show, Season, Extra))
-        )):
-            parent_str = f'''
-                <span class="parent js-navigation js-container" data-id="{
-                container.parent().id()}">{container.parent().title()}</span>
-            '''.strip()
-
-        title_str = f'''
-            <span class="title">{container.title()}</span>
-            '''.strip()
-
-        rating_str = ""
-        if (
-            isinstance(container, Identifiable) and
-            container.meta() and
-            container.meta().rating()
-        ):
-            rating_str = f'''
-                <span class="rating middle-line2">
-                    {container.meta().rating()} / 10
-                </span>'''.strip()
-
-        unplayed_str = ""
-        if (container.unplayed_count() > 0):
-            unplayed_str = f'''
-                <span class="unplayed middle-line2">
-                    [{container.unplayed_count()}]
-                </span>'''.strip()
-
-        if (
-            isinstance(container, Identifiable) and
-            AniDB.KEY in container.ext_ids()
-        ):
-            anidb = f'''
-            <a
-                href="https://anidb.net/anime/{container.ext_ids()[AniDB.KEY]}"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="extrenal-link">
-                aniDB</a>
-            <a href="#" class="js-get-info">Get Info</a>
-            '''.strip()
-        else:
-            anidb = ""
-
-        scan = '<a href="#" class="js-scan">Scan</a>'
-
-        identify = ''
-        if container.__class__.__name__ == "Show":
-            identify = '<a href="#" class="js-identify">Identify</a>'
-
-        return f'''
+        f'''
             <div class="container line js-navigation js-container" data-id="{
                 container.id()
             }">

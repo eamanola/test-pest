@@ -130,7 +130,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 page = f"""
                 {page}
                 {ContainerUI.html_page(db.get_container(media_lib[0]))}
-                <br/>
                 """
 
             db.close()

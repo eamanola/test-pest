@@ -33,11 +33,17 @@
 {
 }
 
+.media.line,
+.container.line
+{
+    position: relative;
+}
 .media.line .right,
 .container.line .right
 {
   position: absolute;
   right: 2em;
+  top: 1em
 }
 
 /*
@@ -46,6 +52,12 @@
     Small: smaller than 640px /max-width: 39.9375em
 */
 @media (max-width: 64em) {
+  .media.line,
+  .container.line
+  {
+      position: initial;
+  }
+
   .media.line .right,
   .container.line .right
   {
@@ -62,6 +74,15 @@
 .container.line .line2
 {
   display: inline-block;
+}
+
+.media.line .line1 *,
+.media.line .line2 *,
+.container.line .line1 *,
+.container.line .line2 *
+{
+  display: inline-block;
+  padding: 0.2em;
 }
 
 .media.line .left .poster,
@@ -87,6 +108,7 @@
 }
 
 .container.page.header {
+    margin-top: 1em;
     background: #ddd;
     border: 1px solid #ddd
 }

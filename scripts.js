@@ -333,6 +333,12 @@ function onClearPlayClick(e) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+function onExternalLinkClick(e) {
+  e.stopPropagation();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 function onToggleToPlayClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -469,6 +475,11 @@ function init() {
   var get_info_items = document.querySelectorAll('.js-get-info')
   for (var i = 0, il = get_info_items.length; i < il; i++) {
     get_info_items[i].addEventListener('click', onGetInfoClick, false)
+  }
+
+  var external_links = document.querySelectorAll('.js-external-link')
+  for (var i = 0, il = external_links.length; i < il; i++) {
+    external_links[i].addEventListener('click', onExternalLinkClick, false)
   }
 
   show_play_next_list_parents()
