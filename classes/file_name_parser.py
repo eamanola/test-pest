@@ -233,6 +233,7 @@ class File_name_parser(object):
         file_removed_tags = File_name_parser.remove_tags(file)
         return (
             File_name_parser.re_extra.search(file_removed_tags) is not None or
+            File_name_parser.is_oad(file) or
             File_name_parser.is_ncop(file) or
             File_name_parser.is_nced(file)
         )

@@ -67,6 +67,9 @@ class Episode(Media):
     def is_nced(self):
         return self._is_nced
 
+    def is_extra(self):
+        return self.is_oad() or self.is_ncop() or self.is_nced()
+
     def title(self):
         if self.is_oad():
             prefix = "OAD"

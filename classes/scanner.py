@@ -28,10 +28,7 @@ class Scanner(object):
             is_show = (
                 season_number or
                 episode_number or
-                is_extra or
-                is_oad or
-                is_ncop or
-                is_nced
+                is_extra
             )
             is_movie = not is_show
 
@@ -86,7 +83,7 @@ class Scanner(object):
 
                     current_container = extra
 
-                if episode_number or is_oad or is_ncop or is_nced:
+                if episode_number or is_extra:
                     media = Episode(
                         file_path,
                         episode_number,

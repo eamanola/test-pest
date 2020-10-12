@@ -158,7 +158,11 @@ class MediaUI(object):
 
         # title
         title = None
-        if episode_meta:
+        if (
+            isinstance(media, Episode) and
+            not media.is_extra() and
+            episode_meta
+        ):
             title = f'{episode_meta[0]}. {episode_meta[1]}'
 
         if not title:
@@ -171,9 +175,7 @@ class MediaUI(object):
         class_str = "js-navigation" if (
             isinstance(media, Movie) or
             (
-                not media.is_oad() and
-                not media.is_ncop() and
-                not media.is_nced()
+                not media.is_extra()
             )
         ) else ""
         title_str = f'<span class="{class_str}">{title}</span>'
