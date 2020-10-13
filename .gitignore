@@ -1,5 +1,6 @@
 __pycache__/
-images/
+images/posters/
+images/thumbnails/
 tmp/
 external/
 TODO
