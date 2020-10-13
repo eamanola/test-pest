@@ -174,8 +174,8 @@
 {
   background-repeat: no-repeat;
   background-image: url(/images/www/play-icon.png);
-  background-size: contain;
-  background-position: center;
+  background-size: 50%;
+  background-position: 50% 50%;
   display: inline-block;
 }
 
@@ -183,7 +183,7 @@
   background-size: auto;
 }
 
-.grid .media.line.movie,
+.grid .media.line,
 .grid .container.line
 {
   display: inline-block;
@@ -191,7 +191,8 @@
   vertical-align: top;
 }
 
-.grid .media.line.movie .left .poster,
+.grid .media.line .left .thumbnail,
+.grid .media.line .left .poster,
 .grid .container.line .left .poster
 {
   max-width: 10em;
@@ -199,27 +200,22 @@
   margin: 0 auto;
 }
 
-.grid .media.line.movie .left,
-.grid .media.line.movie .right,
+.grid .media.line .left,
+.grid .media.line .right,
 .grid .container.line .left,
 .grid .container.line .right
 {
   display: block;
 }
 
-.grid .media.line.movie .rating,
+.grid .media.line .rating,
 .grid .container.line .rating
 {
   display: block;
 }
 
-.grid .media.line.movie .right,
+.grid .media.line .right,
 .grid .container.line .right
 {
   position: initial;
-}
-
-.grid .media.line.movie .js-play-wrapper
-{
-  background-size: auto;
 }
