@@ -42,6 +42,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             db.connect()
             container = db.get_container(container_id)
 
+            # pass meta, if available, to html_page
             if isinstance(container, (Extra, Season)):
                 parent = container.parent()
                 while parent and not isinstance(parent, Identifiable):

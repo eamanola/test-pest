@@ -15,6 +15,9 @@ class File_name_parser(object):
     r_extra = "EXTRA"
     re_extra = re.compile(r_extra, re.IGNORECASE)
 
+    r_ova = "OVA"
+    re_ova = re.compile(r_ova, re.IGNORECASE)
+
     r_episode = r"(?:episode|e|ep)"
 
     r_episode_prefix = r"(?:^|[^a-zA-Z]+)"
@@ -28,6 +31,7 @@ class File_name_parser(object):
     re_episode_oad = re.compile(r_episode_prefix + r_oad + r_episode_num)
     re_episode_ncop = re.compile(r_episode_prefix + r_ncop + r_episode_num)
     re_episode_nced = re.compile(r_episode_prefix + r_nced + r_episode_num)
+    re_episode_ova = re.compile(r_episode_prefix + r_ova + r_episode_num)
     re_episode_extra = re.compile(
         r_episode_prefix + r_extra + r_episode_num,
         re.IGNORECASE
@@ -101,13 +105,13 @@ class File_name_parser(object):
         show_name = File_name_parser.remove_file_extension(show_name)
         show_name = File_name_parser.clean_show_name(show_name)
 
-        show_name = show_name.replace(".", " ")
+        show_name = show_name.replace(".", " ").strip()
 
         year = File_name_parser.guess_year(file)
         if year != File_name_parser.UNKNOWN_YEAR:
             show_name = f"{show_name} ({year})"
 
-        return show_name.strip()
+        return show_name
 
     @staticmethod
     def guess_season(file):
@@ -154,6 +158,11 @@ class File_name_parser(object):
                 break
 
             has_episode = File_name_parser.re_episode_nced.search(part)
+            if has_episode:
+                episode = has_episode.group(1)
+                break
+
+            has_episode = File_name_parser.re_episode_ova.search(part)
             if has_episode:
                 episode = has_episode.group(1)
                 break
@@ -235,7 +244,8 @@ class File_name_parser(object):
             File_name_parser.re_extra.search(file_removed_tags) is not None or
             File_name_parser.is_oad(file) or
             File_name_parser.is_ncop(file) or
-            File_name_parser.is_nced(file)
+            File_name_parser.is_nced(file) or
+            File_name_parser.is_ova(file)
         )
 
     @staticmethod
@@ -247,3 +257,8 @@ class File_name_parser(object):
     def is_nced(file):
         file_removed_tags = File_name_parser.remove_tags(file)
         return File_name_parser.re_nced.search(file_removed_tags) is not None
+
+    @staticmethod
+    def is_ova(file):
+        file_removed_tags = File_name_parser.remove_tags(file)
+        return File_name_parser.re_ova.search(file_removed_tags) is not None

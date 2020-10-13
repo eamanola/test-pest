@@ -24,7 +24,7 @@ while line:
     print(file_name) if debug else ""
     file_names.add(file_name)
 
-    remaining_test_lines = 14 - 1
+    remaining_test_lines = 15 - 1
     for i in range(remaining_test_lines):
         next(test_shows)
 

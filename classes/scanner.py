@@ -24,6 +24,7 @@ class Scanner(object):
             is_oad = File_name_parser.is_oad(file_path)
             is_ncop = File_name_parser.is_ncop(file_path)
             is_nced = File_name_parser.is_nced(file_path)
+            is_ova = File_name_parser.is_ova(file_path)
 
             is_show = (
                 season_number or
@@ -91,7 +92,8 @@ class Scanner(object):
                         parent=current_container,
                         is_oad=is_oad,
                         is_ncop=is_ncop,
-                        is_nced=is_nced
+                        is_nced=is_nced,
+                        is_ova=is_ova
                     )
                     existing = current_container.get_media(media.id())
                     if existing:

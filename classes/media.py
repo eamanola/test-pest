@@ -47,13 +47,15 @@ class Episode(Media):
         parent=None,
         is_oad=False,
         is_ncop=False,
-        is_nced=False
+        is_nced=False,
+        is_ova=False
     ):
         super(Episode, self).__init__(file_path, played, parent=parent)
         self._episode_number = episode_number
         self._is_oad = is_oad
         self._is_ncop = is_ncop
         self._is_nced = is_nced
+        self._is_ova = is_ova
 
     def episode_number(self):
         return self._episode_number
@@ -67,8 +69,17 @@ class Episode(Media):
     def is_nced(self):
         return self._is_nced
 
+    def is_ova(self):
+        return self._is_ova
+
     def is_extra(self):
-        return self.is_oad() or self.is_ncop() or self.is_nced()
+        return (
+            self.is_oad()
+            or self.is_ncop()
+            or self.is_nced()
+            or self.is_ova()
+            or (self.parent() and isinstance(self.parent(), Extra))
+        )
 
     def title(self):
         if self.is_oad():
@@ -77,6 +88,10 @@ class Episode(Media):
             prefix = "NCOP"
         elif self.is_nced():
             prefix = "NCED"
+        elif self.is_ova():
+            prefix = "OVA"
+        elif self.is_extra():
+            prefix = "Extra"
         else:
             prefix = "Episode"
 

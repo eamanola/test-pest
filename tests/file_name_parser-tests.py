@@ -20,7 +20,8 @@ def test_show_files(
     expected_is_oad,
     expected_is_extra,
     expected_is_ncop,
-    expected_is_nced
+    expected_is_nced,
+    expected_is_ova
 ):
     if File_name_parser.guess_show_name(file_name) != expected_show_name:
         print("guess_show_name:", file_name)
@@ -106,6 +107,12 @@ def test_show_files(
         print("got:", File_name_parser.is_nced(file_name))
         print("--------------------------------------------------------------")
 
+    if File_name_parser.is_ova(file_name) != expected_is_ova:
+        print("is_ova:", file_name)
+        print("expected:", expected_is_ova)
+        print("got:", File_name_parser.is_ova(file_name))
+        print("--------------------------------------------------------------")
+
 
 print('test_show_files:') if debug else ""
 test_shows = open(os.path.join(sys.path[0], "test-shows"), "r")
@@ -189,6 +196,10 @@ while line:
     expected_is_nced = line.strip().lower() == "true"
     print('expected_is_nced:', expected_is_nced) if debug else ""
 
+    line = test_shows.readline()
+    expected_is_ova = line.strip().lower() == "true"
+    print('expected_is_ova:', expected_is_ova) if debug else ""
+
     test_show_files(
         file_name,
         expected_show_name,
@@ -203,7 +214,8 @@ while line:
         expected_is_oad,
         expected_is_extra,
         expected_is_ncop,
-        expected_is_nced
+        expected_is_nced,
+        expected_is_ova
     )
 
     line = test_shows.readline()

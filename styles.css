@@ -153,6 +153,11 @@
 .container.page.header .info * {
   display: block;
 }
+.media.page.header .info .actions *,
+.container.page.header .info .actions * {
+  display: inline-block;
+  padding: 0 0.2em;
+}
 
 .media.page.header .info .parents *,
 .container.page.header .info .parents * {

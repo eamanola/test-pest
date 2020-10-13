@@ -142,7 +142,7 @@ class Sqlite(DB):
             # type: Episode|Movie
             # subtitles: comma separated list
             # title: None for Episode
-            # flags: is_oad is_ncop is_nced
+            # flags: is_oad is_ncop is_nced is_ova
             """(
                 id TEXT,
                 type TEXT,
@@ -406,10 +406,11 @@ class Sqlite(DB):
 
     def _get_media_data(self, media):
         if isinstance(media, Episode):
-            flags = "{}{}{}".format(
+            flags = "{}{}{}{}".format(
                 1 if media.is_oad() else 0,
                 1 if media.is_ncop() else 0,
                 1 if media.is_nced() else 0,
+                1 if media.is_ova() else 0
             )
         else:
             flags = None
@@ -635,6 +636,7 @@ class Sqlite(DB):
             is_oad = flags[0] == "1"
             is_ncop = flags[1] == "1"
             is_nced = flags[2] == "1"
+            is_ova = flags[3] == "1"
             return_obj = Episode(
                 result_row['file_path'],
                 result_row['episode_number'],
@@ -642,7 +644,8 @@ class Sqlite(DB):
                 parent=parent,
                 is_oad=is_oad,
                 is_ncop=is_ncop,
-                is_nced=is_nced
+                is_nced=is_nced,
+                is_ova=is_ova
             )
         else:
             print('hmm hmm')
