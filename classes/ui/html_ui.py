@@ -1,6 +1,4 @@
 from classes.identifiable import Identifiable
-from classes.container import Container, Extra, Season, Show
-from classes.media import Episode
 
 
 class HTMLUI(object):
@@ -63,6 +61,8 @@ class HTMLUI(object):
         return html
 
     def identify_html(identifiable, show_ifneeded=True):
+        from classes.container import Container
+
         show_identify = (
             isinstance(identifiable, Identifiable) and
             (
@@ -99,6 +99,8 @@ class HTMLUI(object):
         return html
 
     def parents_html(item, display_none=False):
+        from classes.container import Extra, Season, Show
+
         parents = []
         parent = item.parent()
         while parent and isinstance(parent, (Extra, Season, Show)):
@@ -132,6 +134,7 @@ class HTMLUI(object):
         return parents_str if len(parents) else ""
 
     def title_html(item, episode_meta=None, navigation=True):
+        from classes.media import Episode
         title = None
         if isinstance(item, Episode):
             if item.is_extra():

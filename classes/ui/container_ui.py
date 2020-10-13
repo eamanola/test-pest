@@ -84,7 +84,6 @@ class ContainerUI(object):
             '  </span>',
             '  <span class="right">',
             '      <span class="line1">',
-            f'          {HTMLUI.anidb_html(container)}',
             f'          {HTMLUI.get_info_html(container)}',
             f'          {ContainerUI._scan_str}',
             f'          {HTMLUI.identify_html(container)}'

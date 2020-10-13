@@ -90,11 +90,10 @@ class MediaUI(object):
 
         episode_meta = MediaUI._get_episode_meta(media)
 
-        anidb_str = HTMLUI.anidb_html(media)
         get_info_str = HTMLUI.get_info_html(media)
         identify_str = HTMLUI.identify_html(media)
 
-        if anidb_str or get_info_str or identify_str:
+        if get_info_str or identify_str:
             right_style = ""
         else:
             right_style = ' style="display:none"'
@@ -124,8 +123,7 @@ class MediaUI(object):
             '       </span>',
             '   </span>',
             f'   <span class="right"{right_style}>',
-            f'       <span class="line1">',
-            f'          {anidb_str}',
+            '       <span class="line1">',
             f'          {get_info_str}',
             f'          {identify_str}',
             '       </span>',
