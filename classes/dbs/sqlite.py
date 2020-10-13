@@ -278,7 +278,13 @@ class Sqlite(DB):
         shows = []
 
         for result in cur.fetchall():
-            shows.append(self.get_container(result[0]))
+            con = self.get_container(result[0])
+
+            # if show was deleted, while on watch list
+            if con:
+                shows.append(con)
+            else:
+                self.remove_from_watchlist(result[0])
 
         return shows
 

@@ -118,7 +118,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             page = ""
 
             medialibs = cur.fetchall()
-            # medialibs.reverse()
+            medialibs.reverse()
 
             for media_lib in medialibs:
                 page = f"""
@@ -317,10 +317,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 ]
 
                 cmd_vlc = [
-                    'vlc',
-                    '--fullscreen',
-                    '--mouse-hide-timeout 3000',
-                    '-q'
+                    'vlc'
+                    # '--fullscreen',
+                    # '--mouse-hide-timeout 3000',
+                    # '-q'
                 ] + file_paths
 
                 cmd_mpv = [
@@ -333,7 +333,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     os.path.join(sys.path[0], 'play.sh')
                 ] + file_paths
 
-                cmd = cmd_play
+                cmd = cmd_vlc
                 subprocess.Popen(cmd)
                 print(" ".join(cmd))
 

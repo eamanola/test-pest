@@ -88,6 +88,7 @@ class Episode(Media):
         return title
 
     def thumbnail(self):
+        import re
         thumbnail = self.title()
 
         if self.parent() and isinstance(self.parent(), (Extra, Season, Show)):
@@ -112,7 +113,11 @@ class Episode(Media):
                     thumbnail
                 )
 
-        thumbnail = thumbnail.replace(" ", ".")
+        thumbnail = re.sub(
+            r'\.+', ".", re.sub(
+                r'[^a-zA-Z0-9]', ".", thumbnail
+            )
+        )
 
         return thumbnail
 

@@ -113,9 +113,9 @@ class HTMLUI(object):
             parents_str = ' / '.join([
                 ''.join([
                     '<span class="js-navigation js-parent" '
-                    f'data-id="{parent.id()}">',
+                    f'data-id="{parent.id()}">[',
                     parent.title(),
-                    '</span>'
+                    ']</span>'
                 ]) for parent in parents
             ])
 
@@ -127,7 +127,7 @@ class HTMLUI(object):
 
             parents_str = ''.join([
                 f'<span class="{wrapper_class_str}"{wrapper_style}>',
-                f'[{parents_str}]',
+                parents_str,
                 '</span>'
             ])
 
@@ -154,5 +154,7 @@ class HTMLUI(object):
             title = item.title()
 
         class_str = ' class="js-navigation"' if navigation else ""
+
+        title = title.replace("\n", "<br/>")
 
         return f'<span{class_str}>{title}</span>'
