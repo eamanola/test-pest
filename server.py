@@ -452,10 +452,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             (
                 self.path.startswith("/images/thumbnails/") and
                 self.path.endswith(".png")
-            ) or (
+            )
+            or (
                 self.path.startswith("/images/posters/") and
                 self.path.endswith(".jpg")
-            ) or self.path == "/images/www/play-icon.png"
+            )
+            or self.path == "/images/www/play-icon.png"
+            or self.path == "/images/www/play-icon-active.png"
         ):
             file_path = os.path.join(
                 sys.path[0],

@@ -1,6 +1,7 @@
 .js-navigation, .js-played + *
 {
   text-decoration: underline;
+  cursor: pointer;
 }
 
 .media.line *,
@@ -158,12 +159,19 @@
   display: inline;
 }
 
-.js-play:hover {
+.media .js-play:hover {
   opacity: 0.3;
   transition: opacity 0.5s;
+  cursor: pointer;
 }
 
-.js-play-wrapper {
+.media .js-play-wrapper:active
+{
+  background-image: url(/images/www/play-icon-active.png);
+}
+
+.media .js-play-wrapper
+{
   background-repeat: no-repeat;
   background-image: url(/images/www/play-icon.png);
   background-size: contain;
