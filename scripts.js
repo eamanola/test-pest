@@ -50,9 +50,6 @@ function updatePage() {
 ///////////////////////////////////////////////////////////////////////////////
 
 function onNavigationClick(e) {
-  e.preventDefault();
-  e.stopPropagation();
-
   var id_obj = get_data_id(e.target)
   var type = id_obj.type
   var data_id = id_obj.data_id
@@ -67,8 +64,11 @@ function onNavigationClick(e) {
   }
 
   if (url) {
-    if (window.location.pathname + window.location.search != url)
+    if (window.location.pathname + window.location.search != url) {
+      e.preventDefault();
+      e.stopPropagation();
       window.location.href = url
+    }
   }
 
   return false

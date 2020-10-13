@@ -85,6 +85,15 @@
   padding: 0.2em;
 }
 
+.media.line .line1 .parents *,
+.media.line .line2 .parents *,
+.container.line .line1 .parents *,
+.container.line .line2 .parents *
+{
+  display: inline-block;
+  padding: 0;
+}
+
 .poster, .thumbnail {
     border-radius: 0.3em;
 }
@@ -144,7 +153,8 @@
   display: block;
 }
 
-.media.page.header .info .parents * {
+.media.page.header .info .parents *,
+.container.page.header .info .parents * {
   display: inline;
 }
 
@@ -166,14 +176,16 @@
 }
 
 .grid .media.line.movie,
-.grid .container.line {
+.grid .container.line
+{
   display: inline-block;
   width: 10em;
   vertical-align: top;
 }
 
 .grid .media.line.movie .left .poster,
-.grid .container.line .left .poster {
+.grid .container.line .left .poster
+{
   max-width: 10em;
   display: block;
   margin: 0 auto;
@@ -182,15 +194,24 @@
 .grid .media.line.movie .left,
 .grid .media.line.movie .right,
 .grid .container.line .left,
-.grid .container.line .right {
+.grid .container.line .right
+{
+  display: block;
+}
+
+.grid .media.line.movie .rating,
+.grid .container.line .rating
+{
   display: block;
 }
 
 .grid .media.line.movie .right,
-.grid .container.line .right {
-  position: initial
+.grid .container.line .right
+{
+  position: initial;
 }
 
-.grid .media.line.movie .js-play-wrapper {
+.grid .media.line.movie .js-play-wrapper
+{
   background-size: auto;
 }

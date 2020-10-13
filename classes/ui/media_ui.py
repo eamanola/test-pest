@@ -1,6 +1,5 @@
-from classes.container import Show, Season, Extra
+from classes.ui.html_ui import HTMLUI
 from classes.identifiable import Identifiable
-from classes.media import Movie, Episode
 
 
 class MediaUI(object):
@@ -28,136 +27,24 @@ class MediaUI(object):
 
         return img_str if img_src else ""
 
-    def _title_str(media, episode_meta, navigation=True):
-        title = None
-        if isinstance(media, Episode) and media.is_extra():
-            title = media.title()
-
-        if not title and episode_meta:
-            title = '. '.join([
-                str(episode_meta.episode_number()),
-                episode_meta.title()
-            ])
-
-        if not title:
-            if isinstance(media, Identifiable) and media.meta():
-                title = media.meta().title()
-
-        if not title:
-            title = media.title()
-
-        class_str = ' class="js-navigation"' if (
-            navigation and (isinstance(media, Movie) or not media.is_extra())
-        ) else ""
-
-        title_str = f'<span{class_str}>{title}</span>'
-
-        return title_str
-
-    def _parents_str(media, display_none=False):
-        parents_strs = []
-        parent = media.parent()
-        while parent and isinstance(parent, (Extra, Season, Show)):
-            parents_strs.append(''.join([
-                '<span class="js-navigation js-parent" '
-                f'data-id="{parent.id()}">',
-                parent.title(),
-                '</span>'
-            ]))
-            parent = parent.parent()
-
-        if len(parents_strs):
-            parents_strs.reverse()
-
-            parents_str = ' / '.join(parents_strs)
-
-            class_str = "parents"
-            style = ""
-            if display_none:
-                class_str = f'{class_str} js-parents'
-                style = " style=display:none"
-
-            parents_str = ''.join([
-                f'<span class="{class_str}"{style}>',
-                f'[{parents_str}]',
-                '</span>'
-            ])
-
-        return parents_str if len(parents_strs) else ""
-
-    def _description_str(media, episode_meta):
-        description = None
-        if (
-            isinstance(media, Identifiable) and
-            media.meta() and
-            media.meta().description()
-        ):
-            description = media.meta().description()
-
-        if not description and episode_meta:
-            description = episode_meta.summary()
-
-        if description:
-            description_str = ''.join([
-                '<span class="description">',
-                description,
-                '</span>'
-            ])
-
-        return description_str if description else ""
-
-    def _anidb_str(media, show_ifneeded=True):
-        from classes.ext_apis.anidb import AniDB
-        anidb_str = None
-
-        if (
-            isinstance(media, Identifiable) and
-            AniDB.KEY in media.ext_ids()
-        ):
-            anidb_str = [
-                '<a href="'
-                f'https://anidb.net/anime/{media.ext_ids()[AniDB.KEY]}'
-                '" target="_blank" rel="noopener noreferrer" ',
-                'class="external-link js-external-link">',
-                'aniDB',
-                '</a>'
-            ]
-
-            if not show_ifneeded or not media.meta():
-                anidb_str.append(
-                    '<a href="#" class="js-get-info">Get Info</a>'
-                )
-            anidb_str = ''.join(anidb_str)
-
-        return anidb_str if anidb_str else ""
-
     _add_to_play_str = '<a href="#" class="js-add-to-play">+Play</a>'
 
     def _played_str(media):
         return ''.join([
-            '<label><input type="checkbox" class="js-played"',
+            '<label>',
+            '<input type="checkbox" class="js-played"',
             ' checked="checked"' if media.played() else '',
-            '/><span>Played</span></label>'
+            '/>',
+            '<span>Played</span>',
+            '</label>'
         ])
 
-    def _identify_str(media, show_ifneeded=True):
-        identify_str = None
+    def _get_episode_meta(episode):
+        from classes.media import Episode
 
-        show_identify = not show_ifneeded or (
-            isinstance(media, Identifiable) and
-            len(media.ext_ids()) == 0
-        )
-
-        if show_identify and isinstance(media, Identifiable):
-            identify_str = '<a href="#" class="js-identify">Identify</a>'
-
-        return identify_str if identify_str else ""
-
-    @staticmethod
-    def html_page(media):
         episode_meta = None
-        if isinstance(media, Episode) and media.episode_number():
-            parent = media.parent()
+        if isinstance(episode, Episode) and episode.episode_number():
+            parent = episode.parent()
             while(
                 parent and
                 not (isinstance(parent, Identifiable) and parent.meta())
@@ -169,21 +56,28 @@ class MediaUI(object):
                 isinstance(parent, Identifiable) and
                 parent.meta()
             ):
-                episode_meta = parent.meta().get_episode(media)
+                episode_meta = parent.meta().get_episode(episode)
+
+        return episode_meta
+
+    @staticmethod
+    def html_page(media):
+        episode_meta = MediaUI._get_episode_meta(media)
 
         page = ''.join([line.lstrip() for line in [
             f'<div class="media page header" data-id="{media.id()}">',
             f'  {MediaUI._img_str(media)}',
             f'  <span class="info">',
-            f'''      {MediaUI._title_str(
+            f'''      {HTMLUI.title_html(
                         media,
-                        episode_meta,
+                        episode_meta=episode_meta,
                         navigation=False
                     )}''',
-            f'      {MediaUI._parents_str(media)}',
-            f'      {MediaUI._description_str(media, episode_meta)}',
-            f'      {MediaUI._identify_str(media, show_ifneeded=False)}',
-            f'      {MediaUI._anidb_str(media, show_ifneeded=False)}'
+            f'      {HTMLUI.parents_html(media)}',
+            f'      {HTMLUI.description_html(media, episode_meta)}',
+            f'      {HTMLUI.identify_html(media, show_ifneeded=False)}',
+            f'      {HTMLUI.anidb_html(media)}',
+            f'      {HTMLUI.get_info_html(media, show_ifneeded=False)}'
             '   </span>',
             '</div>'
         ]])
@@ -192,26 +86,15 @@ class MediaUI(object):
 
     @staticmethod
     def html_line(media):
-        episode_meta = None
-        if isinstance(media, Episode) and media.episode_number():
-            parent = media.parent()
-            while (
-                parent and
-                not (isinstance(parent, Identifiable) and parent.meta())
-            ):
-                parent = parent.parent()
+        from classes.media import Movie
 
-            if (
-                parent and
-                isinstance(parent, Identifiable) and
-                parent.meta()
-            ):
-                episode_meta = parent.meta().get_episode(media)
+        episode_meta = MediaUI._get_episode_meta(media)
 
-        anidb_str = MediaUI._anidb_str(media)
-        identify_str = MediaUI._identify_str(media)
+        anidb_str = HTMLUI.anidb_html(media)
+        get_info_str = HTMLUI.get_info_html(media)
+        identify_str = HTMLUI.identify_html(media)
 
-        if anidb_str or identify_str:
+        if anidb_str or get_info_str or identify_str:
             right_style = ""
         else:
             right_style = ' style="display:none"'
@@ -227,10 +110,14 @@ class MediaUI(object):
             f'      {MediaUI._img_str(media)}',
             '       <span class="info">',
             '           <span class="line1">',
-            f'              {MediaUI._parents_str(media, display_none=True)}',
-            f'              {MediaUI._title_str(media, episode_meta)}',
+            f'              {HTMLUI.parents_html(media, display_none=True)}',
+            f'''            {HTMLUI.title_html(
+                                media,
+                                episode_meta=episode_meta
+                            )}''',
             '           </span>',
             '           <span class="line2">',
+            f'              {HTMLUI.rating_html(media)}',
             f'              {MediaUI._add_to_play_str}',
             f'              {MediaUI._played_str(media)}',
             '           </span>',
@@ -239,6 +126,7 @@ class MediaUI(object):
             f'   <span class="right"{right_style}>',
             f'       <span class="line1">',
             f'          {anidb_str}',
+            f'          {get_info_str}',
             f'          {identify_str}',
             '       </span>',
             '   </span>',
