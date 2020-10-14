@@ -172,7 +172,6 @@
 
 .media .js-play-wrapper:active
 {
-  background-image: url(/images/www/play-icon-active.png);
   background-size: 40%;
 }
 

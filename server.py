@@ -119,13 +119,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             page = ""
 
             medialibs = cur.fetchall()
-            medialibs.reverse()
 
             for media_lib in medialibs:
-                page = f"""
-                {page}
-                {ContainerUI.html_page(db.get_container(media_lib[0]))}
-                """
+                ml = db.get_container(media_lib[0])
+
+                new_page = [page, ContainerUI.html_page(ml)]
+                if ml.path() == "/data/viihde/anime/":
+                    new_page.reverse()
+
+                page = ''.join(new_page)
 
             db.close()
 
@@ -209,7 +211,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 db.create_containers_table()
                 db.create_media_table()
 
-                db.update_containers(containers, update_identifiables=False)
+                db.update_containers(
+                    containers,
+                    update_identifiables=False
+                )
                 db.update_media(
                     media,
                     update_identifiables=False,

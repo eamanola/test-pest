@@ -67,6 +67,7 @@ class Sqlite(DB):
             )"""
         )
         self._create_identifiables_table()
+        self._create_meta_table()
 
     def update_containers(self, containers, update_identifiables=True):
 
