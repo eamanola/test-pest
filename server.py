@@ -15,6 +15,7 @@ from classes.identifier import Identifier
 from classes.ext_apis.anidb import AniDB
 import subprocess
 from classes.watchinglist import WatchingList
+from datetime import datetime
 
 
 def collect_objs(con, containers=[], media=[]):
@@ -106,7 +107,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if play_next_list_str:
                 play_next_list_str = (''.join([
                     '<div class="container page header">',
-                    'Day\'s Menu',
+                    'Day\'s Menu ', datetime.now().strftime("%H:%M"),
                     '</div>\n',
                     play_next_list_str
                 ]))
