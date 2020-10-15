@@ -184,10 +184,6 @@
   display: inline-block;
 }
 
-.media.page.header .js-play-wrapper {
-  background-size: auto;
-}
-
 .grid .media.line,
 .grid .container.line
 {
