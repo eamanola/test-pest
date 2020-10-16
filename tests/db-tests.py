@@ -26,14 +26,6 @@ try:
 except NotImplementedError as e:
     pass
 
-test_name = "db.create_title_to_ext_id_table"
-print(test_name) if debug else ""
-try:
-    DB().create_title_to_ext_id_table(RANDOM_STR)
-    print(test_name, FAIL)
-except NotImplementedError as e:
-    pass
-
 test_name = "db.populate_title_to_ext_id_table"
 print(test_name) if debug else ""
 try:

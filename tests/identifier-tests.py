@@ -74,7 +74,6 @@ try:
     db = Sqlite()
     db.connect(":memory:")
     table_name = RANDOM_STR
-    db.create_title_to_ext_id_table(table_name)
 
     ext_id = RANDOM_STR
     title = RANDOM_STR

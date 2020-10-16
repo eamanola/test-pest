@@ -43,7 +43,6 @@ def generate_table(ext_api):
         results = parse_file(file_path, parser)
         db = DB.get_instance()
         db.connect()
-        db.create_title_to_ext_id_table(table)
         db.populate_title_to_ext_id_table(table, results)
         db.print_table(table)
         db.close()

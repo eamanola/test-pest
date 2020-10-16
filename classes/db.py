@@ -15,9 +15,6 @@ class DB(object):
     def close(self):
         raise NotImplementedError()
 
-    def create_title_to_ext_id_table(self, table):
-        raise NotImplementedError()
-
     def populate_title_to_ext_id_table(self, table, data):
         raise NotImplementedError()
 
