@@ -18,13 +18,104 @@ class Sqlite(DB):
     def close(self):
         self.conn.close()
 
-    def create_title_to_ext_id_table(self, table):
+    def _create_table(self, table, schema):
+        import re
+        schema = re.sub(r'\s+', " ", schema)
+
+        cur = self.conn.cursor()
+
+        sql = "CREATE TABLE IF NOT EXISTS {} {}".format(table, schema)
+
+        cur.execute(sql)
+
+        self.conn.commit()
+
+    def _create_title_to_ext_id_table(self, table):
         self._create_table(
             table,
             "(ext_id TEXT, title TEXT, year INTEGER, media_type TEXT)"
         )
 
+    def create_containers_table(self):
+        self._create_table(
+            "containers",
+            # type: MediaLibrary|Show|Season|Extra
+            # containers&media: comma separated id list
+            """
+                (
+                    id TEXT,
+                    type TEXT,
+                    containers TEXT,
+                    media TEXT,
+                    parent_id TEXT,
+                    path TEXT,
+                    show_name TEXT,
+                    season_number INTEGER
+                )
+            """
+        )
+        self._create_identifiables_table()
+        self._create_meta_table()
+
+    def create_media_table(self):
+        self._create_table(
+            "media",
+            # type: Episode|Movie
+            # subtitles: comma separated list
+            # title: None for Episode
+            # flags: is_oad is_ncop is_nced is_ova
+            """(
+                id TEXT,
+                type TEXT,
+                parent_id TEXT,
+                file_path TEXT,
+                subtitles TEXT,
+                episode_number INTEGER,
+                title TEXT,
+                flags TEXT
+            )"""
+        )
+        self._create_identifiables_table()
+        self._create_media_states_table()
+
+    def create_watchlist_table(self):
+        self._create_table("watchlist", "(show_id TEXT)")
+
+    def _create_meta_table(self):
+        self._create_table(
+            "meta",
+            """(
+                meta_id TEXT,
+                meta_title TEXT,
+                meta_rating REAL,
+                meta_image_name TEXT,
+                meta_episodes TEXT,
+                meta_description TEXT
+            )"""
+        )
+
+    def _create_identifiables_table(self):
+        self._create_table(
+            "identifiables",
+            """(
+                id TEXT,
+                ext_ids TEXT,
+                year INTEGER
+            )"""
+        )
+
+    def _create_media_states_table(self):
+        self._create_table(
+            "media_states",
+            """(
+                media_id TEXT,
+                played INTEGER
+            )"""
+        )
+
     def populate_title_to_ext_id_table(self, table, data):
+        self._create_title_to_ext_id_table(table)
+
         cur = self.conn.cursor()
 
         sql = 'delete from {}'.format(table)
@@ -35,39 +126,6 @@ class Sqlite(DB):
         cur.executemany(sql, data)
 
         self.conn.commit()
-
-    def get_ext_ids(self, table, re_show_name):
-        self.conn.create_function(
-            'matches',
-            1,
-            lambda x: 1 if re_show_name.match(x) else 0
-        )
-
-        cur = self.conn.cursor()
-
-        sql = 'SELECT * FROM {} where matches(title)'.format(table)
-        cur.execute(sql)
-
-        return cur.fetchall()
-
-    def create_containers_table(self):
-        self._create_table(
-            "containers",
-            # type: MediaLibrary|Show|Season|Extra
-            # containers&media: comma separated id list
-            """(
-                id TEXT,
-                type TEXT,
-                containers TEXT,
-                media TEXT,
-                parent_id TEXT,
-                path TEXT,
-                show_name TEXT,
-                season_number INTEGER
-            )"""
-        )
-        self._create_identifiables_table()
-        self._create_meta_table()
 
     def update_containers(self, containers, update_identifiables=True):
 
@@ -99,6 +157,20 @@ class Sqlite(DB):
 
         self.conn.commit()
 
+    def get_ext_ids(self, table, re_show_name):
+        self.conn.create_function(
+            'matches',
+            1,
+            lambda x: 1 if re_show_name.match(x) else 0
+        )
+
+        cur = self.conn.cursor()
+
+        sql = 'SELECT * FROM {} where matches(title)'.format(table)
+        cur.execute(sql)
+
+        return cur.fetchall()
+
     def get_container(self, container):
         if isinstance(container, Container):
             container_id = container.id()
@@ -113,7 +185,7 @@ class Sqlite(DB):
             LEFT OUTER JOIN identifiables
             ON containers.id = identifiables.id
             LEFT OUTER JOIN meta
-            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
+            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
             WHERE containers.id=?
             """
         cur.execute(sql, [container_id])
@@ -136,27 +208,6 @@ class Sqlite(DB):
         cur.execute(sql, ids)
 
         self.conn.commit()
-
-    def create_media_table(self):
-        self._create_table(
-            "media",
-            # type: Episode|Movie
-            # subtitles: comma separated list
-            # title: None for Episode
-            # flags: is_oad is_ncop is_nced is_ova
-            """(
-                id TEXT,
-                type TEXT,
-                parent_id TEXT,
-                file_path TEXT,
-                subtitles TEXT,
-                episode_number INTEGER,
-                title TEXT,
-                flags TEXT
-            )"""
-        )
-        self._create_identifiables_table()
-        self._create_media_states_table()
 
     def update_media(
         self,
@@ -212,7 +263,7 @@ class Sqlite(DB):
             LEFT OUTER JOIN media_states
             ON media.id = media_states.media_id
             LEFT OUTER JOIN meta
-            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
+            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
             WHERE media.id=?
             """
         cur.execute(sql, [media_id])
@@ -235,9 +286,6 @@ class Sqlite(DB):
         cur.execute(sql, ids)
 
         self.conn.commit()
-
-    def create_watchlist_table(self):
-        self._create_table("watchlist", "(show_id TEXT)")
 
     def is_in_watchlists(self, show_id):
         cur = self.conn.cursor()
@@ -340,40 +388,23 @@ class Sqlite(DB):
 
         self.conn.commit()
 
-    def _create_meta_table(self):
-        self._create_table(
-            "meta",
-            """(
-                meta_id TEXT,
-                meta_title TEXT,
-                meta_rating REAL,
-                meta_image_name TEXT,
-                meta_episodes TEXT,
-                meta_description TEXT
-            )"""
-        )
-
     def print_table(self, table):
+        self.conn.row_factory = sqlite3.Row
         cur = self.conn.cursor()
 
         sql = 'SELECT * FROM {}'.format(table)
         cur.execute(sql)
+        rows = cur.fetchall()
 
-        for row in cur:
+        if (len(rows)):
+            print(rows[0].keys())
+
+        for row in rows:
             print(tuple(row))
 
         sql = 'select count() from {}'.format(table)
         cur.execute(sql)
-        print(cur.fetchone())
-
-    def _create_table(self, table, schema):
-        cur = self.conn.cursor()
-
-        sql = "CREATE TABLE IF NOT EXISTS {} {}".format(table, schema)
-
-        cur.execute(sql)
-
-        self.conn.commit()
+        print(cur.fetchone()[0])
 
     def _where_ids(self, items, and_or='OR', table=''):
         ids = []
@@ -436,7 +467,7 @@ class Sqlite(DB):
             LEFT OUTER JOIN identifiables
             ON containers.id = identifiables.id
             LEFT OUTER JOIN meta
-            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
+            ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
             WHERE containers.id=?
             """
         cur.execute(sql, [parent_id])
@@ -499,7 +530,7 @@ class Sqlite(DB):
                 LEFT OUTER JOIN identifiables
                 ON containers.id = identifiables.id
                 LEFT OUTER JOIN meta
-                ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
+                ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
                 WHERE {}
                 """.format(where)
             cur.execute(sql, container_ids)
@@ -532,7 +563,7 @@ class Sqlite(DB):
                 LEFT OUTER JOIN media_states
                 ON media.id = media_states.media_id
                 LEFT OUTER JOIN meta
-                ON identifiables.ext_ids LIKE '%' || meta.meta_id || '%'
+                ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
                 WHERE {}
                 """.format(where)
             cur.execute(sql, media_ids)
@@ -600,7 +631,7 @@ class Sqlite(DB):
         if result_row['ext_ids']:
             for ext_id in result_row['ext_ids'].split(";;;"):
                 parts = ext_id.split(":::")
-                return_obj.ext_ids()[parts[0]] = parts[1]
+                return_obj.ext_ids()[parts[0]] = parts[1].rstrip('---')
 
         if result_row['meta_id']:
             return_obj.set_meta(Meta(
@@ -662,7 +693,7 @@ class Sqlite(DB):
         if result_row['ext_ids']:
             for ext_id in result_row['ext_ids'].split(";;;"):
                 parts = ext_id.split(":::")
-                return_obj.ext_ids()[parts[0]] = parts[1]
+                return_obj.ext_ids()[parts[0]] = parts[1].rstrip('---')
 
         if result_row['meta_id']:
             return_obj.set_meta(Meta(
@@ -680,27 +711,6 @@ class Sqlite(DB):
             ))
 
         return return_obj
-
-    def _create_identifiables_table(self):
-        self._create_table(
-            "identifiables",
-
-            """(
-                id TEXT,
-                ext_ids TEXT,
-                year INTEGER
-            )"""
-        )
-
-    def _create_media_states_table(self):
-        self._create_table(
-            "media_states",
-
-            """(
-                media_id TEXT,
-                played INTEGER
-            )"""
-        )
 
     def _update_identifiables(self, identifiables):
 
@@ -772,7 +782,7 @@ class Sqlite(DB):
     def _get_identifiable_data(self, identifiable):
         ext_ids = []
         for key in identifiable.ext_ids().keys():
-            ext_ids.append(f"{key}:::{identifiable.ext_ids()[key]}")
+            ext_ids.append(f"{key}:::{identifiable.ext_ids()[key]}---")
 
         return (
             identifiable.id(),
