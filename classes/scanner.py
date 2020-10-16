@@ -11,6 +11,7 @@ class Scanner(object):
 
     @staticmethod
     def scan(file_paths, root_container):
+        subtitle_cache = {}
         for file_path in file_paths:
             current_container = root_container
 
@@ -102,6 +103,22 @@ class Scanner(object):
                         current_container.media.append(media)
 
             elif is_movie:
+                if is_subtitle:
+                    added = False
+                    for m in current_container.media:
+                        if (
+                            isinstance(m, Movie)
+                            and m.title() == show_name
+                        ):
+                            m.subtitles.append(file_path)
+                            added = True
+                            break
+
+                    if not added:
+                        subtitle_cache[show_name] = file_path
+
+                    continue
+
                 media = Movie(
                     file_path,
                     show_name,
@@ -115,6 +132,8 @@ class Scanner(object):
                     current_container.media.append(media)
                 # identify(db, media, show_name, year, Ext_api.MOVIE)
                 media.set_year(year)
+                if show_name in subtitle_cache.keys():
+                    media.subtitles.append(subtitle_cache.pop(show_name))
 
             if media:
                 if is_media:
