@@ -86,8 +86,9 @@ class File_name_parser(object):
     UNKNOWN_EPISODE = 0
     UNKNOWN_YEAR = 0
     MEDIA_EXTENSIONS = ('.mkv', '.mp4', '.avi', '.m4v')
-    SUB_TITLE_EXTENSIONS = ('.srt',)
-    FILE_EXTENSIONS = MEDIA_EXTENSIONS + SUB_TITLE_EXTENSIONS
+    SUBTITLE_EXTENSIONS = ('.srt',)
+    SUBTITLE_LANGS = ('.en',)
+    FILE_EXTENSIONS = MEDIA_EXTENSIONS + SUBTITLE_EXTENSIONS
 
     @staticmethod
     def clean_show_name(show_name):
@@ -215,12 +216,18 @@ class File_name_parser(object):
 
     @staticmethod
     def remove_file_extension(file):
+        extension_removed = file
+
         file_name, extension = os.path.splitext(file)
-
         if extension in File_name_parser.FILE_EXTENSIONS:
-            file = file_name
+            extension_removed = file_name
 
-        return file
+            if File_name_parser.is_subtitle(file):
+                file_name, extension = os.path.splitext(extension_removed)
+                if extension in File_name_parser.SUBTITLE_LANGS:
+                    extension_removed = file_name
+
+        return extension_removed
 
     @staticmethod
     def is_media(file):
@@ -230,7 +237,7 @@ class File_name_parser(object):
     @staticmethod
     def is_subtitle(file):
         file_name, extension = os.path.splitext(file)
-        return extension in File_name_parser.SUB_TITLE_EXTENSIONS
+        return extension in File_name_parser.SUBTITLE_EXTENSIONS
 
     @staticmethod
     def is_oad(file):
