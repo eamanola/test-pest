@@ -157,6 +157,64 @@ class Sqlite(DB):
 
         self.conn.commit()
 
+    def update_media(
+        self,
+        media,
+        update_identifiables=True,
+        update_media_states=True
+    ):
+
+        self.delete_media(media)
+
+        data = [self._get_media_data(m) for m in media]
+
+        cur = self.conn.cursor()
+
+        sql = """INSERT INTO media (
+            id,
+            type,
+            parent_id,
+            file_path,
+            subtitles,
+            episode_number,
+            title,
+            flags
+        ) VALUES (?,?,?,?,?,?,?,?)"""
+
+        cur.executemany(sql, data)
+
+        if update_identifiables:
+            self._update_identifiables(
+                [i for i in media if isinstance(i, Identifiable)]
+            )
+
+        if update_media_states:
+            self._update_media_states(
+                [(m.id(), m.played()) for m in media]
+            )
+
+        self.conn.commit()
+
+    def _update_identifiables(self, identifiables):
+
+        self._delete_identifiables(identifiables)
+
+        where, ids = self._where_ids(identifiables)
+
+        data = [self._get_identifiable_data(i) for i in identifiables]
+
+        cur = self.conn.cursor()
+
+        sql = """INSERT INTO identifiables (
+            id,
+            ext_ids,
+            year
+        ) VALUES (?,?,?)"""
+
+        cur.executemany(sql, data)
+
+        self.conn.commit()
+
     def get_ext_ids(self, table, re_show_name):
         self.conn.create_function(
             'matches',
@@ -206,44 +264,6 @@ class Sqlite(DB):
 
         sql = 'DELETE FROM containers WHERE {}'.format(where)
         cur.execute(sql, ids)
-
-        self.conn.commit()
-
-    def update_media(
-        self,
-        media,
-        update_identifiables=True,
-        update_media_states=True
-    ):
-
-        self.delete_media(media)
-
-        data = [self._get_media_data(m) for m in media]
-
-        cur = self.conn.cursor()
-
-        sql = """INSERT INTO media (
-            id,
-            type,
-            parent_id,
-            file_path,
-            subtitles,
-            episode_number,
-            title,
-            flags
-        ) VALUES (?,?,?,?,?,?,?,?)"""
-
-        cur.executemany(sql, data)
-
-        if update_identifiables:
-            self._update_identifiables(
-                [i for i in media if isinstance(i, Identifiable)]
-            )
-
-        if update_media_states:
-            self._update_media_states(
-                [(m.id(), m.played()) for m in media]
-            )
 
         self.conn.commit()
 
@@ -711,26 +731,6 @@ class Sqlite(DB):
             ))
 
         return return_obj
-
-    def _update_identifiables(self, identifiables):
-
-        self._delete_identifiables(identifiables)
-
-        where, ids = self._where_ids(identifiables)
-
-        data = [self._get_identifiable_data(i) for i in identifiables]
-
-        cur = self.conn.cursor()
-
-        sql = """INSERT INTO identifiables (
-            id,
-            ext_ids,
-            year
-        ) VALUES (?,?,?)"""
-
-        cur.executemany(sql, data)
-
-        self.conn.commit()
 
     def _update_media_states(self, media_states):
 
