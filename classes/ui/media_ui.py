@@ -32,7 +32,8 @@ class MediaUI(object):
     def _played_str(media):
         return ''.join([
             '<label>',
-            '<input type="checkbox" class="js-played"',
+            '<input type="checkbox" class="js-played"'
+            f' name="js-played-{media.id()}"',
             ' checked="checked"' if media.played() else '',
             '/>',
             '<span>Played</span>',
