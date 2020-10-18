@@ -10,8 +10,12 @@ class Identifier(object):
         super(Identifier, self).__init__()
         self.ext_api = ext_api
 
-    def search_db(self, db, show_name):
-        re_search = Identifier.compile_re_search(show_name, exact_match=False)
+    def search_db(self, db, show_name, keep_year):
+        re_search = Identifier.compile_re_search(
+            show_name,
+            exact_match=False,
+            keep_year=keep_year
+        )
         print('Searching for:', re_search) if debug else ""
 
         matches = db.get_ext_ids(self.ext_api.TITLE_TO_ID_TABLE, re_search)
@@ -30,7 +34,9 @@ class Identifier(object):
         print("Showname: '{}'".format(show_name)) if debug else ""
         ext_id = None
 
-        matches = self.search_db(db, show_name)
+        matches = self.search_db(db, show_name, keep_year=True)
+        if len(matches) == 0:
+            matches = self.search_db(db, show_name, keep_year=False)
 
         ext_id = matches[0][0] if len(matches) == 1 else None
 
@@ -87,7 +93,7 @@ class Identifier(object):
         return ext_id
 
     @staticmethod
-    def compile_re_search(show_name: str, exact_match: bool):
+    def compile_re_search(show_name, exact_match, keep_year=False):
         re_search_str = show_name
 
         re_search_str = re.sub(
@@ -114,7 +120,11 @@ class Identifier(object):
             re_search_str,
             flags=re.IGNORECASE
         )
-        re_search_str = re.sub('[^A-Za-z]+', ".+", re_search_str)
+
+        r_simple_year = r'\(\d{4}\)' if keep_year else ""
+        r_extra_characters = fr'[^A-Za-z{r_simple_year}]+'
+
+        re_search_str = re.sub(r_extra_characters, ".+", re_search_str)
         re_search_str = re.sub(r'^\.(?:\*|\+)', "", re_search_str)
         re_search_str = re.sub(r'\.(?:\*|\+)$', "", re_search_str)
 
@@ -132,7 +142,7 @@ class Identifier(object):
         if match_count == 0:
             result_str = "No matches found."
         elif match_count == 1:
-            result_str = "Single match: {}".format(matches[0])
+            result_str = "Single match: {}".format(tuple(matches[0]))
         else:
             result_str = "{} matches found.".format(match_count)
 
@@ -151,7 +161,7 @@ class Identifier(object):
 
         year_matches = []
         for match in matches:
-            print('*', match) if debug else ""
+            print('*', tuple(match)) if debug else ""
             if year == match[2]:
                 print('--year match.') if debug else ""
                 year_matches.append(match)
@@ -164,12 +174,16 @@ class Identifier(object):
     def filter_by_exact_match(matches, show_name):
         print("Looking for exact matches:") if debug else ""
 
-        re_search = Identifier.compile_re_search(show_name, exact_match=True)
+        re_search = Identifier.compile_re_search(
+            show_name,
+            exact_match=True,
+            keep_year=True
+        )
         print('Searching for:', re_search) if debug else ""
 
         exact_matches = []
         for match in matches:
-            print('*', match) if debug else ""
+            print('*', tuple(match)) if debug else ""
             title = match[1]
             if re_search.match(title):
                 print('--exact match.') if debug else ""
@@ -185,7 +199,7 @@ class Identifier(object):
 
         media_type_matches = []
         for match in matches:
-            print('*', match) if debug else ""
+            print('*', tuple(match)) if debug else ""
             match_media_type = match[3]
             if match_media_type and media_type == match_media_type:
                 print('--media type match.') if debug else ""
@@ -201,7 +215,7 @@ class Identifier(object):
 
         unique_matches = []
         for match in matches:
-            print('*', match) if debug else ""
+            print('*', tuple(match)) if debug else ""
             ani_id = match[0]
             found = False
             for unique_match in unique_matches:
