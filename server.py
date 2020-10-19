@@ -419,7 +419,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     identifiable.ext_ids()[AniDB.KEY]
                 )
                 meta = meta_getter.get()
-                db.save_meta([meta])
+                db.update_meta([meta])
                 message = "completed"
             else:
                 message = "fail"

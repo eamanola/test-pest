@@ -4,6 +4,7 @@ from classes.dbs.sqlite import Sqlite
 from classes.container import Container, MediaLibrary, Show, Season, Extra
 from classes.identifiable import Identifiable
 from classes.media import Episode, Movie
+from classes.meta import Meta, Episode_Meta
 import unittest
 
 debug = True
@@ -18,16 +19,23 @@ TMP_DB = ":memory:"
 
 
 def create_test_library():
+    meta = create_test_meta()
 
     media_lib = MediaLibrary("apath", parent=None)
 
     show1 = Show(media_lib.path(), "Show 1", parent=media_lib)
+    show1.ext_ids()['TestID'] = '1'
+    show1.set_meta(meta[0])
     media_lib.containers.append(show1)
 
     show2 = Show(media_lib.path(), "Show 2", parent=media_lib)
+    show2.ext_ids()['TestID'] = '2'
+    show2.set_meta(meta[1])
     media_lib.containers.append(show2)
 
     movie = Movie("moviepath", "atitle", False, parent=media_lib)
+    movie.ext_ids()['TestID'] = '3'
+    movie.set_meta(meta[2])
     media_lib.media.append(movie)
 
     season1 = Season(show1.path(), show1.show_name(), 1, parent=show1)
@@ -84,6 +92,43 @@ def create_test_library():
     return root, containers, media
 
 
+def create_test_meta():
+
+    show1_meta = Meta(
+        'TestID:::1',
+        'meta show1 title',
+        2.1,
+        'show1_poster',
+        [],
+        'meta show1 description'
+    )
+
+    show2_meta = Meta(
+        'TestID:::2',
+        'meta show2 title',
+        3.1,
+        'show2_poster',
+        [
+            Episode_Meta(
+                5,
+                "meta episode5 title",
+                "meta episode5 summary"
+            )
+        ],
+        'meta show1 description'
+    )
+
+    movie_meta = Meta(
+        'TestID:::3',
+        'meta movie title',
+        1.1,
+        'movie_poster',
+        [],
+        'movie meta description')
+
+    return [show1_meta, show2_meta, movie_meta]
+
+
 def compare_containers(con1, con2):
     return (
         (con1.id() == con2.id())
@@ -103,13 +148,16 @@ def compare_containers(con1, con2):
             not isinstance(con1, Season)
             or con1.season_number() == con2.season_number()
         )
+        and (
+            not isinstance(con1, Identifiable)
+            or compare_identifiables(con1, con2)
+        )
     )
 
 
 def compare_media(med1, med2):
     return (
         (med1.file_path() == med2.file_path())
-        and (med1.played() is med2.played())
         and (
             not med1.parent()
             or med1.parent().id() == med2.parent().id()
@@ -128,6 +176,11 @@ def compare_media(med1, med2):
                 and (med1.is_ova() == med2.is_ova())
             )
         )
+        and compare_media_states(med1, med2)
+        and (
+            not isinstance(med1, Identifiable)
+            or compare_identifiables(med1, med2)
+        )
     )
 
 
@@ -136,7 +189,33 @@ def compare_identifiables(ide1, ide2):
         (ide1.id() == ide2.id())
         and (ide1.year() == ide2.year())
         and (len(ide1.ext_ids()) == len(ide2.ext_ids()))
+        and (
+            not ide1.meta()
+            or compare_meta(ide1.meta(), ide2.meta())
+        )
     )
+
+
+def compare_media_states(med1, med2):
+    return (med1.played() == med2.played())
+
+
+def compare_meta(meta1, meta2):
+    return (
+        (meta1.id() == meta2.id())
+        and (meta1.title() == meta2.title())
+        and (meta1.rating() == meta2.rating())
+        and (meta1.image_name() == meta2.image_name())
+        and (
+            not meta1.episodes()
+            or compare_meta_episodes(meta1.episodes(), meta2.episodes())
+        )
+        and (meta1.description() == meta2.description())
+    )
+
+
+def compare_meta_episodes(epi1, epi2):
+    return len(epi1) == len(epi2)  # TODO
 
 
 def table_count(db, table_name, table_schema=""):
@@ -413,6 +492,7 @@ class TestSqlite(unittest.TestCase):
         db.create_containers_table()
         db.create_media_table()
         db.update_media(media)
+        db.update_meta(create_test_meta())
 
         db.update_containers(containers)
 
@@ -482,6 +562,7 @@ class TestSqlite(unittest.TestCase):
         db.create_containers_table()
         db.create_media_table()
         db.update_containers(containers)
+        db.update_meta(create_test_meta())
 
         db.update_media(media)
 
@@ -545,6 +626,32 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
+    def test_update_meta(self):
+        meta = create_test_meta()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.update_meta(meta)
+
+        sql = f'select count() from meta'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(meta))
+
+        # dublicates
+        db.update_meta(meta)
+        db.update_meta(meta)
+
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(meta))
+
+        db.close()
+
     def test__update_identifiables(self):
         root, containers, media = create_test_library()
         identifiables = [
@@ -558,6 +665,7 @@ class TestSqlite(unittest.TestCase):
         db.update_containers(containers)
         db.create_media_table()
         db.update_media(media)
+        db.update_meta(create_test_meta())
 
         sql = f'select count() from identifiables'
         cur = db.conn.cursor()
@@ -602,6 +710,211 @@ class TestSqlite(unittest.TestCase):
                 an_identifiable,
                 db_identifiable
             ))
+
+        db.close()
+
+    def test__update_media_states(self):
+        root, containers, media = create_test_library()
+        meta = create_test_meta()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.create_media_table()
+        db.update_containers(containers)
+        db.update_media(media)
+
+        sql = f'select count() from media_states'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(media))
+
+        for med in media:
+            db_media = db.get_media(med.id())
+            self.assertTrue(compare_media_states(med, db_media))
+
+        # dublicates
+        a_media = media[0]
+        db.update_media([a_media])
+
+        sql = f'select count() from media_states where media_id=?'
+        cur = db.conn.cursor()
+        cur.execute(sql, (a_media.id(),))
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, 1)
+
+        a_media = media[0]
+
+        if a_media:
+            a_media.set_played(not a_media.played())
+
+            db.update_media([a_media])
+            db_media = db.get_media(a_media.id())
+            self.assertTrue(compare_media_states(a_media, db_media))
+
+        db.close()
+
+    def test_delete_containers(self):
+        root, containers, media = create_test_library()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.create_media_table()
+        db.update_media(media)
+        db.update_containers(containers)
+
+        con = containers[0]
+        db.delete_containers([con])
+
+        sql = f'select count() from containers'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(containers) - 1)
+
+        db.delete_containers(containers)
+
+        sql = f'select count() from containers'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, 0)
+
+        db.close()
+
+    def test_delete_media(self):
+        root, containers, media = create_test_library()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.create_media_table()
+        db.update_media(media)
+        db.update_containers(containers)
+
+        med = media[0]
+        db.delete_media([med])
+
+        sql = f'select count() from media'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(media) - 1)
+
+        db.delete_media(media)
+
+        sql = f'select count() from media'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, 0)
+
+        db.close()
+
+    def test__delete_identifiables(self):
+        root, containers, media = create_test_library()
+        identifiables = [
+            i for i in (containers + media) if isinstance(i, Identifiable)
+        ]
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.update_containers(containers)
+        db.create_media_table()
+        db.update_media(media)
+
+        ide = identifiables[0]
+        db._delete_identifiables([ide])
+
+        sql = f'select count() from identifiables'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(identifiables) - 1)
+
+        db._delete_identifiables(identifiables)
+
+        sql = f'select count() from identifiables'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, 0)
+
+        db.close()
+
+    def test__delete_media_states(self):
+        root, containers, media = create_test_library()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.create_media_table()
+        db.update_media(media)
+        db.update_containers(containers)
+
+        med = media[0]
+        db._delete_media_states([(med.id(), med.played())])
+
+        sql = f'select count() from media_states'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(media) - 1)
+
+        db._delete_media_states([(m.id(), m.played()) for m in media])
+
+        sql = f'select count() from media_states'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, 0)
+
+        db.close()
+
+    def test__delete_meta(self):
+        meta = create_test_meta()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.update_meta(meta)
+
+        met = meta[0]
+        db._delete_meta([met])
+
+        sql = f'select count() from meta'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, len(meta) - 1)
+
+        db._delete_meta(meta)
+
+        sql = f'select count() from meta'
+        cur = db.conn.cursor()
+        cur.execute(sql)
+        count = cur.fetchone()[0]
+
+        self.assertEqual(count, 0)
 
         db.close()
 
@@ -714,63 +1027,6 @@ result = db.get_container(RANDOM_STR)
 if result is not None:
     print(test_name, FAIL, 3)
 
-db.close()
-
-test_name = "Sqlite.delete_containers"
-print(test_name) if debug else ""
-
-db = Sqlite()
-db.connect(TMP_DB)
-db.create_containers_table()
-
-media_library = MediaLibrary(RANDOM_STR)
-show = Show(RANDOM_STR, RANDOM_STR2)
-
-db.update_containers([media_library, show])
-
-if test_data_count(db, "containers") != 2:
-    print(test_name, FAIL, 1)
-
-if test_data_count(db, "containers", (['id', media_library.id()],)) != 1:
-    print(test_name, FAIL, 2)
-
-db.delete_containers([media_library])
-
-if test_data_count(db, "containers") != 1:
-    print(test_name, FAIL, 3)
-
-if test_data_count(db, "containers", (['id', media_library.id()],)) != 0:
-    print(test_name, FAIL, 4)
-db.close()
-
-test_name = "Sqlite.delete_media"
-print(test_name) if debug else ""
-
-db = Sqlite()
-db.connect(TMP_DB)
-db.create_media_table()
-
-movie = Movie("a file_path", "a title", False)
-movie2 = Movie("another file_path", "another title", False)
-
-if test_data_count(db, "media") != 0:
-    print(test_name, FAIL, 1)
-
-db.update_media([movie, movie2])
-
-if test_data_count(db, "media") != 2:
-    print(test_name, FAIL, 2)
-
-if test_data_count(db, "media", (['id', movie.id()],)) != 1:
-    print(test_name, FAIL, 3)
-
-db.delete_media([movie])
-
-if test_data_count(db, "media") != 1:
-    print(test_name, FAIL, 3)
-
-if test_data_count(db, "media", (['id', movie.id()],)) != 0:
-    print(test_name, FAIL, 4)
 db.close()
 
 print("db-sqlite-tests: Successfully Completed")

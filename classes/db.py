@@ -65,7 +65,7 @@ class DB(object):
     def get_watchlist(self):
         raise NotImplementedError()
 
-    def save_meta(self, meta):
+    def update_meta(self, meta):
         raise NotImplementedError()
 
     @staticmethod

@@ -37,6 +37,9 @@ class Sqlite(DB):
         )
 
     def create_containers_table(self):
+        self._create_identifiables_table()
+        self._create_meta_table()
+
         self._create_table(
             "containers",
             # type: MediaLibrary|Show|Season|Extra
@@ -54,10 +57,11 @@ class Sqlite(DB):
                 )
             """
         )
-        self._create_identifiables_table()
-        self._create_meta_table()
 
     def create_media_table(self):
+        self._create_identifiables_table()
+        self._create_media_states_table()
+
         self._create_table(
             "media",
             # type: Episode|Movie
@@ -75,8 +79,6 @@ class Sqlite(DB):
                 flags TEXT
             )"""
         )
-        self._create_identifiables_table()
-        self._create_media_states_table()
 
     def create_watchlist_table(self):
         self._create_table("watchlist", "(show_id TEXT)")
@@ -195,6 +197,27 @@ class Sqlite(DB):
 
         self.conn.commit()
 
+    def update_meta(self, meta):
+        self._create_meta_table()
+        self._delete_meta(meta)
+
+        data = self._get_meta_data(meta)
+
+        cur = self.conn.cursor()
+
+        sql = """insert into meta (
+            meta_id,
+            meta_title,
+            meta_rating,
+            meta_image_name,
+            meta_episodes,
+            meta_description
+        ) VALUES (?,?,?,?,?,?)"""
+
+        cur.executemany(sql, data)
+
+        self.conn.commit()
+
     def _update_identifiables(self, identifiables):
 
         self._delete_identifiables(identifiables)
@@ -215,19 +238,94 @@ class Sqlite(DB):
 
         self.conn.commit()
 
-    def get_ext_ids(self, table, re_show_name):
-        self.conn.create_function(
-            'matches',
-            1,
-            lambda x: 1 if re_show_name.match(x) else 0
-        )
+    def _update_media_states(self, media_states):
+
+        self._delete_media_states(media_states)
 
         cur = self.conn.cursor()
 
-        sql = 'SELECT * FROM {} where matches(title)'.format(table)
-        cur.execute(sql)
+        sql = """INSERT INTO media_states (
+            media_id,
+            played
+        ) VALUES (?,?)"""
 
-        return cur.fetchall()
+        cur.executemany(sql, media_states)
+
+        self.conn.commit()
+
+    def delete_containers(self, containers):
+        if not len(containers):
+            return
+
+        where, ids = self._where_ids(containers)
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM containers WHERE {}'.format(where)
+        cur.execute(sql, ids)
+
+        self.conn.commit()
+
+    def delete_media(self, media):
+        if not len(media):
+            return
+
+        where, ids = self._where_ids(media)
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM media WHERE {}'.format(where)
+        cur.execute(sql, ids)
+
+        self.conn.commit()
+
+    def _delete_identifiables(self, identifiables):
+        if not len(identifiables):
+            return
+
+        where, ids = self._where_ids(identifiables)
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM identifiables WHERE {}'.format(where)
+        cur.execute(sql, ids)
+
+        self.conn.commit()
+
+    def _delete_media_states(self, media_states):
+        if not len(media_states):
+            return
+
+        where = ""
+        ids = []
+        for media_id in [ms[0] for ms in media_states]:
+            where = f"{where}media_id=? OR "
+            ids.append(media_id)
+
+        where = where.rstrip(" OR ")
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM media_states WHERE {}'.format(where)
+        cur.execute(sql, ids)
+
+        self.conn.commit()
+
+    def _delete_meta(self, meta):
+        where = ""
+        meta_ids = []
+        for m in meta:
+            where = "{}meta_id=? OR ".format(where)
+            meta_ids.append(m.id())
+
+        where = where.rstrip(" OR ")
+
+        cur = self.conn.cursor()
+
+        sql = f'DELETE FROM meta WHERE {where}'
+        cur.execute(sql, meta_ids)
+
+        self.conn.commit()
 
     def get_container(self, container):
         if isinstance(container, Container):
@@ -253,19 +351,6 @@ class Sqlite(DB):
         return_obj = self._container_from_data(result) if result else None
 
         return return_obj
-
-    def delete_containers(self, containers):
-        if not len(containers):
-            return
-
-        where, ids = self._where_ids(containers)
-
-        cur = self.conn.cursor()
-
-        sql = 'DELETE FROM containers WHERE {}'.format(where)
-        cur.execute(sql, ids)
-
-        self.conn.commit()
 
     def get_media(self, media):
         if isinstance(media, Media):
@@ -293,19 +378,6 @@ class Sqlite(DB):
         return_obj = self._media_from_data(result) if result else None
 
         return return_obj
-
-    def delete_media(self, media):
-        if not len(media):
-            return
-
-        where, ids = self._where_ids(media)
-
-        cur = self.conn.cursor()
-
-        sql = 'DELETE FROM media WHERE {}'.format(where)
-        cur.execute(sql, ids)
-
-        self.conn.commit()
 
     def is_in_watchlists(self, show_id):
         cur = self.conn.cursor()
@@ -356,57 +428,6 @@ class Sqlite(DB):
                 self.remove_from_watchlist(result[0])
 
         return shows
-
-    def _delete_meta(self, meta):
-        where = ""
-        meta_ids = []
-        for m in meta:
-            where = "{}meta_id=? OR ".format(where)
-            meta_ids.append(m.id())
-
-        where = where.rstrip(" OR ")
-
-        cur = self.conn.cursor()
-
-        sql = f'DELETE FROM meta WHERE {where}'
-        cur.execute(sql, meta_ids)
-
-        self.conn.commit()
-
-    def save_meta(self, meta):
-        self._create_meta_table()
-        self._delete_meta(meta)
-
-        data = [
-            (
-                m.id(),
-                m.title(),
-                m.rating(),
-                m.image_name(),
-                ';;;'.join(
-                    [':::'.join([
-                        str(e.episode_number()),
-                        e.title(),
-                        e.summary()
-                    ]) for e in m.episodes()]
-                ),
-                m.description(),
-            ) for m in meta]
-
-        cur = self.conn.cursor()
-
-        sql = """insert into meta (
-            meta_id,
-            meta_title,
-            meta_rating,
-            meta_image_name,
-            meta_episodes,
-            meta_description
-        ) VALUES (?,?,?,?,?,?)"""
-
-        cur.executemany(sql, data)
-
-        self.conn.commit()
 
     def print_table(self, table):
         self.conn.row_factory = sqlite3.Row
@@ -732,53 +753,6 @@ class Sqlite(DB):
 
         return return_obj
 
-    def _update_media_states(self, media_states):
-
-        self._delete_media_states(media_states)
-
-        cur = self.conn.cursor()
-
-        sql = """INSERT INTO media_states (
-            media_id,
-            played
-        ) VALUES (?,?)"""
-
-        cur.executemany(sql, media_states)
-
-        self.conn.commit()
-
-    def _delete_identifiables(self, identifiables):
-        if not len(identifiables):
-            return
-
-        where, ids = self._where_ids(identifiables)
-
-        cur = self.conn.cursor()
-
-        sql = 'DELETE FROM identifiables WHERE {}'.format(where)
-        cur.execute(sql, ids)
-
-        self.conn.commit()
-
-    def _delete_media_states(self, media_states):
-        if not len(media_states):
-            return
-
-        where = ""
-        ids = []
-        for media_id in [ms[0] for ms in media_states]:
-            where = f"{where}media_id=? OR "
-            ids.append(media_id)
-
-        where = where.rstrip(" OR ")
-
-        cur = self.conn.cursor()
-
-        sql = 'DELETE FROM media_states WHERE {}'.format(where)
-        cur.execute(sql, ids)
-
-        self.conn.commit()
-
     def _get_identifiable_data(self, identifiable):
         ext_ids = []
         for key in identifiable.ext_ids().keys():
@@ -789,3 +763,34 @@ class Sqlite(DB):
             ';;;'.join(ext_ids),
             identifiable.year()
         )
+
+    def _get_meta_data(self, meta):
+        return [
+            (
+                m.id(),
+                m.title(),
+                m.rating(),
+                m.image_name(),
+                ';;;'.join(
+                    [':::'.join([
+                        str(e.episode_number()),
+                        e.title(),
+                        e.summary()
+                    ]) for e in m.episodes()]
+                ),
+                m.description(),
+            ) for m in meta]
+
+    def get_ext_ids(self, table, re_show_name):
+        self.conn.create_function(
+            'matches',
+            1,
+            lambda x: 1 if re_show_name.match(x) else 0
+        )
+
+        cur = self.conn.cursor()
+
+        sql = 'SELECT * FROM {} where matches(title)'.format(table)
+        cur.execute(sql)
+
+        return cur.fetchall()
