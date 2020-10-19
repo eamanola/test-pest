@@ -466,6 +466,47 @@ class Sqlite(DB):
                 m.description(),
             ) for m in meta]
 
+    def _get_unplayed_count(self, container_id):
+        count = 0
+
+        cur = self.conn.cursor()
+        # medialibrary -l1
+        # [1-n show] -l2
+        # [1-n season] -l3
+        # [1-n extra] -l4
+        # 1-n media
+        # 1-1 media_state
+
+        sql = """
+            select count(distinct media.id) from containers l1
+
+            left outer join containers l2
+            on l1.containers like '%' || l2.id || '%'
+
+            left outer join containers l3
+            on l2.containers like '%' || l3.id || '%'
+
+            left outer join containers l4
+            on l3.containers like '%' || l4.id || '%'
+
+            left outer join media
+            on l1.media like '%' || media.id || '%'
+            or l2.media like '%' || media.id || '%'
+            or l3.media like '%' || media.id || '%'
+            or l4.media like '%' || media.id || '%'
+
+            left outer join media_states
+            on media.id = media_states.media_id
+            where l1.id=? and media_states.played='0'  """
+
+        cur.execute(sql, [container_id])
+
+        result = cur.fetchone()
+        if result:
+            count = result[0]
+
+        return count
+
     def is_in_watchlists(self, show_id):
         cur = self.conn.cursor()
 
@@ -573,30 +614,6 @@ class Sqlite(DB):
             parent = None
 
         return parent
-
-    def _get_unplayed_count(self, container_id):
-        count = 0
-
-        cur = self.conn.cursor()
-
-        sql = """
-            select count(*) from containers p
-            left outer join containers c
-            on p.containers like '%' || c.id || '%'
-            left outer join media
-            on p.media like '%' || media.id || '%'
-            or c.media like '%' || media.id || '%'
-            left outer join media_states
-            on media.id = media_states.media_id
-            where p.id=? and media_states.played='0' """
-
-        cur.execute(sql, [container_id])
-
-        result = cur.fetchall()
-        if result:
-            count = result[0][0]
-
-        return count
 
     def _get_container_children(self, result):
         container_ids = [item for item in result[2].split(",") if item.strip()]

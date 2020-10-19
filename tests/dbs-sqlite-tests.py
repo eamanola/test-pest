@@ -1040,6 +1040,39 @@ class TestSqlite(unittest.TestCase):
             ) for m in meta] == Sqlite()._get_meta_data(meta)
         )
 
+    def test__get_unplayed_count(self):
+        root, containers, media = create_test_library()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.create_media_table()
+        db.update_media(media)
+        db.update_containers(containers)
+
+        self.assertEqual(
+            db._get_unplayed_count(root.id()),
+            len(media)
+        )
+
+        media[0].set_played(True)
+        db.update_media([media[0]])
+
+        self.assertEqual(
+            db._get_unplayed_count(root.id()),
+            len(media) - 1
+        )
+
+        media[0].set_played(False)
+        db.update_media([media[0]])
+
+        self.assertEqual(
+            db._get_unplayed_count(root.id()),
+            len(media)
+        )
+
+        db.close()
 
 unittest.main()
 
