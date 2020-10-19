@@ -483,7 +483,7 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
-    def test_update_containers(self):
+    def test_update_and_get_containers(self):
         root, containers, media = create_test_library()
 
         db = Sqlite()
@@ -553,7 +553,7 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
-    def test_update_media(self):
+    def test_update_and_get__media(self):
         root, containers, media = create_test_library()
 
         db = Sqlite()
@@ -756,6 +756,11 @@ class TestSqlite(unittest.TestCase):
             db_media = db.get_media(a_media.id())
             self.assertTrue(compare_media_states(a_media, db_media))
 
+            a_media.set_played(not a_media.played())
+            db.update_media([a_media], overwrite_media_states=False)
+            db_media = db.get_media(a_media.id())
+            self.assertFalse(compare_media_states(a_media, db_media))
+
         db.close()
 
     def test_delete_containers(self):
@@ -918,31 +923,125 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
+    def test__get_container_data(self):
+        root, containers, media = create_test_library()
 
-unittest.main()
+        for item in containers:
+            item_data = Sqlite()._get_container_data(item)
 
+            self.assertEqual(item.id(), item_data[0])
+            self.assertEqual(item.__class__.__name__, item_data[1])
+            self.assertEqual(
+                ','.join([c.id() for c in item.containers]),
+                item_data[2]
+            )
+            self.assertEqual(
+                ','.join([m.id() for m in item.media]),
+                item_data[3]
+            )
+            self.assertEqual(
+                item.parent().id() if item.parent() else None,
+                item_data[4]
+            )
+            self.assertEqual(item.path(), item_data[5])
+            self.assertEqual(
+                item.show_name() if hasattr(item, 'show_name') else None,
+                item_data[6]
+            )
+            self.assertEqual(
+                (
+                    item.season_number()
+                    if hasattr(item, 'season_number') and item.season_number()
+                    else 0
+                ),
+                item_data[7]
+            )
 
-def test_data_count(db, table_name, row=[]):
-    cur = db.conn.cursor()
+    def test__get_media_data(self):
+        root, containers, media = create_test_library()
 
-    where = ""
-    for col in row:
-        where = "{}{}='{}' AND ".format(
-            where,
-            col[0],
-            col[1]
+        for item in media:
+            if isinstance(item, Episode):
+                flags = "{}{}{}{}".format(
+                    1 if item.is_oad() else 0,
+                    1 if item.is_ncop() else 0,
+                    1 if item.is_nced() else 0,
+                    1 if item.is_ova() else 0
+                )
+            else:
+                flags = None
+
+            item_data = Sqlite()._get_media_data(item)
+
+            self.assertEqual(item.id(), item_data[0])
+            self.assertEqual(item.__class__.__name__, item_data[1])
+            self.assertEqual(
+                item.parent().id() if item.parent() else None,
+                item_data[2]
+            )
+            self.assertEqual(item.file_path(), item_data[3])
+            self.assertEqual(','.join(item.subtitles), item_data[4])
+            self.assertEqual(
+                (
+                    item.episode_number()
+                    if isinstance(item, Episode)
+                    else None
+                ),
+                item_data[5]
+            )
+            self.assertEqual(
+                item.title() if isinstance(item, Movie) else None,
+                item_data[6]
+            )
+            self.assertEqual(flags, item_data[7])
+
+    def test__get_identifiable_data(self):
+        root, containers, media = create_test_library()
+        identifiables = [
+            i for i in containers + media if isinstance(i, Identifiable)
+        ]
+
+        for item in identifiables:
+            ext_ids = []
+            for key in item.ext_ids().keys():
+                ext_ids.append(f"{key}:::{item.ext_ids()[key]}---")
+
+            item_data = Sqlite()._get_identifiable_data(item)
+
+            self.assertEqual(item.id(), item_data[0])
+            self.assertEqual(';;;'.join(ext_ids), item_data[1])
+            self.assertEqual(item.year(), item_data[2])
+
+    def test__get_media_states_data(self):
+        root, containers, media = create_test_library()
+
+        self.assertTrue(
+            [(m.id(), m.played()) for m in media] ==
+            Sqlite()._get_media_states_data(media)
         )
 
-    where = where.rstrip("AND ")
+    def test__get_meta_data(self):
+        meta = create_test_meta()
 
-    sql = "SELECT Count() FROM {}".format(table_name)
-    if where:
-        sql = "{} WHERE {}".format(sql, where)
+        self.assertTrue([
+            (
+                m.id(),
+                m.title(),
+                m.rating(),
+                m.image_name(),
+                ';;;'.join(
+                    [':::'.join([
+                        str(e.episode_number()),
+                        e.title(),
+                        e.summary()
+                    ]) for e in m.episodes()]
+                ),
+                m.description(),
+            ) for m in meta] == Sqlite()._get_meta_data(meta)
+        )
 
-    cur.execute(sql)
 
-    return cur.fetchone()[0]
-
+unittest.main()
 
 test_name = "Sqlite.get_ext_ids"
 print(test_name) if debug else ""
@@ -976,57 +1075,5 @@ except Exception as e:
 finally:
     db.close()
 
-test_name = "Sqlite.get_container"
-print(test_name) if debug else ""
-db = Sqlite()
-db.connect(TMP_DB)
-db.create_containers_table()
-
-path = "a path"
-show_name = "a show name"
-
-media_library = MediaLibrary(path)
-show = Show(path, show_name, parent=media_library)
-season1 = Season(path, show_name, 1, parent=show)
-season2 = Season(path, show_name, 2, parent=show)
-season3 = Season(path, show_name, 3, parent=show)
-extra = Extra(path, show_name, 1, parent=season1)
-
-media_library.containers.append(show)
-show.containers.append(season1)
-show.containers.append(season2)
-show.containers.append(season3)
-season1.containers.append(extra)
-
-db.update_containers([
-    media_library,
-    show,
-    season1,
-    season2,
-    season3,
-    extra
-])
-
-result = db.get_container(show)
-if (
-    result.id() != show.id() or
-    not isinstance(result, Show) or
-    len(result.containers) != len(show.containers) or
-    len(result.media) != len(show.media) or
-    result.parent().id() != show.parent().id() or
-    result.path() != show.path() or
-    result.show_name() != show.show_name()
-):
-    print(test_name, FAIL, 2)
-
-result2 = db.get_container(show.id())
-if result.id() != result2.id():
-    print(test_name, FAIL, 2.1)
-
-result = db.get_container(RANDOM_STR)
-if result is not None:
-    print(test_name, FAIL, 3)
-
-db.close()
 
 print("db-sqlite-tests: Successfully Completed")

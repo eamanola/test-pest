@@ -40,7 +40,7 @@ class DB(object):
         self,
         media,
         update_identifiables=True,
-        update_media_states=True
+        overwrite_media_states=True
     ):
         raise NotImplementedError()
 

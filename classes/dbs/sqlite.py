@@ -163,7 +163,7 @@ class Sqlite(DB):
         self,
         media,
         update_identifiables=True,
-        update_media_states=True
+        overwrite_media_states=True
     ):
 
         self.delete_media(media)
@@ -190,10 +190,10 @@ class Sqlite(DB):
                 [i for i in media if isinstance(i, Identifiable)]
             )
 
-        if update_media_states:
-            self._update_media_states(
-                [(m.id(), m.played()) for m in media]
-            )
+        self._update_media_states(
+            self._get_media_states_data(media),
+            overwrite=overwrite_media_states
+        )
 
         self.conn.commit()
 
@@ -238,20 +238,36 @@ class Sqlite(DB):
 
         self.conn.commit()
 
-    def _update_media_states(self, media_states):
-
-        self._delete_media_states(media_states)
-
+    def _update_media_states(self, media_states, overwrite):
         cur = self.conn.cursor()
 
-        sql = """INSERT INTO media_states (
-            media_id,
-            played
-        ) VALUES (?,?)"""
+        if not overwrite:
+            where = ""
+            for ms in media_states:
+                where = "{}media_id=? OR ".format(where)
 
-        cur.executemany(sql, media_states)
+            where = where.rstrip(" OR ")
 
-        self.conn.commit()
+            sql = f"select media_id from media_states where {where}"
+            cur.execute(sql, [m[0] for m in media_states])
+            rows = cur.fetchall()
+
+            for row in rows:
+                for ms in media_states:
+                    if row[0] == ms[0]:
+                        media_states.remove(ms)
+
+        if len(media_states):
+            self._delete_media_states(media_states)
+
+            sql = """INSERT INTO media_states (
+                media_id,
+                played
+            ) VALUES (?,?)"""
+
+            cur.executemany(sql, media_states)
+
+            self.conn.commit()
 
     def delete_containers(self, containers):
         if not len(containers):
@@ -379,6 +395,77 @@ class Sqlite(DB):
 
         return return_obj
 
+    def _get_container_data(self, container):
+
+        return (
+            container.id(),
+            container.__class__.__name__,
+            ','.join([c.id() for c in container.containers]),
+            ','.join([m.id() for m in container.media]),
+            container.parent().id() if container.parent() else None,
+            container.path(),
+            container.show_name() if hasattr(container, 'show_name') else None,
+            (
+                container.season_number()
+                if hasattr(container, 'season_number')
+                and container.season_number()
+                else 0
+            )
+        )
+
+    def _get_media_data(self, media):
+        if isinstance(media, Episode):
+            flags = "{}{}{}{}".format(
+                1 if media.is_oad() else 0,
+                1 if media.is_ncop() else 0,
+                1 if media.is_nced() else 0,
+                1 if media.is_ova() else 0
+            )
+        else:
+            flags = None
+
+        return (
+            media.id(),
+            media.__class__.__name__,
+            media.parent().id() if media.parent() else None,
+            media.file_path(),
+            ','.join(media.subtitles),
+            media.episode_number() if isinstance(media, Episode) else None,
+            media.title() if isinstance(media, Movie) else None,
+            flags
+        )
+
+    def _get_identifiable_data(self, identifiable):
+        ext_ids = []
+        for key in identifiable.ext_ids().keys():
+            ext_ids.append(f"{key}:::{identifiable.ext_ids()[key]}---")
+
+        return (
+            identifiable.id(),
+            ';;;'.join(ext_ids),
+            identifiable.year()
+        )
+
+    def _get_media_states_data(self, media):
+        return [(m.id(), m.played()) for m in media]
+
+    def _get_meta_data(self, meta):
+        return [
+            (
+                m.id(),
+                m.title(),
+                m.rating(),
+                m.image_name(),
+                ';;;'.join(
+                    [':::'.join([
+                        str(e.episode_number()),
+                        e.title(),
+                        e.summary()
+                    ]) for e in m.episodes()]
+                ),
+                m.description(),
+            ) for m in meta]
+
     def is_in_watchlists(self, show_id):
         cur = self.conn.cursor()
 
@@ -459,45 +546,6 @@ class Sqlite(DB):
         where = where.rstrip('{} '.format(and_or))
 
         return where, ids
-
-    def _get_container_data(self, container):
-
-        return (
-            container.id(),
-            container.__class__.__name__,
-            ','.join([c.id() for c in container.containers]),
-            ','.join([m.id() for m in container.media]),
-            container.parent().id() if container.parent() else None,
-            container.path(),
-            container.show_name() if hasattr(container, 'show_name') else None,
-            (
-                container.season_number()
-                if hasattr(container, 'season_number')
-                else 0
-            )
-        )
-
-    def _get_media_data(self, media):
-        if isinstance(media, Episode):
-            flags = "{}{}{}{}".format(
-                1 if media.is_oad() else 0,
-                1 if media.is_ncop() else 0,
-                1 if media.is_nced() else 0,
-                1 if media.is_ova() else 0
-            )
-        else:
-            flags = None
-
-        return (
-            media.id(),
-            media.__class__.__name__,
-            media.parent().id() if media.parent() else None,
-            media.file_path(),
-            ','.join(media.subtitles),
-            media.episode_number() if isinstance(media, Episode) else None,
-            media.title() if isinstance(media, Movie) else None,
-            flags
-        )
 
     def _get_parent(self, parent_id):
         self.conn.row_factory = sqlite3.Row
@@ -752,34 +800,6 @@ class Sqlite(DB):
             ))
 
         return return_obj
-
-    def _get_identifiable_data(self, identifiable):
-        ext_ids = []
-        for key in identifiable.ext_ids().keys():
-            ext_ids.append(f"{key}:::{identifiable.ext_ids()[key]}---")
-
-        return (
-            identifiable.id(),
-            ';;;'.join(ext_ids),
-            identifiable.year()
-        )
-
-    def _get_meta_data(self, meta):
-        return [
-            (
-                m.id(),
-                m.title(),
-                m.rating(),
-                m.image_name(),
-                ';;;'.join(
-                    [':::'.join([
-                        str(e.episode_number()),
-                        e.title(),
-                        e.summary()
-                    ]) for e in m.episodes()]
-                ),
-                m.description(),
-            ) for m in meta]
 
     def get_ext_ids(self, table, re_show_name):
         self.conn.create_function(

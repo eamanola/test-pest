@@ -219,7 +219,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 db.update_media(
                     media,
                     update_identifiables=False,
-                    update_media_states=False
+                    overwrite_media_states=False
                 )
 
             db.close()
