@@ -33,7 +33,7 @@ class Images(object):
                 input = os.path.join(
                     media.parent().path(),
                     media.file_path()
-                )
+                ).replace("`", "\\`")
 
                 cmd = [
                     'ffmpeg',
