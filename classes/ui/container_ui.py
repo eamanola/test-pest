@@ -52,7 +52,11 @@ class ContainerUI(object):
 
         for con in sorted(
             container.containers,
-            key=lambda c: (-c.unplayed_count(), c.title())
+            key=lambda c: (
+                c.unplayed_count() == 0,
+                c.unplayed_count(),
+                c.title()
+            )
         ):
             page = f"""
                 {page}
