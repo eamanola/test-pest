@@ -10,37 +10,40 @@ class WatchingList(object):
 
     @staticmethod
     def started_play(db, media):
-        episodes = [m for m in media if isinstance(m, Episode)]
+        db.create_watchlist_table()
 
         shows = []
-        for e in episodes:
+        for e in [m for m in media if isinstance(m, Episode)]:
             show = e.parent()
             if show.__class__.__name__ != "Show":
                 show = db.get_container(e.parent()).parent()
 
             shows.append(show)
 
-        db.create_watchlist_table()
-
         new_show_ids = []
+        remove_shows = []  # move shows to end of list, if exists
         for s in shows:
-            if (
-                not s.id() in new_show_ids and
-                not db.is_in_watchlists(s.id())
-            ):
+            if not s.id() in new_show_ids:
+                if db.is_in_watchlists(s.id()):
+                    remove_shows.append(s.id())
+
                 new_show_ids.append(s.id())
                 print(s.title(), 'added to watchlist')
             else:
                 print(s.title(), 'already in watchlist')
 
-        db.add_to_watchlist(new_show_ids)
+        if len(remove_shows):
+            db.remove_from_watchlist(remove_shows)
 
-        return None
+        if len(new_show_ids):
+            db.add_to_watchlist(new_show_ids)
 
     @staticmethod
     def get_play_next_list(db):
         db.create_watchlist_table()
         shows = db.get_watchlist()
+        shows.reverse()  # show latest addition first
+
         remove = []
         play_next = []
         for show in shows:
