@@ -1144,7 +1144,5 @@ class TestSqlite(unittest.TestCase):
         db.close()
 
 
-unittest.main()
-
-
-print("db-sqlite-tests: Successfully Completed")
+if __name__ == '__main__':
+    unittest.main()
