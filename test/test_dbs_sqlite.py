@@ -1,11 +1,12 @@
 import re
 import sqlite3
+import unittest
 from classes.dbs.sqlite import Sqlite
 from classes.container import Container, MediaLibrary, Show, Season, Extra
 from classes.identifiable import Identifiable
 from classes.media import Episode, Movie
 from classes.meta import Meta, Episode_Meta
-import unittest
+import test.testutils as testutils
 
 debug = True
 debug = False
@@ -127,95 +128,6 @@ def create_test_meta():
         'movie meta description')
 
     return [show1_meta, show2_meta, movie_meta]
-
-
-def compare_containers(con1, con2):
-    return (
-        (con1.id() == con2.id())
-        and (con1.__class__.__name__ == con2.__class__.__name__)
-        and (len(con1.containers) == len(con2.containers))
-        and (len(con1.media) == len(con2.media))
-        and (
-            not con1.parent()
-            or (con1.parent().id() == con2.parent().id())
-        )
-        and (con1.path() == con2.path())
-        and (
-            not isinstance(con1, Show)
-            or (con1.show_name() == con2.show_name())
-        )
-        and (
-            not isinstance(con1, Season)
-            or con1.season_number() == con2.season_number()
-        )
-        and (
-            not isinstance(con1, Identifiable)
-            or compare_identifiables(con1, con2)
-        )
-    )
-
-
-def compare_media(med1, med2):
-    return (
-        (med1.file_path() == med2.file_path())
-        and (
-            not med1.parent()
-            or med1.parent().id() == med2.parent().id()
-        )
-        and (
-            not isinstance(med1, Movie)
-            or (med1.title() == med2.title())
-        )
-        and (
-            not isinstance(med1, Episode)
-            or (
-                (med1.episode_number() == med2.episode_number())
-                and (med1.is_oad() == med2.is_oad())
-                and (med1.is_ncop() == med2.is_ncop())
-                and (med1.is_nced() == med2.is_nced())
-                and (med1.is_ova() == med2.is_ova())
-            )
-        )
-        and compare_media_states(med1, med2)
-        and (
-            not isinstance(med1, Identifiable)
-            or compare_identifiables(med1, med2)
-        )
-    )
-
-
-def compare_identifiables(ide1, ide2):
-    return (
-        (ide1.id() == ide2.id())
-        and (ide1.year() == ide2.year())
-        and (len(ide1.ext_ids()) == len(ide2.ext_ids()))
-        and (
-            not ide1.meta()
-            or compare_meta(ide1.meta(), ide2.meta())
-        )
-    )
-
-
-def compare_media_states(med1, med2):
-    return (med1.played() == med2.played())
-
-
-def compare_meta(meta1, meta2):
-    return (
-        (meta1.id() == meta2.id())
-        and (meta1.title() == meta2.title())
-        and (meta1.rating() == meta2.rating())
-        and (meta1.image_name() == meta2.image_name())
-        and (
-            not meta1.episodes()
-            or compare_meta_episodes(meta1.episodes(), meta2.episodes())
-        )
-        and (meta1.description() == meta2.description())
-    )
-
-
-def compare_meta_episodes(epi1, epi2):
-    return len(epi1) == len(epi2)  # TODO
 
 
 def table_count(db, table_name, table_schema=""):
@@ -505,7 +417,7 @@ class TestSqlite(unittest.TestCase):
 
         for con in containers:
             db_container = db.get_container(con.id())
-            self.assertTrue(compare_containers(con, db_container))
+            self.assertTrue(testutils.compare_containers(con, db_container))
 
         # dublicates
         con = containers[0]
@@ -549,7 +461,10 @@ class TestSqlite(unittest.TestCase):
 
             db.update_containers([a_season])
             db_container = db.get_container(a_season.id())
-            self.assertTrue(compare_containers(a_season, db_container))
+            self.assertTrue(testutils.compare_containers(
+                a_season,
+                db_container
+            ))
 
         db.close()
 
@@ -575,7 +490,7 @@ class TestSqlite(unittest.TestCase):
 
         for med in media:
             db_media = db.get_media(med.id())
-            self.assertTrue(compare_media(med, db_media))
+            self.assertTrue(testutils.compare_media(med, db_media))
 
         # dublicates
         med = media[0]
@@ -602,7 +517,7 @@ class TestSqlite(unittest.TestCase):
 
             db.update_media([a_movie])
             db_movie = db.get_media(a_movie.id())
-            self.assertTrue(compare_media(a_movie, db_movie))
+            self.assertTrue(testutils.compare_media(a_movie, db_movie))
 
         an_episode = None
         for med in media:
@@ -622,7 +537,7 @@ class TestSqlite(unittest.TestCase):
 
             db.update_media([an_episode])
             db_episode = db.get_media(an_episode.id())
-            self.assertTrue(compare_media(an_episode, db_episode))
+            self.assertTrue(testutils.compare_media(an_episode, db_episode))
 
         db.close()
 
@@ -680,7 +595,10 @@ class TestSqlite(unittest.TestCase):
             else:
                 db_identifiable = db.get_media(ide.id())
 
-            self.assertTrue(compare_identifiables(ide, db_identifiable))
+            self.assertTrue(testutils.compare_identifiables(
+                ide,
+                db_identifiable
+            ))
 
         # dublicates
         ide = identifiables[0]
@@ -706,7 +624,7 @@ class TestSqlite(unittest.TestCase):
             else:
                 db_identifiable = db.get_media(an_identifiable.id())
 
-            self.assertTrue(compare_identifiables(
+            self.assertTrue(testutils.compare_identifiables(
                 an_identifiable,
                 db_identifiable
             ))
@@ -734,7 +652,7 @@ class TestSqlite(unittest.TestCase):
 
         for med in media:
             db_media = db.get_media(med.id())
-            self.assertTrue(compare_media_states(med, db_media))
+            self.assertTrue(testutils.compare_media_states(med, db_media))
 
         # dublicates
         a_media = media[0]
@@ -754,12 +672,12 @@ class TestSqlite(unittest.TestCase):
 
             db.update_media([a_media])
             db_media = db.get_media(a_media.id())
-            self.assertTrue(compare_media_states(a_media, db_media))
+            self.assertTrue(testutils.compare_media_states(a_media, db_media))
 
             a_media.set_played(not a_media.played())
             db.update_media([a_media], overwrite_media_states=False)
             db_media = db.get_media(a_media.id())
-            self.assertFalse(compare_media_states(a_media, db_media))
+            self.assertFalse(testutils.compare_media_states(a_media, db_media))
 
         db.close()
 
@@ -1096,7 +1014,7 @@ class TestSqlite(unittest.TestCase):
 
         list = db.get_watchlist()
         self.assertEqual(len(list), 1)
-        self.assertTrue(compare_containers(list[0], container))
+        self.assertTrue(testutils.compare_containers(list[0], container))
 
         db.remove_from_watchlist([CONTAINER_ID])
         self.assertFalse(db.is_in_watchlists(CONTAINER_ID))

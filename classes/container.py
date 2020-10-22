@@ -45,7 +45,10 @@ class Container(object):
 
         return None
 
-    def id(hash_id):
+    def id(self):
+        raise NotImplementedError()
+
+    def hash_id(self, hash_id):
         return hashlib.md5(hash_id.encode('utf-8')).hexdigest()
 
     def title(self):
@@ -63,14 +66,14 @@ class MediaLibrary(Container):
         super(MediaLibrary, self).__init__(parent=parent)
         self._path = path
 
-    def path(self):
-        return self._path
-
     def id(self):
-        return Container.id(self.path())
+        return self.hash_id(self.path())
 
     def title(self):
         return self.path()
+
+    def path(self):
+        return self._path
 
 
 class Show(MediaLibrary, Identifiable):
@@ -78,23 +81,34 @@ class Show(MediaLibrary, Identifiable):
         super(Show, self).__init__(library_path, parent=parent)
         self._show_name = show_name
 
+    def id(self):
+        return self.hash_id(self.show_name())
+
+    def title(self):
+        return self.show_name()
+
     def show_name(self):
         return self._show_name
 
     def seasons(self):
         return self.containers
 
-    def id(self):
-        return Container.id(self.show_name())
-
-    def title(self):
-        return self.show_name()
-
 
 class Season(Show):
     def __init__(self, library_path, show_name, season_number, parent=None):
         super(Season, self).__init__(library_path, show_name, parent=parent)
         self._season_number = season_number
+
+    def id(self):
+        id_str = "{}{}{}".format(
+            self.show_name(),
+            "season",
+            self.season_number()
+        )
+        return self.hash_id(id_str)
+
+    def title(self):
+        return "Season {:02d}".format(self.season_number())
 
     def seasons(self):
         return None
@@ -108,17 +122,6 @@ class Season(Show):
     def season_number(self):
         return self._season_number
 
-    def id(self):
-        id_str = "{}{}{}".format(
-            self.show_name(),
-            "season",
-            self.season_number()
-        )
-        return Container.id(id_str)
-
-    def title(self):
-        return "Season {:02d}".format(self.season_number())
-
 
 class Extra(Season):
     def __init__(self, library_path, show_name, season_number, parent=None):
@@ -129,9 +132,6 @@ class Extra(Season):
             parent=parent
         )
 
-    def extras(self):
-        return None
-
     def id(self):
         id_str = "{}{}{}{}".format(
             self.show_name(),
@@ -139,7 +139,10 @@ class Extra(Season):
             self.season_number(),
             "extra"
         )
-        return Container.id(id_str)
+        return self.hash_id(id_str)
 
     def title(self):
         return "Extra"
+
+    def extras(self):
+        return None
