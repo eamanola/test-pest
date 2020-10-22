@@ -68,6 +68,9 @@ class DB(object):
     def update_meta(self, meta):
         raise NotImplementedError()
 
+    def get_unplayed_count(self, container_id):
+        raise NotImplementedError()
+
     @staticmethod
     def get_instance():
         instance = None

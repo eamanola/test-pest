@@ -50,6 +50,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     parent.set_parent(db.get_container(parent.parent()))
                     parent = parent.parent()
 
+            for c in container.containers:
+                c.set_unplayed_count(db.get_unplayed_count(c.id()))
+
             db.close()
 
             page = ContainerUI.html_page(container)
@@ -123,6 +126,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             for media_lib in medialibs:
                 ml = db.get_container(media_lib[0])
+
+                for c in ml.containers:
+                    c.set_unplayed_count(db.get_unplayed_count(c.id()))
 
                 new_page = [page, ContainerUI.html_page(ml)]
                 if ml.path() == "/data/viihde/anime/":

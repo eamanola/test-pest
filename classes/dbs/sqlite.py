@@ -466,7 +466,7 @@ class Sqlite(DB):
                 m.description(),
             ) for m in meta]
 
-    def _get_unplayed_count(self, container_id):
+    def get_unplayed_count(self, container_id):
         count = 0
 
         cur = self.conn.cursor()
@@ -658,9 +658,6 @@ class Sqlite(DB):
                     result,
                     get_children=False,
                     get_parent=False
-                )
-                container.set_unplayed_count(
-                    self._get_unplayed_count(container.id())
                 )
                 containers.append(container)
 
