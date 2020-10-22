@@ -557,6 +557,18 @@ class Sqlite(DB):
 
         return shows
 
+    def get_ext_ids(self, table, re_show_name):
+        self.conn.create_function(
+            'matches', 1, lambda x: 1 if re_show_name.match(x) else 0
+        )
+
+        cur = self.conn.cursor()
+
+        sql = f'SELECT * FROM {table} where matches({table}.title)'
+        cur.execute(sql)
+
+        return cur.fetchall()
+
     def print_table(self, table):
         self.conn.row_factory = sqlite3.Row
         cur = self.conn.cursor()
@@ -817,17 +829,3 @@ class Sqlite(DB):
             ))
 
         return return_obj
-
-    def get_ext_ids(self, table, re_show_name):
-        self.conn.create_function(
-            'matches',
-            1,
-            lambda x: 1 if re_show_name.match(x) else 0
-        )
-
-        cur = self.conn.cursor()
-
-        sql = 'SELECT * FROM {} where matches(title)'.format(table)
-        cur.execute(sql)
-
-        return cur.fetchall()

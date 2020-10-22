@@ -1111,41 +1111,40 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
+    def test_get_ext_ids(self):
+        root, containers, media = create_test_library()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        TABLE_NAME = "randomtable"
+        TITLE = "foo"
+        TEST_DATA = [
+            ('ext_id', TITLE, 2000, 'media_type'),
+            ('ext_id2', TITLE + "bar", 2001, 'media_type2')
+        ]
+
+        db.populate_title_to_ext_id_table(TABLE_NAME, TEST_DATA)
+
+        self.assertEqual(
+            db.get_ext_ids(TABLE_NAME, re.compile("^.*$")),
+            TEST_DATA
+        )
+
+        self.assertEqual(
+            db.get_ext_ids(TABLE_NAME, re.compile(TITLE)),
+            TEST_DATA
+        )
+
+        self.assertEqual(
+            db.get_ext_ids(TABLE_NAME, re.compile(f"^{TITLE}$")),
+            [TEST_DATA[0]]
+        )
+
+        db.close()
+
 
 unittest.main()
-
-
-test_name = "Sqlite.get_ext_ids"
-print(test_name) if debug else ""
-try:
-    db = Sqlite()
-    db.connect(TMP_DB)
-    table_name = RANDOM_STR
-
-    ext_id = RANDOM_STR
-    title = RANDOM_STR
-    year = RANDOM_INT
-    media_type = RANDOM_STR
-    test_data = [(ext_id, title, year, media_type)]
-    db.populate_title_to_ext_id_table(table_name, test_data)
-
-    search_re = re.compile("^{}$".format(title))
-    if not db.get_ext_ids(table_name, search_re) == test_data:
-        print(test_name, FAIL, 1)
-
-    search_re = re.compile("^.*$")
-    if not db.get_ext_ids(table_name, search_re) == test_data:
-        print(test_name, FAIL, 2)
-
-    search_re = re.compile("^{}{}$".format(title, RANDOM_STR))
-    if not len(db.get_ext_ids(table_name, search_re)) == 0:
-        print(test_name, FAIL, 3)
-
-except Exception as e:
-    print(test_name, FAIL, 4, e)
-
-finally:
-    db.close()
 
 
 print("db-sqlite-tests: Successfully Completed")
