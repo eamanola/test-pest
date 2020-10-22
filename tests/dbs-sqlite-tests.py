@@ -1074,7 +1074,46 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
+    def test_watchlist(self):
+        root, containers, media = create_test_library()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.create_media_table()
+        db.update_media(media)
+        db.update_containers(containers)
+        db.create_watchlist_table()
+
+        container = containers[0]
+        CONTAINER_ID = container.id()
+
+        self.assertFalse(db.is_in_watchlists(CONTAINER_ID))
+
+        db.add_to_watchlist([CONTAINER_ID])
+        self.assertTrue(db.is_in_watchlists(CONTAINER_ID))
+
+        list = db.get_watchlist()
+        self.assertEqual(len(list), 1)
+        self.assertTrue(compare_containers(list[0], container))
+
+        db.remove_from_watchlist([CONTAINER_ID])
+        self.assertFalse(db.is_in_watchlists(CONTAINER_ID))
+
+        db.add_to_watchlist([CONTAINER_ID])
+        self.assertTrue(db.is_in_watchlists(CONTAINER_ID))
+        db.delete_containers([container])
+        self.assertIsNone(db.get_container(CONTAINER_ID))
+        list = db.get_watchlist()
+        self.assertEqual(len(list), 0)
+        self.assertFalse(db.is_in_watchlists(CONTAINER_ID))
+
+        db.close()
+
+
 unittest.main()
+
 
 test_name = "Sqlite.get_ext_ids"
 print(test_name) if debug else ""

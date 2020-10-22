@@ -553,7 +553,7 @@ class Sqlite(DB):
             if con:
                 shows.append(con)
             else:
-                self.remove_from_watchlist(result[0])
+                self.remove_from_watchlist([result[0]])
 
         return shows
 
