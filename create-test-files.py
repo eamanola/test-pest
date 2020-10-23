@@ -8,7 +8,7 @@ debug = True
 file_names = set()
 
 print('read test-shows:') if debug else ""
-test_shows = open(os.path.join(sys.path[0], 'tests', 'test-shows'), "r")
+test_shows = open(os.path.join(sys.path[0], 'test', 'test-shows'), "r")
 
 line = test_shows.readline()
 
@@ -35,7 +35,7 @@ test_shows.close()
 print("") if debug else ""
 
 print('read test-movies:') if debug else ""
-test_movies = open(os.path.join(sys.path[0], 'tests', "test-movies"), "r")
+test_movies = open(os.path.join(sys.path[0], 'test', "test-movies"), "r")
 
 line = test_movies.readline()
 
@@ -62,7 +62,7 @@ test_movies.close()
 print("") if debug else ""
 
 print('read test-random:') if debug else ""
-test_random = open(os.path.join(sys.path[0], 'tests', "test-random"), "r")
+test_random = open(os.path.join(sys.path[0], 'test', "test-random"), "r")
 
 line = test_random.readline()
 

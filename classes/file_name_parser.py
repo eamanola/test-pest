@@ -16,32 +16,44 @@ class File_name_parser(object):
     re_extra = re.compile(r_extra, re.IGNORECASE)
 
     r_ova = "OVA"
-    re_ova = re.compile(r_ova, re.IGNORECASE)
+    re_ova = re.compile(r_ova)
 
     r_episode = r"(?:episode|e|ep)"
+    r_episode2 = r"(?:^|[^a-zA-Z0-9]+)(?:\s*)(\d{1,3})(?:[^a-zA-Z0-9]+|$)"
 
     r_episode_prefix = r"(?:^|[^a-zA-Z]+)"
     r_episode_num = r"(?:\s*|\.)(\d+)"
+    r_episode_postfix = r"(?:$|\s|\.)"
 
+    r_season_prefix = r"(?:^|[^a-zA-Z0-9]+)"
+    r_season_num = r"(?:\s*|\.)(\d+)"
     r_season = r"(?:season(?:s?)|s)"
-    r_season_full = r_episode_prefix + r_season + r_episode_num
+    r_season_full = r_season_prefix + r_season + r_season_num
 
     re_season = re.compile(r_season_full, re.IGNORECASE)
 
-    re_episode_oad = re.compile(r_episode_prefix + r_oad + r_episode_num)
-    re_episode_ncop = re.compile(r_episode_prefix + r_ncop + r_episode_num)
-    re_episode_nced = re.compile(r_episode_prefix + r_nced + r_episode_num)
-    re_episode_ova = re.compile(r_episode_prefix + r_ova + r_episode_num)
+    re_episode_oad = re.compile(
+        r_episode_prefix + r_oad + r_episode_num + r_episode_postfix
+    )
+    re_episode_ncop = re.compile(
+        r_episode_prefix + r_ncop + r_episode_num + r_episode_postfix
+    )
+    re_episode_nced = re.compile(
+        r_episode_prefix + r_nced + r_episode_num + r_episode_postfix
+    )
+    re_episode_ova = re.compile(
+        r_episode_prefix + r_ova + r_episode_num + r_episode_postfix
+    )
     re_episode_extra = re.compile(
-        r_episode_prefix + r_extra + r_episode_num,
+        r_episode_prefix + r_extra + r_episode_num + r_episode_postfix,
         re.IGNORECASE
     )
     re_episode = re.compile(
-        r_episode_prefix + r_episode + r_episode_num,
+        r_episode_prefix + r_episode + r_episode_num + r_episode_postfix,
         re.IGNORECASE
     )
     re_episode2 = re.compile(
-        r"(?:^|[^a-zA-Z0-9]+)(?:\s*)(\d{1,3})(?:[^a-zA-Z0-9]+|$)",
+        r_episode2,
         re.IGNORECASE
     )
 
@@ -50,7 +62,7 @@ class File_name_parser(object):
 
     r_year1 = r"\((\d{4})\)"
     r_year2 = r"\[(\d{4})\]"
-    r_year3 = r"(?:\s+|\.)(\d{4})(?:\s+|\.|$)"
+    r_year3 = r"(?:\s+|\.|^)(\d{4})(?:\s+|\.|$)"
     re_year = re.compile(
         r"\s*(?:" + r_year1 + r"|" + r_year2 + r"|" + r_year3 + r")\s*"
     )
@@ -138,42 +150,28 @@ class File_name_parser(object):
         episode = File_name_parser.UNKNOWN_EPISODE
 
         for part in parts:
-            has_episode = File_name_parser.re_episode.search(part)
-            if has_episode:
-                episode = has_episode.group(1)
+            for reg in [
+                File_name_parser.re_episode,
+                File_name_parser.re_episode_extra,
+                File_name_parser.re_episode_oad,
+                File_name_parser.re_episode_ncop,
+                File_name_parser.re_episode_nced,
+                File_name_parser.re_episode_ova
+            ]:
+                has_episode = reg.search(part)
+                if has_episode:
+                    episode = has_episode.group(1)
+                    break
+
+            if episode != File_name_parser.UNKNOWN_EPISODE:
                 break
 
-            has_episode = File_name_parser.re_episode_extra.search(part)
-            if has_episode:
-                episode = has_episode.group(1)
-                break
-
-            has_episode = File_name_parser.re_episode_oad.search(part)
-            if has_episode:
-                episode = has_episode.group(1)
-                break
-
-            has_episode = File_name_parser.re_episode_ncop.search(part)
-            if has_episode:
-                episode = has_episode.group(1)
-                break
-
-            has_episode = File_name_parser.re_episode_nced.search(part)
-            if has_episode:
-                episode = has_episode.group(1)
-                break
-
-            has_episode = File_name_parser.re_episode_ova.search(part)
-            if has_episode:
-                episode = has_episode.group(1)
-                break
-
+        if episode == File_name_parser.UNKNOWN_EPISODE:
             has_episode = File_name_parser.re_episode2.search(
-                File_name_parser.clean_show_name(part)
+                File_name_parser.clean_show_name(parts[0])
             )
             if has_episode:
                 episode = has_episode.group(1)
-                break
 
         return int(episode)
 
@@ -199,20 +197,18 @@ class File_name_parser(object):
         return int(year)
 
     @staticmethod
+    def remove_tags(file):
+        return File_name_parser.remove_user_tags(
+            File_name_parser.remove_meta_tags(file)
+        )
+
+    @staticmethod
     def remove_user_tags(file):
         return File_name_parser.re_usertags.sub("",  file)
 
     @staticmethod
     def remove_meta_tags(file):
         return File_name_parser.re_metatags.sub("", file)
-
-    @staticmethod
-    def remove_tags(file):
-        return File_name_parser.remove_user_tags(
-            File_name_parser.remove_meta_tags(
-                file
-            )
-        )
 
     @staticmethod
     def remove_file_extension(file):
@@ -240,11 +236,6 @@ class File_name_parser(object):
         return extension in File_name_parser.SUBTITLE_EXTENSIONS
 
     @staticmethod
-    def is_oad(file):
-        file_removed_tags = File_name_parser.remove_tags(file)
-        return File_name_parser.re_oad.search(file_removed_tags) is not None
-
-    @staticmethod
     def is_extra(file):
         file_removed_tags = File_name_parser.remove_tags(file)
         return (
@@ -254,6 +245,11 @@ class File_name_parser(object):
             File_name_parser.is_nced(file) or
             File_name_parser.is_ova(file)
         )
+
+    @staticmethod
+    def is_oad(file):
+        file_removed_tags = File_name_parser.remove_tags(file)
+        return File_name_parser.re_oad.search(file_removed_tags) is not None
 
     @staticmethod
     def is_ncop(file):
