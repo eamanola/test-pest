@@ -9,9 +9,9 @@ class Ext_api(object):
         super(Ext_api, self).__init__()
 
     @staticmethod
-    def get_title_to_id_file_parser(self):
+    def get_title_to_id_file_parser():
         raise NotImplementedError()
 
     @staticmethod
-    def get_meta_getter(self, ext_id):
+    def get_meta_getter(ext_id):
         raise NotImplementedError()
