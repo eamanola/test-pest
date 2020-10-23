@@ -353,7 +353,8 @@ class TestFile_name_parser(unittest.TestCase):
             f"path-to-file/filename{ep_num}",
             f"path-to-file/file{ep_num}name",
             f"path-to-file/{ep_num}filename",
-            f"path-to-file {ep_num}/filename"
+            f"path-to-file {ep_num}/filename",
+            f"filename S1{ep_num}"
         ]:
             self.assertEqual(
                 File_name_parser.guess_episode(fail),

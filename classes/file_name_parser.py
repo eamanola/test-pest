@@ -85,6 +85,7 @@ class File_name_parser(object):
         re.compile(r"ac3(?:.?(?:evo))?" + r_info_sep, re.IGNORECASE),
         re.compile(r"aac5.1" + r_info_sep, re.IGNORECASE),
         re.compile("flac" + r_info_sep, re.IGNORECASE),
+        re.compile("BluRay" + r_info_sep, re.IGNORECASE),
 
         re.compile(r_season_full + r"(?:[^\s\.]*|$)", re.IGNORECASE),
         re_year,
@@ -166,7 +167,7 @@ class File_name_parser(object):
             if episode != File_name_parser.UNKNOWN_EPISODE:
                 break
 
-        if episode == File_name_parser.UNKNOWN_EPISODE:
+        if episode == File_name_parser.UNKNOWN_EPISODE and len(parts) > 1:
             has_episode = File_name_parser.re_episode2.search(
                 File_name_parser.clean_show_name(parts[0])
             )
