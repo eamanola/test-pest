@@ -88,10 +88,14 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         image_host = 'cdn.anidb.net'
         image_path = f'/images/main/{_image_name}'
         image_name = AniDB_Meta_Getter.IMAGE_PREFIX + _image_name
-        filename = 'anib'
         Images.download_poster(image_host, image_path, image_name)
 
-        description = root.find("./description").text.replace("\n", " ")
+        description_node = root.find("./description")
+        if description_node is not None:
+            description = description_node.text.replace("\n", " ")
+        else:
+            description = ""
+
         return Meta(
             self._meta_id,
             title,
