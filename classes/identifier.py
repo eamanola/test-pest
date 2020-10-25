@@ -97,26 +97,26 @@ class Identifier(object):
         re_search_str = show_name
 
         re_search_str = re.sub(
-            r'[^a-zA-Z]s\s*\d+(?:[^a-zA-Z]|$)',
-            "",
+            r'[^a-z]s\s*\d+(?:[^a-z]|$)',
+            ".",
             re_search_str,
             flags=re.IGNORECASE
         )
         re_search_str = re.sub(
             '[^a-zA-Z]part[^a-zA-Z]',
-            "",
+            ".",
             re_search_str,
             flags=re.IGNORECASE
         )
         re_search_str = re.sub(
             '[^a-zA-Z]ova(?:[^a-zA-Z]|$)',
-            "",
+            ".",
             re_search_str,
             flags=re.IGNORECASE
         )
         re_search_str = re.sub(
-            '(?:season)+s?',
-            "",
+            r'(?:season)+s?\s?\d+',
+            ".",
             re_search_str,
             flags=re.IGNORECASE
         )
@@ -127,6 +127,8 @@ class Identifier(object):
         re_search_str = re.sub(r_extra_characters, ".+", re_search_str)
         re_search_str = re.sub(r'^\.(?:\*|\+)', "", re_search_str)
         re_search_str = re.sub(r'\.(?:\*|\+)$', "", re_search_str)
+        re_search_str = re.sub(r'\)', "\\)", re_search_str)
+        re_search_str = re.sub(r'\(', "\\(", re_search_str)
 
         if exact_match:
             re_search_str = "^" + re_search_str + "$"
@@ -159,12 +161,7 @@ class Identifier(object):
     def filter_by_year(matches, year):
         print("Filtering by year:") if debug else ""
 
-        year_matches = []
-        for match in matches:
-            print('*', tuple(match)) if debug else ""
-            if year == match[2]:
-                print('--year match.') if debug else ""
-                year_matches.append(match)
+        year_matches = [m for m in matches if m[2] == year]
 
         Identifier.print_result(year_matches) if debug else ""
 
@@ -181,13 +178,7 @@ class Identifier(object):
         )
         print('Searching for:', re_search) if debug else ""
 
-        exact_matches = []
-        for match in matches:
-            print('*', tuple(match)) if debug else ""
-            title = match[1]
-            if re_search.match(title):
-                print('--exact match.') if debug else ""
-                exact_matches.append(match)
+        exact_matches = [m for m in matches if re_search.match(m[1])]
 
         Identifier.print_result(exact_matches) if debug else ""
 
@@ -197,13 +188,7 @@ class Identifier(object):
     def filter_by_media_type(matches, media_type):
         print("Filtering by media type:") if debug else ""
 
-        media_type_matches = []
-        for match in matches:
-            print('*', tuple(match)) if debug else ""
-            match_media_type = match[3]
-            if match_media_type and media_type == match_media_type:
-                print('--media type match.') if debug else ""
-                media_type_matches.append(match)
+        media_type_matches = [m for m in matches if m[3] == media_type]
 
         Identifier.print_result(media_type_matches) if debug else ""
 
