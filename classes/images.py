@@ -10,6 +10,7 @@ class Images(object):
         super(Images, self).__init__()
 
     def thumbnail(media, create_ifmissing=False):
+        import subprocess
         ret = None
 
         if (
@@ -37,20 +38,28 @@ class Images(object):
 
                 cmd = [
                     'ffmpeg',
-                    '-ss 00:04:00.000',
-                    f'-i "{input}"',
-                    '-vf scale=240:-1',
+                    '-ss', '00:04:00.000',
+                    '-i', input,
+                    '-vf', 'scale=240:-1',
                     '-y',
-                    '-vframes 1',
-                    f'"{thumbnail_path}"'
+                    '-vframes', '1',
+                    thumbnail_path
                 ]
 
-                os.system(" ".join(cmd))
+                subprocess.run(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
 
                 # video shorter than 4 min
                 if not os.path.exists(thumbnail_path):
-                    cmd[1] = "-ss 00:00:10.000"
-                    os.system(" ".join(cmd))
+                    cmd[2] = "00:00:10.000"
+                    subprocess.run(
+                        cmd,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL
+                    )
 
         return f'{"/".join(Images.THUMBNAIL_FOLDER)}/{media.thumbnail()}.png'
 
