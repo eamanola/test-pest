@@ -34,7 +34,7 @@ class Media(object):
     def title(self):
         raise NotImplementedError()
 
-    def thumbnail(self, thumbnail):
+    def thumbnail(self):
         raise NotImplementedError()
 
 
@@ -106,33 +106,14 @@ class Episode(Media):
         import re
         thumbnail = self.title()
 
-        if self.parent() and isinstance(self.parent(), (Extra, Season, Show)):
-            if isinstance(self.parent(), Extra):
-                thumbnail = "Extra {}".format(thumbnail)
+        parent = self.parent()
 
-            if (
-                isinstance(self.parent(), Season) and
-                self.parent().season_number()
-            ):
-                thumbnail = "Season{} {}".format(
-                    self.parent().season_number(),
-                    thumbnail
-                )
+        while parent and isinstance(parent, (Extra, Season, Show)):
+            thumbnail = f"{parent.title()} {thumbnail}"
+            parent = parent.parent()
 
-            if (
-                isinstance(self.parent(), Show) and
-                self.parent().show_name()
-            ):
-                thumbnail = "{} {}".format(
-                    self.parent().show_name(),
-                    thumbnail
-                )
-
-        thumbnail = re.sub(
-            r'\.+', ".", re.sub(
-                r'[^a-zA-Z0-9]', ".", thumbnail
-            )
-        )
+        thumbnail = re.sub(r'[^a-zA-Z0-9]', ".", thumbnail)
+        thumbnail = re.sub(r'\.+', ".", thumbnail)
 
         return thumbnail
 
@@ -145,9 +126,9 @@ class Movie(Media, Identifiable):
     def title(self):
         return self._title
 
-    def thumbnail(self, create_ifmissing=True):
+    def thumbnail(self):
         if self.year():
-            thumbnail = "{} ({})".format(self.title(), self.year())
+            thumbnail = f"{self.title()} ({self.year()})"
         else:
             thumbnail = self.title()
 
