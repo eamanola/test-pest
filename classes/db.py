@@ -62,6 +62,9 @@ class DB(object):
     def remove_from_watchlist(self, show_ids):
         raise NotImplementedError()
 
+    def remove_all_from_watchlist(self):
+        raise NotImplementedError()
+
     def get_watchlist(self):
         raise NotImplementedError()
 

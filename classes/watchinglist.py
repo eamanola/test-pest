@@ -67,6 +67,11 @@ class WatchingList(object):
         return play_next
 
     @staticmethod
+    def remove_all(db):
+        db.create_watchlist_table()
+        db.remove_all_from_watchlist()
+
+    @staticmethod
     def get_next_media(container):
         list = sorted(
             [m for m in container.media if not m.played()],

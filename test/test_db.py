@@ -70,6 +70,7 @@ class TestDB(unittest.TestCase):
             DB().remove_from_watchlist,
             "show_ids"
         )
+        self.assertRaises(NotImplementedError, DB().remove_all_from_watchlist)
         self.assertRaises(NotImplementedError, DB().get_watchlist)
         self.assertRaises(
             NotImplementedError,

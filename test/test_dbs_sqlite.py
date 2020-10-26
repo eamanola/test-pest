@@ -1019,6 +1019,14 @@ class TestSqlite(unittest.TestCase):
         db.remove_from_watchlist([CONTAINER_ID])
         self.assertFalse(db.is_in_watchlists(CONTAINER_ID))
 
+        db.add_to_watchlist([
+            containers[0].id(),
+            containers[1].id()
+        ])
+        self.assertEqual(len(db.get_watchlist()), 2)
+        db.remove_all_from_watchlist()
+        self.assertEqual(len(db.get_watchlist()), 0)
+
         db.add_to_watchlist([CONTAINER_ID])
         self.assertTrue(db.is_in_watchlists(CONTAINER_ID))
         db.delete_containers([container])

@@ -538,6 +538,15 @@ class Sqlite(DB):
 
         self.conn.commit()
 
+    def remove_all_from_watchlist(self):
+
+        cur = self.conn.cursor()
+
+        sql = 'DELETE FROM watchlist'
+        cur.execute(sql)
+
+        self.conn.commit()
+
     def get_watchlist(self):
         cur = self.conn.cursor()
 

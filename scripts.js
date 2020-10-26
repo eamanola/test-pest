@@ -333,6 +333,20 @@ function onClearPlayClick(e) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+function onClearPlayNextListCleared(responseText) {
+  console.log(responseText);
+  document.getElementById("play-next-list").innerHTML = ""
+}
+
+function onClearPlayNextListClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  ajax("/cpn", onClearPlayNextListCleared)
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 function onExternalLinkClick(e) {
   e.stopPropagation();
 }
@@ -446,11 +460,15 @@ function show_play_next_list_parents() {
 
 
 function init() {
-  var play_item = document.getElementById('play-button')
-  play_item.addEventListener('click', onPlayClick, false)
+  var play_button = document.getElementById('play-button')
+  play_button.addEventListener('click', onPlayClick, false)
 
-  var clear_play_item = document.getElementById('clear-add-to-play-list-button')
-  clear_play_item.addEventListener('click', onClearPlayClick, false)
+  var clear_play_button = document.getElementById('clear-add-to-play-list-button')
+  clear_play_button.addEventListener('click', onClearPlayClick, false)
+
+  var clear_play_next_list_button = document.getElementById('clear-play-next-list-button')
+  if (clear_play_next_list_button)
+    clear_play_next_list_button.addEventListener('click', onClearPlayNextListClick, false)
 
   update_add_to_play_list() // put before update_add_to_play_items
   update_play_clear_buttons()

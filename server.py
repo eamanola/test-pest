@@ -112,7 +112,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     '<div class="container page header">',
                     'Day\'s Menu ', datetime.now().strftime("%H:%M"),
                     '</div>\n',
-                    play_next_list_str
+                    play_next_list_str,
+                    '<div><button id="clear-play-next-list-button">Clear</button></div>'
                 ]))
 
             cur = db.conn.cursor()
@@ -442,6 +443,30 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "utf-8"
                 )
             )
+        elif self.path == "/cpn":
+            import re
+            self.send_response(200)
+            self.send_header("Content-type", "text/json")
+            self.end_headers()
+
+
+            db = DB.get_instance()
+            db.connect()
+            WatchingList.remove_all(db)
+            db.close()
+
+            ret = f'''{{
+                "action":"clear watchlist",
+                "message": "cleared"
+            }}'''
+
+            self.wfile.write(
+                bytes(
+                    re.sub(r"\s+", " ", ret),
+                    "utf-8"
+                )
+            )
+
         elif self.path == "/scripts.js":
 
             self.send_response(200)
