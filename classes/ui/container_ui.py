@@ -74,18 +74,22 @@ class ContainerUI(object):
     @staticmethod
     def html_line(container, is_title=False, parent=None, meta=None):
         return ''.join(line.lstrip() for line in [
-            '<div class="container line js-navigation js-container" ',
+            '<div class="container line js-container" ',
             f'data-id="{container.id()}">',
             '<span class="left">',
             f'      {ContainerUI._img_str(container)}',
             '      <span class="info">',
             '          <span class="line1">',
             f'              {HTMLUI.parents_html(container)}',
-            f'              {HTMLUI.title_html(container, navigation=False)}',
+            f'              {HTMLUI.title_html(container, navigation=True)}',
             '          </span>',
             '          <span class="line2">',
             f'              {HTMLUI.rating_html(container)}',
             f'              {ContainerUI._unplayed_str(container)}',
+            f'''            {HTMLUI.played_html(
+                                container,
+                                container.unplayed_count() == 0
+                            )}''',
             '          </span>',
             '      </span>',
             '  </span>',

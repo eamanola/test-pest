@@ -158,3 +158,14 @@ class HTMLUI(object):
         title = title.replace("\n", "<br/>")
 
         return f'<span{class_str}>{title}</span>'
+
+    def played_html(item, played):
+        return ''.join([
+            '<label>',
+            '<input type="checkbox" class="js-played"'
+            f' name="js-played-{item.id()}"',
+            ' checked="checked"' if played else '',
+            '/>',
+            '<span>Played</span>',
+            '</label>'
+        ])

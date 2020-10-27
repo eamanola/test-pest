@@ -400,26 +400,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             add = 'pa' in params
             remove = 'pr' in params
-            media_id = params['pa'][0] if add else params['pr'][0]
+            item_id = params['pa'][0] if add else params['pr'][0]
 
             db = DB.get_instance()
             db.connect()
-
-            media = db.get_media(media_id)
-            media.set_played(add)
-            db.update_media([media])
+            if params['type'][0] == "media":
+                media = db.get_media(item_id)
+                media.set_played(add)
+                db.update_media([media])
+            elif params['type'][0] == "container":
+                db.set_played(item_id, add is True)
 
             db.close()
 
             message = f"""
-                {media.title()} marked {"played" if add else "unplayed"}
+                marked {"played" if add else "unplayed"}
             """
 
             self.wfile.write(
                 bytes(
                     f'''{{
                         "action":"played",
-                        "data_id":"{media_id}",
+                        "data_id":"{item_id}",
                         "message": "{message}"
                     }}'''.replace("\n", " "),
                     "utf-8"

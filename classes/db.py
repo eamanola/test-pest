@@ -74,6 +74,9 @@ class DB(object):
     def get_unplayed_count(self, container_id):
         raise NotImplementedError()
 
+    def set_played(self, container_id, played):
+        raise NotImplementedError()
+
     @staticmethod
     def get_instance():
         instance = None

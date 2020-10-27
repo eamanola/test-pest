@@ -271,12 +271,19 @@ function onPlayedSaved(responseText) {
 function onPlayedClick(e) {
   var id_obj = get_data_id(e.target)
   var data_id = id_obj.data_id
+  var type = id_obj.type
 
   if (data_id) {
-    var url = ["/?", e.target.checked ? "pa" : "pr", "=", data_id].join("")
+    var url = [
+        "/?", e.target.checked ? "pa" : "pr", "=", data_id,
+        "&type=", type
+    ].join("")
     ajax(url, onPlayedSaved)
 
-    update_played_items(data_id, e.target.checked)
+    if (type == "media")
+      update_played_items(data_id, e.target.checked)
+    else
+      updatePage()
   }
 
   return false
@@ -473,7 +480,22 @@ function init() {
   update_add_to_play_list() // put before update_add_to_play_items
   update_play_clear_buttons()
   update_add_to_play_items()
-  connect_media_items(document.body)
+
+  //connect_media_items(document.body)
+  var add_to_play_items = document.querySelectorAll('.js-add-to-play')
+  for (var i = 0, il = add_to_play_items.length; i < il; i++) {
+    add_to_play_items[i].addEventListener('click', onToggleToPlayClick, false)
+  }
+
+  var played_items = document.querySelectorAll('.js-played')
+  for (var i = 0, il = played_items.length; i < il; i++) {
+    played_items[i].addEventListener('click', onPlayedClick, false)
+  }
+
+  var play_items = document.querySelectorAll('.js-play')
+  for (var i = 0, il = play_items.length; i < il; i++) {
+    play_items[i].addEventListener('click', onPlaySingleClick, false)
+  }
 
   var identify_items = document.querySelectorAll('.js-identify')
   for (var i = 0, il = identify_items.length; i < il; i++) {

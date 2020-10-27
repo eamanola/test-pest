@@ -29,17 +29,6 @@ class MediaUI(object):
 
     _add_to_play_str = '<a href="#" class="js-add-to-play">+Play</a>'
 
-    def _played_str(media):
-        return ''.join([
-            '<label>',
-            '<input type="checkbox" class="js-played"'
-            f' name="js-played-{media.id()}"',
-            ' checked="checked"' if media.played() else '',
-            '/>',
-            '<span>Played</span>',
-            '</label>'
-        ])
-
     def _get_episode_meta(episode):
         from classes.media import Episode
 
@@ -119,7 +108,7 @@ class MediaUI(object):
             '           <span class="line2">',
             f'              {HTMLUI.rating_html(media)}',
             f'              {MediaUI._add_to_play_str}',
-            f'              {MediaUI._played_str(media)}',
+            f'              {HTMLUI.played_html(media, media.played())}',
             '           </span>',
             '       </span>',
             '   </span>',

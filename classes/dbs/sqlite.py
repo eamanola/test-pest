@@ -507,6 +507,45 @@ class Sqlite(DB):
 
         return count
 
+    def set_played(self, container_id, played):
+        cur = self.conn.cursor()
+
+        # l[1-4] see get_unplayed_count
+        sql = """
+            UPDATE media_states
+            SET played=?
+            WHERE media_id in
+            (
+                select distinct media.id from containers l1
+
+                left outer join containers l2
+                on l1.containers like '%' || l2.id || '%'
+
+                left outer join containers l3
+                on l2.containers like '%' || l3.id || '%'
+
+                left outer join containers l4
+                on l3.containers like '%' || l4.id || '%'
+
+                left outer join media
+                on l1.media like '%' || media.id || '%'
+                or l2.media like '%' || media.id || '%'
+                or l3.media like '%' || media.id || '%'
+                or l4.media like '%' || media.id || '%'
+
+                left outer join media_states
+                on media.id = media_states.media_id
+                where l1.id=? and media_states.played=?
+            )
+            """
+
+        cur.execute(
+            sql,
+            [1 if played else 0, container_id, 0 if played else 1]
+        )
+
+        self.conn.commit()
+
     def is_in_watchlists(self, show_id):
         cur = self.conn.cursor()
 

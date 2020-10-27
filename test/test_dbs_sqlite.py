@@ -993,6 +993,37 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
+    def test_set_played(self):
+        root, containers, media = create_test_library()
+
+        db = Sqlite()
+        db.connect(database=TMP_DB)
+
+        db.create_containers_table()
+        db.create_media_table()
+        db.update_media(media)
+        db.update_containers(containers)
+
+        self.assertEqual(db.get_unplayed_count(root.id()), len(media))
+
+        db.set_played(root.id(), True)
+
+        self.assertEqual(db.get_unplayed_count(root.id()), 0)
+
+        db.set_played(root.id(), False)
+
+        self.assertEqual(db.get_unplayed_count(root.id()), len(media))
+
+        db.close()
+
+        db.connect()
+
+        con = '34ba81959a86317eb75206ffdab76512'
+        print(db.get_unplayed_count(con))
+        db.set_played(con, True)
+        print(db.get_unplayed_count(con))
+
+
     def test_watchlist(self):
         root, containers, media = create_test_library()
 

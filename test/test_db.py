@@ -14,12 +14,11 @@ class TestDB(unittest.TestCase):
         self.assertRaises(
             NotImplementedError,
             DB().populate_title_to_ext_id_table,
-            "table", "data"
+            "table",
+            "data"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().get_ext_ids,
-            "table", "re_show_name"
+            NotImplementedError, DB().get_ext_ids, "table", "re_show_name"
         )
         self.assertRaises(NotImplementedError, DB().create_containers_table)
         self.assertRaises(
@@ -29,58 +28,45 @@ class TestDB(unittest.TestCase):
             "update_identifiables=True"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().get_container,
-            "container"
+            NotImplementedError, DB().get_container, "container"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().delete_containers,
-            "containers"
+            NotImplementedError, DB().delete_containers, "containers"
         )
         self.assertRaises(NotImplementedError, DB().create_media_table)
         self.assertRaises(
             NotImplementedError,
             DB().update_media,
-            "media", "update_identifiables=True", "overwrite_media_states=True"
+            "media",
+            "update_identifiables=True",
+            "overwrite_media_states=True"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().get_media,
-            "media"
+            NotImplementedError, DB().get_media, "media"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().delete_media,
-            "media"
+            NotImplementedError, DB().delete_media, "media"
         )
         self.assertRaises(NotImplementedError, DB().create_watchlist_table)
         self.assertRaises(
-            NotImplementedError,
-            DB().is_in_watchlists,
-            "show_id"
+            NotImplementedError, DB().is_in_watchlists, "show_id"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().add_to_watchlist,
-            "show_ids"
+            NotImplementedError, DB().add_to_watchlist, "show_ids"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().remove_from_watchlist,
-            "show_ids"
+            NotImplementedError, DB().remove_from_watchlist, "show_ids"
         )
         self.assertRaises(NotImplementedError, DB().remove_all_from_watchlist)
         self.assertRaises(NotImplementedError, DB().get_watchlist)
         self.assertRaises(
-            NotImplementedError,
-            DB().update_meta,
-            "meta"
+            NotImplementedError, DB().update_meta, "meta"
         )
         self.assertRaises(
-            NotImplementedError,
-            DB().get_unplayed_count,
-            "container_id"
+            NotImplementedError, DB().get_unplayed_count, "container_id"
+        )
+        self.assertRaises(
+            NotImplementedError, DB().set_played, "container_id", "played"
         )
 
     def test_get_instance(self):
