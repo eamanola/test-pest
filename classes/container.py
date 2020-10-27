@@ -82,10 +82,15 @@ class Show(MediaLibrary, Identifiable):
         self._show_name = show_name
 
     def id(self):
-        return self.hash_id(self.show_name())
+        return self.hash_id(self.title())
 
     def title(self):
-        return self.show_name()
+        title = self.show_name()
+
+        if self.year():
+            title = f'{title} ({self.year()})'
+
+        return title
 
     def show_name(self):
         return self._show_name

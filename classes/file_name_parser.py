@@ -97,7 +97,7 @@ class File_name_parser(object):
 
     UNKNOWN_SEASON = 0
     UNKNOWN_EPISODE = 0
-    UNKNOWN_YEAR = 0
+    UNKNOWN_YEAR = None
     MEDIA_EXTENSIONS = ('.mkv', '.mp4', '.avi', '.m4v')
     SUBTITLE_EXTENSIONS = ('.srt',)
     SUBTITLE_LANGS = ('.en',)
@@ -124,10 +124,6 @@ class File_name_parser(object):
         show_name = File_name_parser.clean_show_name(show_name)
 
         show_name = show_name.replace(".", " ").strip()
-
-        year = File_name_parser.guess_year(file)
-        if year != File_name_parser.UNKNOWN_YEAR:
-            show_name = f"{show_name} ({year})"
 
         return show_name
 
@@ -199,7 +195,7 @@ class File_name_parser(object):
                 else:
                     year = File_name_parser.UNKNOWN_YEAR
                 break
-        return int(year)
+        return int(year) if year else None
 
     @staticmethod
     def remove_tags(file):

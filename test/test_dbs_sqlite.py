@@ -618,10 +618,11 @@ class TestSqlite(unittest.TestCase):
             an_identifiable.set_year(year)
             an_identifiable.ext_ids()["foo"] = "bar"
 
-            db._update_identifiables([an_identifiable])
             if isinstance(an_identifiable, Container):
+                db.update_containers([an_identifiable])
                 db_identifiable = db.get_container(an_identifiable.id())
             else:
+                db.update_media([an_identifiable])
                 db_identifiable = db.get_media(an_identifiable.id())
 
             self.assertTrue(testutils.compare_identifiables(

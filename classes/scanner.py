@@ -43,6 +43,7 @@ class Scanner(object):
                     show_name,
                     parent=current_container
                 )
+                show.set_year(year)
 
                 existing = current_container.get_container(show.id())
                 if existing:
@@ -51,7 +52,6 @@ class Scanner(object):
                     current_container.containers.append(show)
 
                 current_container = show
-                show.set_year(year)
 
                 # identify(db, show, show_name, year, Ext_api.TV_SHOW)
 
@@ -125,13 +125,14 @@ class Scanner(object):
                     False,
                     parent=current_container
                 )
+                media.set_year(year)
+
                 existing = current_container.get_media(media.id())
                 if existing:
                     media = existing
                 else:
                     current_container.media.append(media)
                 # identify(db, media, show_name, year, Ext_api.MOVIE)
-                media.set_year(year)
                 if show_name in subtitle_cache.keys():
                     media.subtitles.append(subtitle_cache.pop(show_name))
 
@@ -182,8 +183,14 @@ class Scanner(object):
             show_paths = []
             for file_path in file_paths:
                 if (
-                    File_name_parser.guess_show_name(file_path) ==
-                    show.show_name()
+                    (
+                        File_name_parser.guess_show_name(file_path) ==
+                        show.show_name()
+                    )
+                    and (
+                        File_name_parser.guess_year(file_path) ==
+                        show.year()
+                    )
                 ):
                     show_paths.append(file_path)
 
