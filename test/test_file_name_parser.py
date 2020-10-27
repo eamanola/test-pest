@@ -483,7 +483,8 @@ class TestFile_name_parser(unittest.TestCase):
                 )
                 line = test_movies.readline().strip()
                 self.assertEqual(
-                    File_name_parser.guess_year(file_name), int(line)
+                    File_name_parser.guess_year(file_name),
+                    None if line == "0" else int(line)
                 )
 
                 line = test_movies.readline()

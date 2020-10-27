@@ -112,12 +112,28 @@ class File_name_parser(object):
 
     @staticmethod
     def guess_show_name(file):
-        parts = file.split(os.path.sep)
+        parts = [part for part in file.split(os.path.sep) if part.strip()]
 
-        for part in parts:
-            if part.strip():
-                show_name = part
-                break
+        if len(parts) == 1:
+            show_name = parts[0]
+        else:
+            parts.reverse()
+            parts.pop(0)
+
+            show_name = None
+
+            for part in parts:
+                if (
+                    not File_name_parser.guess_season(part)
+                    and not File_name_parser.guess_episode(part)
+                    and not File_name_parser.is_extra(part)
+                    and re.search(r'[a-zA-Z]', part)
+                ):
+                    show_name = part
+                    break
+
+            if show_name is None:
+                show_name = parts[-1]
 
         show_name = File_name_parser.remove_tags(show_name)
         show_name = File_name_parser.remove_file_extension(show_name)
