@@ -114,7 +114,11 @@ class File_name_parser(object):
     def guess_show_name(file):
         parts = file.split(os.path.sep)
 
-        show_name = parts[0]
+        for part in parts:
+            if part.strip():
+                show_name = part
+                break
+
         show_name = File_name_parser.remove_tags(show_name)
         show_name = File_name_parser.remove_file_extension(show_name)
         show_name = File_name_parser.clean_show_name(show_name)
