@@ -24,35 +24,35 @@ class TestIdentifier(unittest.TestCase):
 
         identifier = Identifier(ext_api)
 
-        matches = identifier.search_db(db, "foo (2000)", keep_year=False)
+        matches = identifier.search_db(db, "foo (2000)", year=None)
         self.assertEqual(len(matches), 4)
 
-        matches = identifier.search_db(db, "foobar (2001)", keep_year=False)
+        matches = identifier.search_db(db, "foobar (2001)", year=None)
         self.assertEqual(len(matches), 3)
 
-        matches = identifier.search_db(db, "foobar (2001)", keep_year=True)
+        matches = identifier.search_db(db, "foobar (2001)", year=2001)
         self.assertEqual(len(matches), 1)
 
         db.close()
 
     def test_compile_re_search(self):
         show_name = """
-            foo s02 part1 s02 Part3 ova2 OVA1 season1 Season1 (2000)...
+            !!! foo !! (2000) !!...
             """
         re1 = Identifier.compile_re_search(
-            show_name, exact_match=False, keep_year=False
+            show_name, exact_match=False, year=None
         )
 
         self.assertIsNotNone(re1.search("foo (2001)"))
 
         re1 = Identifier.compile_re_search(
-            show_name, exact_match=False, keep_year=True
+            show_name, exact_match=False, year=2000
         )
         self.assertIsNone(re1.search("foo"))
         self.assertIsNotNone(re1.search("foo (2000)"))
 
         re1 = Identifier.compile_re_search(
-            show_name, exact_match=True, keep_year=False
+            show_name, exact_match=True, year=None
         )
 
         self.assertIsNotNone(re1.search("foo"))
@@ -83,19 +83,19 @@ class TestIdentifier(unittest.TestCase):
             ('ext_id1', "foobar (2001)",   2001, 'media_type')
         ]
 
-        matches = Identifier.filter_by_exact_match(data, "foo")
+        matches = Identifier.filter_by_exact_match(data, "foo", year=None)
         self.assertEqual(len(matches), 1)
 
-        matches = Identifier.filter_by_exact_match(data, "foobar")
+        matches = Identifier.filter_by_exact_match(data, "foobar", year=None)
         self.assertEqual(len(matches), 1)
 
-        matches = Identifier.filter_by_exact_match(data, "foobar (2000)")
+        matches = Identifier.filter_by_exact_match(data, "foobar", year=2000)
         self.assertEqual(len(matches), 1)
 
-        matches = Identifier.filter_by_exact_match(data, "foobar (2001)")
+        matches = Identifier.filter_by_exact_match(data, "foobar", year=2001)
         self.assertEqual(len(matches), 1)
 
-        matches = Identifier.filter_by_exact_match(data, "bar")
+        matches = Identifier.filter_by_exact_match(data, "bar", year=None)
         self.assertEqual(len(matches), 0)
 
     def test_filter_by_media_type(self):

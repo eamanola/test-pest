@@ -121,7 +121,7 @@ class Scanner(object):
 
                 media = Movie(
                     file_path,
-                    show_name,
+                    show_name if not year else f'{show_name} ({year})',
                     False,
                     parent=current_container
                 )

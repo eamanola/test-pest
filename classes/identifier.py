@@ -10,11 +10,11 @@ class Identifier(object):
         super(Identifier, self).__init__()
         self.ext_api = ext_api
 
-    def search_db(self, db, show_name, keep_year):
+    def search_db(self, db, show_name, year):
         re_search = Identifier.compile_re_search(
             show_name,
             exact_match=False,
-            keep_year=keep_year
+            year=year
         )
         print('Searching for:', re_search) if debug else ""
 
@@ -34,9 +34,9 @@ class Identifier(object):
         print("Showname: '{}'".format(show_name)) if debug else ""
         ext_id = None
 
-        matches = self.search_db(db, show_name, keep_year=True)
+        matches = self.search_db(db, show_name, year=year)
         if len(matches) == 0:
-            matches = self.search_db(db, show_name, keep_year=False)
+            matches = self.search_db(db, show_name, year=None)
 
         ext_id = matches[0][0] if len(matches) == 1 else None
 
@@ -53,7 +53,8 @@ class Identifier(object):
 
             exact_matches = Identifier.filter_by_exact_match(
                 matches,
-                show_name
+                show_name,
+                year
             )
             match_count = len(exact_matches)
 
@@ -93,47 +94,18 @@ class Identifier(object):
         return ext_id
 
     @staticmethod
-    def compile_re_search(show_name, exact_match, keep_year=False):
+    def compile_re_search(show_name, exact_match, year):
         re_search_str = show_name
+        re_search_str = re.sub(r'[^A-Za-z]+', ".+", re_search_str)
+        re_search_str = re_search_str.strip('.+')
 
-        re_search_str = re.sub(
-            r'[^a-z]s\s*\d+(?:[^a-z]|$)',
-            ".",
-            re_search_str,
-            flags=re.IGNORECASE
-        )
-        re_search_str = re.sub(
-            '[^a-zA-Z]part[^a-zA-Z]',
-            ".",
-            re_search_str,
-            flags=re.IGNORECASE
-        )
-        re_search_str = re.sub(
-            '[^a-zA-Z]ova(?:[^a-zA-Z]|$)',
-            ".",
-            re_search_str,
-            flags=re.IGNORECASE
-        )
-        re_search_str = re.sub(
-            r'(?:season)+s?\s?\d+',
-            ".",
-            re_search_str,
-            flags=re.IGNORECASE
-        )
-
-        r_simple_year = r'\(\d{4}\)' if keep_year else ""
-        r_extra_characters = fr'[^A-Za-z{r_simple_year}]+'
-
-        re_search_str = re.sub(r_extra_characters, ".+", re_search_str)
-        re_search_str = re.sub(r'^\.(?:\*|\+)', "", re_search_str)
-        re_search_str = re.sub(r'\.(?:\*|\+)$', "", re_search_str)
-        re_search_str = re.sub(r'\)', "\\)", re_search_str)
-        re_search_str = re.sub(r'\(', "\\(", re_search_str)
+        if year:
+            re_search_str = fr'{re_search_str}.+\({year}\)'
 
         if exact_match:
             re_search_str = "^" + re_search_str + "$"
         else:
-            re_search_str = ".*" + re_search_str + ".*"
+            re_search_str = "(?:^|.*)" + re_search_str + "(?:.*|$)"
 
         return re.compile(re_search_str, re.IGNORECASE)
 
@@ -168,13 +140,13 @@ class Identifier(object):
         return year_matches
 
     @staticmethod
-    def filter_by_exact_match(matches, show_name):
+    def filter_by_exact_match(matches, show_name, year):
         print("Looking for exact matches:") if debug else ""
 
         re_search = Identifier.compile_re_search(
             show_name,
             exact_match=True,
-            keep_year=True
+            year=year
         )
         print('Searching for:', re_search) if debug else ""
 
