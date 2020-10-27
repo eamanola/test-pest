@@ -235,9 +235,6 @@ class Scanner(object):
 
         result = Scanner.scan(file_paths, media_library)
 
-        if result:
-            Scanner._remove_singles(result)
-
         return result
 
     @staticmethod
@@ -248,9 +245,6 @@ class Scanner(object):
         Scanner.scan(file_paths, media_library)
 
         result = media_library.find_container(show.id())
-
-        if result:
-            Scanner._remove_singles(result)
 
         return result
 
@@ -263,9 +257,6 @@ class Scanner(object):
 
         result = media_library.find_container(season.id())
 
-        if result:
-            Scanner._remove_singles(result)
-
         return result
 
     @staticmethod
@@ -277,32 +268,4 @@ class Scanner(object):
 
         result = media_library.find_container(extra.id())
 
-        if result:
-            Scanner._remove_singles(result)
-
         return result
-
-    # to be removed aka deprecated
-    @staticmethod
-    def _remove_singles(container):
-        if isinstance(container, (Extra, Season, Show)):
-            if len(container.containers) == 1 and len(container.media) == 0:
-                remove = container.containers[0]
-
-                for con in remove.containers:
-                    con._parent = container
-                    container.containers.append(con)
-
-                for med in remove.media:
-                    med._parent = container
-                    container.media.append(med)
-
-                remove.containers.clear()
-                remove.media.clear()
-
-                container.containers.remove(remove)
-
-                Scanner._remove_singles(container)
-
-        for con in container.containers:
-            Scanner._remove_singles(con)

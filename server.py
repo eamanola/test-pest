@@ -50,6 +50,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     parent.set_parent(db.get_container(parent.parent()))
                     parent = parent.parent()
 
+            if (
+                isinstance(container, (Extra, Season, Show))
+                and (
+                    len(container.containers) == 1
+                    and len(container.media) == 0
+                )
+            ):
+                _remove_singles = db.get_container(container.containers[0])
+                print('skip', _remove_singles.title())
+                while (
+                    _remove_singles
+                    and (
+                        len(_remove_singles.containers) == 1
+                        and len(_remove_singles.media) == 0
+                    )
+                ):
+                    _remove_singles = db.get_container(
+                        _remove_singles.containers[0]
+                    )
+                    print('skip', _remove_singles.title())
+
+                if _remove_singles:
+                    container.containers.clear()
+                    container.media.clear()
+                    container.media = _remove_singles.media
+
             for c in container.containers:
                 c.set_unplayed_count(db.get_unplayed_count(c.id()))
 
