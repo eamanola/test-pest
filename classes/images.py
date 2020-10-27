@@ -46,10 +46,15 @@ class Images(object):
                     thumbnail_path
                 ]
 
+                if "unittest" in sys.argv[0]:
+                    stdout = stderr = subprocess.DEVNULL
+                else:
+                    stdout = stderr = None
+
                 subprocess.run(
                     cmd,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.DEVNULL
+                    stdout=stdout,
+                    stderr=stderr
                 )
 
                 # video shorter than 4 min
@@ -57,8 +62,8 @@ class Images(object):
                     cmd[2] = "00:00:10.000"
                     subprocess.run(
                         cmd,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL
+                        stdout=stdout,
+                        stderr=stderr
                     )
 
         return f'{"/".join(Images.THUMBNAIL_FOLDER)}/{media.thumbnail()}.png'
