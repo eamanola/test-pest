@@ -95,9 +95,6 @@ class Show(MediaLibrary, Identifiable):
     def show_name(self):
         return self._show_name
 
-    def seasons(self):
-        return self.containers
-
 
 class Season(Show):
     def __init__(self, library_path, show_name, season_number, parent=None):
@@ -114,15 +111,6 @@ class Season(Show):
 
     def title(self):
         return "Season {:02d}".format(self.season_number())
-
-    def seasons(self):
-        return None
-
-    def extras(self):
-        return self.containers
-
-    def episodes(self):
-        return self.media
 
     def season_number(self):
         return self._season_number
@@ -148,6 +136,3 @@ class Extra(Season):
 
     def title(self):
         return "Extra"
-
-    def extras(self):
-        return None

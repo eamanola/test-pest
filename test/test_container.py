@@ -225,19 +225,6 @@ class TestShow(unittest.TestCase):
             SHOW_NAME
         )
 
-    def test_seasons(self):
-        show = Show("path", "showname")
-        self.assertEqual(
-            show.seasons(),
-            show.containers
-        )
-
-        show.containers.append(Season("path", "showname", 1))
-        self.assertEqual(
-            show.seasons(),
-            show.containers
-        )
-
 
 class TestSeason(unittest.TestCase):
     def test_init(self):
@@ -289,24 +276,7 @@ class TestSeason(unittest.TestCase):
             "Season {:02d}".format(season.season_number())
         )
 
-    def test_seasons(self):
-        season = Season("path", "showname", 1)
-        self.assertIsNone(season.seasons())
-
-    def test_extra(self):
-        season = Season("path", "showname", 1)
-        self.assertEqual(
-            season.extras(),
-            season.containers
-        )
-
-        season.containers.append(Extra("path", "showname", 1))
-        self.assertEqual(
-            season.extras(),
-            season.containers
-        )
-
-    def test_seasons(self):
+    def test_season_number(self):
         SEASON_NUMBER = 22
         season = Season("path", "showname", SEASON_NUMBER)
         self.assertEqual(season.season_number(), SEASON_NUMBER)
@@ -367,13 +337,6 @@ class TestExtra(unittest.TestCase):
             extra.title(),
             "Extra"
         )
-
-    def test_extra(self):
-        extra = Extra("path", "showname", 1)
-        self.assertIsNone(extra.extras())
-
-        extra.containers.append(Extra("path", "showname", 1))
-        self.assertIsNone(extra.extras())
 
 
 if __name__ == '__main__':
