@@ -36,7 +36,8 @@ class ContainerUI(object):
     def html_page(container):
         from classes.ui.media_ui import MediaUI
         page = ''.join([line.lstrip() for line in [
-            f'<div class="container page header" data-id="{container.id()}">',
+            f'''<div class="container js-container page header"
+                data-id="{container.id()}">''',
             f'  {ContainerUI._img_str(container)}',
             '   <span class="info">',
             f'    {HTMLUI.title_html(container, navigation=False)}',
