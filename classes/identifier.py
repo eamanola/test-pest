@@ -85,9 +85,9 @@ class Identifier(object):
 
             if match_count > 1:  # TODO: more filters?
                 print(match_count, "unique matches for:", show_name)
-                print("Selecting 1st:", unique_matches[0])
+                print("Selecting 1st:", tuple(unique_matches[0]))
                 for unique_match in unique_matches:
-                    print(unique_match)
+                    print(tuple(unique_match))
                 print("")
                 ext_id = matches[0][0]
 

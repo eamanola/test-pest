@@ -16,16 +16,7 @@ from classes.ext_apis.anidb import AniDB
 import subprocess
 from classes.watchinglist import WatchingList
 from datetime import datetime
-
-
-def collect_objs(con, containers=[], media=[]):
-    containers = containers + con.containers
-    media = media + con.media
-
-    for container in con.containers:
-        containers, media = collect_objs(container, containers, media)
-
-    return containers, media
+import classes.api as api
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -39,47 +30,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if 'c' in params:
             container_id = params['c'][0]
 
-            db = DB.get_instance()
-            db.connect()
-            container = db.get_container(container_id)
-
-            # pass meta, if available, to html_page
-            if isinstance(container, (Extra, Season)):
-                parent = container.parent()
-                while parent and not isinstance(parent, Identifiable):
-                    parent.set_parent(db.get_container(parent.parent()))
-                    parent = parent.parent()
-
-            if (
-                isinstance(container, (Extra, Season, Show))
-                and (
-                    len(container.containers) == 1
-                    and len(container.media) == 0
-                )
-            ):
-                _remove_singles = db.get_container(container.containers[0])
-                print('skip', _remove_singles.title())
-                while (
-                    _remove_singles
-                    and (
-                        len(_remove_singles.containers) == 1
-                        and len(_remove_singles.media) == 0
-                    )
-                ):
-                    _remove_singles = db.get_container(
-                        _remove_singles.containers[0]
-                    )
-                    print('skip', _remove_singles.title())
-
-                if _remove_singles:
-                    container.containers.clear()
-                    container.media.clear()
-                    container.media = _remove_singles.media
-
-            for c in container.containers:
-                c.set_unplayed_count(db.get_unplayed_count(c.id()))
-
-            db.close()
+            code, container = api.get_container(container_id)
 
             page = ContainerUI.html_page(container)
 
@@ -90,25 +41,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         elif 'm' in params:
             media_id = params['m'][0]
-            media = None
-            show = None
-            parents = []
-            episode_meta = None
 
-            db = DB.get_instance()
-            db.connect()
-            media = db.get_media(media_id)
-
-            if isinstance(media, Episode):
-                media.set_parent(db.get_container(media.parent()))
-                parent = media.parent()
-                while parent and not isinstance(parent, Identifiable):
-                    parent.set_parent(db.get_container(parent.parent()))
-                    parent = parent.parent()
-
-            db.close()
+            code, media = api.get_media(media_id)
 
             page = MediaUI.html_page(media)
+
             if media.parent() and media.parent().path():
                 media_library = MediaLibrary(media.parent().path())
             else:
@@ -116,17 +53,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         play_next_list_str = ""
         if self.path == "/":
-            db = DB.get_instance()
-            db.connect()
-
-            play_next = WatchingList.get_play_next_list(db)
+            code, play_next = api.play_next_list()
 
             for media in play_next:
-                if isinstance(media, Episode):
-                    parent = media.parent()
-                    while parent and not isinstance(parent, Identifiable):
-                        parent.set_parent(db.get_container(parent.parent()))
-                        parent = parent.parent()
 
                 play_next_list_str = (''.join([
                     play_next_list_str,
@@ -139,8 +68,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     'Day\'s Menu ', datetime.now().strftime("%H:%M"),
                     '</div>\n',
                     play_next_list_str,
-                    '<div><button id="clear-play-next-list-button">Clear</button></div>'
+                    '<div><button id="clear-play-next-list-button">',
+                    'Clear</button></div>'
                 ]))
+
+            db = DB.get_instance()
+            db.connect()
 
             cur = db.conn.cursor()
 
@@ -178,7 +111,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             <html>
                 <head>
                     <title>test-pest</title>
-                    <link rel="stylesheet" href="styles.css">
+                    <link rel="stylesheet" href="/html/styles/styles.css">
                 </head>
                 <body class="grid">
                     <a href="/">Home</a>
@@ -216,53 +149,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             container_id = params['s'][0]
 
-            db = DB.get_instance()
-            db.connect()
-
-            container = db.get_container(container_id)
-            containers, media = collect_objs(container)
-            containers.append(container)
-            db.delete_containers(containers)
-            db.delete_media(media)
-
-            container.containers.clear()
-            container.media.clear()
-
-            result = None
-            if isinstance(container, Extra):
-                result = Scanner().scan_extra(container)
-            elif isinstance(container, Season):
-                result = Scanner().scan_season(container)
-            elif isinstance(container, Show):
-                result = Scanner().scan_show(container)
-            elif isinstance(container, MediaLibrary):
-                result = Scanner().scan_media_library(container)
-
-            if result:
-                containers, media = collect_objs(result)
-                containers.append(result)
-
-                db.create_containers_table()
-                db.create_media_table()
-
-                db.update_containers(
-                    containers,
-                    update_identifiables=False
-                )
-                db.update_media(
-                    media,
-                    update_identifiables=False,
-                    overwrite_media_states=False
-                )
-
-            db.close()
+            api.scan(container_id)
 
             self.wfile.write(
                 bytes(
                     f'''{{
                         "action":"scan",
-                        "data_id":"{container_id}",
-                        "message":"{container.title()} updated"
+                        "data_id":"{container_id}"
                     }}'''.replace("\n", " "),
                     "utf-8"
                 )
@@ -274,120 +167,38 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             identifiable_id = params['i'][0]
 
-            error = 0
-            message = ""
-
             db = DB.get_instance()
             db.connect()
 
-            container = db.get_container(identifiable_id)
-            if not container:
-                media = db.get_media(identifiable_id)
+            if db.get_container(identifiable_id) is not None:
+                code, reply = api.container_identify(identifiable_id)
+            else:
+                code, reply = api.media_identify(identifiable_id)
 
-            item = container if container else media
-
-            if not item:
-                error = 1
-                message = "Not Found"
-
-            if not error:
-                media_type = AniDB.TV_SHOW if container else AniDB.MOVIE
-                if isinstance(item, Movie):
-                    show_name = item.title()
-                elif isinstance(item, Show):
-                    show_name = container.show_name()
-                print(media_type)
-                anidb_id = Identifier(AniDB).guess_id(
-                    db,
-                    show_name,
-                    item.year(),
-                    media_type
-                )
-
-                if anidb_id:
-                    item.ext_ids()[AniDB.KEY] = anidb_id
-
-                if container:
-                    db.update_containers([container])
-                else:
-                    db.update_media([media])
-
-                message = f"anidb is {anidb_id}"
-
-            db.close()
             self.wfile.write(
                 bytes(
                     f'''{{
                         "action":"identify",
                         "data_id":"{identifiable_id}",
-                        "error":"{error}",
-                        "message": "{message}"
+                        "message":"{reply}"
                     }}'''.replace("\n", " "),
                     "utf-8"
                 )
             )
         elif 'p' in params:
-            self.send_response(200)
+            to_play = params['p'][0].split(",")
+
+            code, reply = api.play(to_play)
+
+            self.send_response(code)
             self.send_header("Content-type", "text/json")
             self.end_headers()
-
-            to_play = params['p'][0].split(",")
-            media = []
-
-            error = 0
-            message = ""
-
-            db = DB.get_instance()
-            db.connect()
-
-            for item in to_play:
-                m = db.get_media(item)
-                if m:
-                    media.append(m)
-
-            if len(media) == 0:
-                error = 1
-                message = "Nothing to play"
-            else:
-                message = f"playing {', '.join([m.title() for m in media])}"
-
-                file_paths = [
-                    f'{os.path.join(m.parent().path(), m.file_path())}'
-                    for m in media
-                ]
-
-                cmd_vlc = [
-                    'vlc'
-                    # '--fullscreen',
-                    # '--mouse-hide-timeout 3000',
-                    # '-q'
-                ] + file_paths
-
-                cmd_mpv = [
-                    'mpv',
-                    '--fullscreen',
-                    '--slang=en,eng'
-                ] + file_paths
-
-                cmd_play = [
-                    os.path.join(sys.path[0], 'play.sh')
-                ] + file_paths
-
-                cmd = cmd_vlc
-                subprocess.Popen(cmd)
-                print(" ".join(cmd))
-
-                # os.system(cmd)
-                WatchingList.started_play(db, media)
-            db.close()
 
             self.wfile.write(
                 bytes(
                     f'''{{
                         "action":"play",
-                        "data_id":"{params['p']}",
-                        "error":"{error}",
-                        "message": "{message}"
+                        "message": "{reply}"
                     }}'''.replace("\n", " "),
                     "utf-8"
                 )
@@ -402,16 +213,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             remove = 'pr' in params
             item_id = params['pa'][0] if add else params['pr'][0]
 
-            db = DB.get_instance()
-            db.connect()
             if params['type'][0] == "media":
-                media = db.get_media(item_id)
-                media.set_played(add)
-                db.update_media([media])
+                code, reply = api.media_played(item_id, add is True)
             elif params['type'][0] == "container":
-                db.set_played(item_id, add is True)
-
-            db.close()
+                code, reply = api.container_played(item_id, add is True)
 
             message = f"""
                 marked {"played" if add else "unplayed"}
@@ -434,39 +239,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/json")
             self.end_headers()
 
-            db = DB.get_instance()
-            db.connect()
-
             if 'gic' in params:
-                message = f"get container {params['gic'][0]}"
-                identifiable = db.get_container(params['gic'][0])
+                code, reply = api.container_get_info(params['gic'][0])
 
             elif 'gim' in params:
-                message = f"get media {params['gim'][0]}"
-                identifiable = db.get_media(params['gim'][0])
+                code, reply = api.media_get_info(params['gim'][0])
 
-            if (
-                identifiable and
-                isinstance(identifiable, Identifiable) and
-                AniDB.KEY in identifiable.ext_ids()
-            ):
-                meta_getter = AniDB.get_meta_getter(
-                    identifiable.ext_ids()[AniDB.KEY]
-                )
-                meta = meta_getter.get()
-                db.update_meta([meta])
-                message = "completed"
-            else:
-                message = "fail"
-
-            db.close()
             self.wfile.write(
                 bytes(
                     f'''{{
                         "action":"get_info",
                         "data_id":"{params['gic'][0]
                             if 'gic' in params else params['gim'][0]}",
-                        "message": "{message}"
+                        "message": "{reply}"
                     }}'''.replace("\n", " "),
                     "utf-8"
                 )
@@ -477,11 +262,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Content-type", "text/json")
             self.end_headers()
 
-
-            db = DB.get_instance()
-            db.connect()
-            WatchingList.remove_all(db)
-            db.close()
+            api.clear_play_next_list()
 
             ret = f'''{{
                 "action":"clear watchlist",
@@ -504,13 +285,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             f = open(os.path.join(sys.path[0], 'scripts.js'), "rb")
             self.wfile.write(f.read())
             f.close()
-        elif self.path == "/styles.css":
+        elif self.path == "/html/styles/styles.css":
 
             self.send_response(200)
             self.send_header("Content-type", "text/css")
             self.end_headers()
 
-            f = open(os.path.join(sys.path[0], 'styles.css'), "rb")
+            f = open(os.path.join(
+                sys.path[0],
+                'html',
+                'styles',
+                'styles.css'
+            ), "rb")
             self.wfile.write(f.read())
             f.close()
 
@@ -523,8 +309,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path.startswith("/images/posters/") and
                 self.path.endswith(".jpg")
             )
-            or self.path == "/images/www/play-icon.png"
-            or self.path == "/images/www/play-icon-active.png"
+            or self.path == "/html/images/play-icon.png"
         ):
             file_path = os.path.join(
                 sys.path[0],
@@ -546,6 +331,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path == "/favicon.ico":
             pass
         else:
+            self.send_response(400)
+            self.end_headers()
             print('ignore', self.path)
 
 

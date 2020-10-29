@@ -55,7 +55,7 @@ class MediaUI(object):
         episode_meta = MediaUI._get_episode_meta(media)
 
         page = ''.join([line.lstrip() for line in [
-            f'<div class="media page header" data-id="{media.id()}">',
+            f'<div class="media page header js-media" data-id="{media.id()}">',
             f'  {MediaUI._img_str(media)}',
             f'  <span class="info">',
             f'''      {HTMLUI.title_html(

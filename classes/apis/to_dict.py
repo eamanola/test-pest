@@ -56,11 +56,18 @@ class DictMedia(object):
         ret = {
             **DictItem.dict(media),
             'played': media.played(),
-            'thumbnail': Images.thumbnail(media),
             'is_movie': isinstance(media, Movie)
         }
 
+        has_poster = 'poster' in ret.keys() and ret['poster'] is not None
+        ret['thumbnail'] = Images.thumbnail(
+            media,
+            create_ifmissing=not has_poster
+        )
+
         if isinstance(media, Episode):
+            ret['episode_number'] = media.episode_number()
+
             episode_meta = _episode_meta(media)
             if episode_meta:
                 summary = episode_meta.summary()

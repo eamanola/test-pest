@@ -178,7 +178,7 @@
 .media .js-play-wrapper
 {
   background-repeat: no-repeat;
-  background-image: url(/images/www/play-icon.png);
+  background-image: url(../images/play-icon.png);
   background-size: 50%;
   background-position: 50% 50%;
   display: inline-block;
@@ -213,6 +213,11 @@
 .grid .container.line .rating
 {
   display: block;
+}
+
+.container.line .unplayed[data-unplayed-count="0"]
+{
+  display: none;
 }
 
 .grid .media.line .right,
