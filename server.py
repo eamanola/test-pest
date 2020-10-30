@@ -18,6 +18,8 @@ from classes.watchinglist import WatchingList
 from datetime import datetime
 import classes.api as api
 
+# deprecated
+
 
 class Handler(http.server.SimpleHTTPRequestHandler):
 
