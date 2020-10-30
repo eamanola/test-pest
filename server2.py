@@ -6,10 +6,13 @@ import classes.api as api
 from classes.apis.to_dict import DictContainer, DictMedia
 
 
-def send_headers(handler, code, content_type):
+def send_headers(handler, code, content_type, cache_control):
     handler.send_response(code)
     handler.send_header("Content-type", content_type)
     handler.send_header("Access-Control-Allow-Origin", "*")
+    if cache_control is not None:
+        handler.send_header("Cache-Control", cache_control)
+
     handler.end_headers()
 
 
@@ -24,6 +27,8 @@ def send_body(handler, message):
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
+        cache_control = None
+
         if self.path == "/":
             code, media_libraries = api.get_media_libraries()
             code, play_next = api.play_next_list()
@@ -177,6 +182,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 code = 200
                 reply = None
                 content_type = f"image/{file_path[-3:]}"
+                cache_control = "private, max-age=604800"
 
                 f = open(file_path, "rb")
                 self.wfile.write(f.read())
@@ -189,7 +195,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = None
 
         if code:
-            send_headers(self, code, content_type)
+            send_headers(self, code, content_type, cache_control)
 
         if reply:
             send_body(self, reply)
