@@ -16,13 +16,14 @@ def send_headers(handler, code, content_type, cache_control):
     handler.end_headers()
 
 
-def send_body(handler, message):
-    import re
+def send_body(handler, reply):
 
-    handler.wfile.write(bytes(
-        re.sub(r'\s+', " ", message),
-        "utf-8"
-    ))
+    if reply:
+        if isinstance(reply, str):
+            import re
+            reply = bytes(re.sub(r'\s+', " ", reply), "utf-8")
+
+        handler.wfile.write(reply)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -179,14 +180,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
 
             if os.path.exists(file_path):
+                from pathlib import Path
                 code = 200
-                reply = None
+                reply = Path(file_path).read_bytes()
                 content_type = f"image/{file_path[-3:]}"
                 cache_control = "private, max-age=604800"
-
-                f = open(file_path, "rb")
-                self.wfile.write(f.read())
-                f.close()
 
         else:
             print('ignore', f'"{self.path}"')
