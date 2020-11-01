@@ -18,7 +18,7 @@ def get_container(container_id):
         code = 200
 
         parent = container.parent()
-        while parent:
+        while parent and isinstance(parent, (Extra, Season, Show)):
             parent.set_parent(db.get_container(parent.parent()))
             parent = parent.parent()
 
@@ -72,7 +72,7 @@ def get_media(media_id):
             media.set_parent(db.get_container(media.parent()))
             parent = media.parent()
 
-            while parent and not isinstance(parent, Identifiable):
+            while parent and isinstance(parent, (Extra, Season, Show)):
                 parent.set_parent(db.get_container(parent.parent()))
                 parent = parent.parent()
 
@@ -115,7 +115,7 @@ def play_next_list():
     for media in play_next_list:
         if isinstance(media, Episode):
             parent = media.parent()
-            while parent and not isinstance(parent, Identifiable):
+            while parent and isinstance(parent, (Extra, Season, Show)):
                 parent.set_parent(db.get_container(parent.parent()))
                 parent = parent.parent()
 
