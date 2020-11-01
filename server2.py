@@ -22,8 +22,10 @@ def send_body(handler, reply):
         if isinstance(reply, str):
             import re
             reply = bytes(re.sub(r'\s+', " ", reply), "utf-8")
-
-        handler.wfile.write(reply)
+        try:
+            handler.wfile.write(reply)
+        except Exception as e:
+            print('handler.wfile.write(reply) FAIL!!!!', e)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -180,9 +182,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
 
             if os.path.exists(file_path):
-                from pathlib import Path
                 code = 200
-                reply = Path(file_path).read_bytes()
+                with open(file_path, "rb") as f:
+                    reply = f.read()
+
                 content_type = f"image/{file_path[-3:]}"
                 cache_control = "private, max-age=604800"
 
