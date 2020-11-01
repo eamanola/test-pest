@@ -1,5 +1,4 @@
 function onClearPlayNextListCleared(responseText) {
-  console.log(responseText);
   document.getElementById('play-next-list').style.display = "none"
   document.getElementById("play-next-list-content").innerHTML = ""
 

@@ -55,7 +55,7 @@ function anidb_link(container) {
 function get_info_link(item, show_ifneeded) {
   var ret = ""
 
-  if (item.can_identify) {
+  if (item.can_identify && item.is_identified) {
     if (!show_ifneeded || (item.is_identified && !item.has_info)) {
       ret = ['<a href="#" class="js-get-info">',
         item.has_info ? "Update Info" : "Get Info",
