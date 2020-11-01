@@ -6,29 +6,26 @@ import classes.api as api
 from classes.apis.to_dict import DictContainer, DictMedia
 
 
-def send_headers(handler, code, content_type, cache_control):
-    handler.send_response(code)
-    handler.send_header("Content-type", content_type)
-    handler.send_header("Access-Control-Allow-Origin", "*")
-    if cache_control is not None:
-        handler.send_header("Cache-Control", cache_control)
-
-    handler.end_headers()
-
-
-def send_body(handler, reply):
-
-    if reply:
-        if isinstance(reply, str):
-            import re
-            reply = bytes(re.sub(r'\s+', " ", reply), "utf-8")
-        try:
-            handler.wfile.write(reply)
-        except Exception as e:
-            print('handler.wfile.write(reply) FAIL!!!!', e)
-
-
 class Handler(http.server.SimpleHTTPRequestHandler):
+
+    def send_headers(self, content_type, cache_control):
+        self.send_header("Content-type", content_type)
+        if cache_control is not None:
+            self.send_header("Cache-Control", cache_control)
+
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+    def send_body(self, reply):
+
+        if reply:
+            if isinstance(reply, str):
+                reply = bytes(reply, "utf-8")
+            try:
+                self.wfile.write(reply)
+            except Exception as e:
+                print('handler.wfile.write(reply) FAIL!!!!', e)
+
     def do_GET(self):
         cache_control = None
 
@@ -226,10 +223,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = None
 
         if code:
-            send_headers(self, code, content_type, cache_control)
+            self.send_response(code)
+
+        if content_type or cache_control:
+            self.send_headers(content_type, cache_control)
 
         if reply:
-            send_body(self, reply)
+            self.send_body(reply)
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
