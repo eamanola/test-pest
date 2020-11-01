@@ -161,11 +161,17 @@ function onPlayedClick(e) {
   var type = id_obj.type
 
   if (data_id && type && (type === "container" || type === "media")) {
+    e.stopPropagation();
+
+    var checkbox = document.querySelector(
+      '[data-id="' + data_id + '"] .js-played input'
+    )
+
     var url = [
         base_url,
         "/played",
         '/', type.substring(0, 1),
-        '/', e.target.checked ? "1" : "0",
+        '/', checkbox.checked ? "1" : "0",
         '/', data_id
     ].join("")
 
