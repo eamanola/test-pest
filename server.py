@@ -232,7 +232,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             send_body(self, reply)
 
 
-hostName = "localhost"
+# https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
+def get_ip():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(('10.255.255.255', 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = '127.0.0.1'
+    finally:
+        s.close()
+    return IP
+
+
+hostName = get_ip()
 
 try:
     serverPort = 8086
@@ -252,8 +267,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 try:
     subprocess.Popen([
         'firefox',
-        # f'./html/index.html?port={serverPort}'
-        f'http://localhost:{serverPort}/index.html'
+        # f'./html/index.html?api_url=http://{hostName}:{serverPort}'
+        f'http://{hostName}:{serverPort}/index.html'
     ])
     httpd.serve_forever()
 except KeyboardInterrupt:
