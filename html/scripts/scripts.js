@@ -449,7 +449,7 @@ function onPlayNextListReceived(responseText) {
     for (var i = 0, il = playNextList.length; i < il; i++) {
       cache.push(playNextList[i])
 
-      play_next_list_str.push(media_line(playNextList[i]))
+      play_next_list_str.push(media_line(playNextList[i], {hide_parents: false}))
     }
     var el = document.getElementById('play-next-list-content')
     el.innerHTML = play_next_list_str.join("")

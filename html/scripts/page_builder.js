@@ -235,7 +235,8 @@ function media_page(media) {
   return ret.join("")
 }
 
-function media_line(media) {
+function media_line(media, opts) {
+  hide_parents = opts && opts.hide_parents !== undefined ? opts.hide_parents : true
   var ret = [
     '<div class="media ', media.is_movie ? "movie " : "", 'js-media line" ',
     'data-id="', media.id, '">',
@@ -243,7 +244,7 @@ function media_line(media) {
         media_img(media),
         '<span class="info">',
           '<span class="line1">',
-            parents(media, true),
+            parents(media, hide_parents),
             '<span class="js-navigation">', media.title, '</span>',
           '</span>',
           '<span class="line2">',
