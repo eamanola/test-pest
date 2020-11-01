@@ -1,356 +1,260 @@
 import http.server
 import socketserver
-from urllib.parse import urlparse, parse_qs
-import time
-from classes.ui.media_ui import MediaUI
-from classes.ui.container_ui import ContainerUI
-from classes.scanner import Scanner
-from classes.container import MediaLibrary, Show, Season, Extra
-from classes.media import Movie, Episode
-from classes.identifiable import Identifiable
-from classes.db import DB
-import os
-import sys
-from classes.identifier import Identifier
-from classes.ext_apis.anidb import AniDB
 import subprocess
-from classes.watchinglist import WatchingList
-from datetime import datetime
+import json
 import classes.api as api
+from classes.apis.to_dict import DictContainer, DictMedia
 
-# deprecated
+
+def send_headers(handler, code, content_type, cache_control):
+    handler.send_response(code)
+    handler.send_header("Content-type", content_type)
+    handler.send_header("Access-Control-Allow-Origin", "*")
+    if cache_control is not None:
+        handler.send_header("Cache-Control", cache_control)
+
+    handler.end_headers()
+
+
+def send_body(handler, reply):
+
+    if reply:
+        if isinstance(reply, str):
+            import re
+            reply = bytes(re.sub(r'\s+', " ", reply), "utf-8")
+        try:
+            handler.wfile.write(reply)
+        except Exception as e:
+            print('handler.wfile.write(reply) FAIL!!!!', e)
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        cache_control = None
 
-    def html(self, params):
         if self.path == "/":
-            params = {
-                'c': ["d16c4b170f395bcdeaedcd5c9786eb01"]
-            }
-
-        if 'c' in params:
-            container_id = params['c'][0]
-
-            code, container = api.get_container(container_id)
-
-            page = ContainerUI.html_page(container)
-
-            if container.__class__.__name__ != "MediaLibrary":
-                media_library = MediaLibrary(container.path())
-            else:
-                media_library = None
-
-        elif 'm' in params:
-            media_id = params['m'][0]
-
-            code, media = api.get_media(media_id)
-
-            page = MediaUI.html_page(media)
-
-            if media.parent() and media.parent().path():
-                media_library = MediaLibrary(media.parent().path())
-            else:
-                media_library = None
-
-        play_next_list_str = ""
-        if self.path == "/":
+            code, media_libraries = api.get_media_libraries()
             code, play_next = api.play_next_list()
 
-            for media in play_next:
+            reply = json.dumps({
+                'play_next_list':  [DictMedia.dict(m) for m in play_next],
+                'media_libraries':
+                    [DictContainer.dict(ml) for ml in media_libraries]
+            })
 
-                play_next_list_str = (''.join([
-                    play_next_list_str,
-                    MediaUI.html_line(media)
-                ]))
+            content_type = "text/json"
 
-            if play_next_list_str:
-                play_next_list_str = (''.join([
-                    '<div class="container page header">',
-                    'Day\'s Menu ', datetime.now().strftime("%H:%M"),
-                    '</div>\n',
-                    play_next_list_str,
-                    '<div><button id="clear-play-next-list-button">',
-                    'Clear</button></div>'
-                ]))
+        elif self.path.startswith("/c/"):
+            item_id = self.path.split("/")[-1]
 
-            db = DB.get_instance()
-            db.connect()
+            code, container = api.get_container(item_id)
+            reply = None
+            content_type = "text/json"
 
-            cur = db.conn.cursor()
+            if container:
+                reply = json.dumps(DictContainer.dict(container))
 
-            sql = 'select id from containers where type="MediaLibrary"'
-            cur.execute(sql)
+        elif self.path.startswith("/m/"):
+            item_id = self.path.split("/")[-1]
 
-            page = ""
+            code, media = api.get_media(item_id)
+            reply = None
+            content_type = "text/json"
 
-            medialibs = cur.fetchall()
+            if media:
+                reply = json.dumps(DictMedia.dict(media))
 
-            for media_lib in medialibs:
-                ml = db.get_container(media_lib[0])
+        elif self.path.startswith("/playnextlist"):
+            code, play_next_list = api.play_next_list()
+            reply = json.dumps([DictMedia.dict(m) for m in play_next_list])
+            content_type = "text/json"
 
-                for c in ml.containers:
-                    c.set_unplayed_count(db.get_unplayed_count(c.id()))
+        elif self.path.startswith("/clearplaynextlist"):
+            code, reply = api.clear_play_next_list()
+            content_type = "text/json"
 
-                new_page = [page, ContainerUI.html_page(ml)]
-                if ml.path() == "/data/viihde/anime/":
-                    new_page.reverse()
+        elif self.path.startswith("/scan/"):
+            container_id = self.path.split("/")[-1]
 
-                page = ''.join(new_page)
+            code, container = api.scan(container_id)
+            reply = None
+            content_type = "text/json"
 
-            db.close()
+            if container:
+                reply = json.dumps(DictContainer.dict(container))
 
-        if media_library:
-            media_library = f'''
-                <a href="/?c={media_library.id()}" >
-                    {media_library.title()}
-                </a>'''
-        else:
-            media_library = ""
+        elif self.path.startswith("/identify/"):
+            parts = self.path[1:].split("/")
+            is_container = parts[1] == "c"
+            is_media = parts[1] == "m"
+            item_id = parts[-1]
 
-        return f"""
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>test-pest</title>
-                    <link rel="stylesheet" href="/html/styles/styles.css">
-                </head>
-                <body class="grid">
-                    <a href="/">Home</a>
-                    {media_library}
-                    <div id="add-to-play-list"></div>
-                    <button id="play-button">Play</button>
-                    <button id="clear-add-to-play-list-button">Clear</button>
-                    <div id="play-next-list">{play_next_list_str}</div>
-                    {page}
-                    <script type="text/javascript" src="./scripts.js"></script>
-                </body>
-            </html>
-        """
+            code = 400
+            reply = {'data_id': item_id, 'identified': False}
+            content_type = "text/json"
 
-    def do_GET(self):
-        params = parse_qs(urlparse(self.path).query)
-        page = "Unknown"
-        id = None
+            if is_container:
+                code, update_item = api.container_identify(item_id)
+                if update_item:
+                    reply = {
+                        'identified': True,
+                        **DictContainer.dict(update_item)
+                    }
 
-        if (
-            'c' in params or
-            'm' in params or
-            self.path == "/"
-        ):
-            self.send_response(200)
-            self.send_header("Content-type", "text/html")
-            self.end_headers()
+            elif is_media:
+                code, update_item = api.media_identify(item_id)
+                if update_item:
+                    reply = {
+                        'identified': True,
+                        **DictMedia.dict(update_item)
+                    }
 
-            self.wfile.write(bytes(self.html(params), "utf-8"))
+            reply = json.dumps(reply)
 
-        elif 's' in params:
-            self.send_response(200)
-            self.send_header("Content-type", "text/json")
-            self.end_headers()
+        elif self.path.startswith("/play/"):
+            media_ids = self.path.split("/")[-1].split(",")
 
-            container_id = params['s'][0]
+            code, reply = api.play(media_ids)
+            content_type = "text/json"
 
-            api.scan(container_id)
+        elif self.path.startswith("/played/"):
+            parts = self.path[1:].split("/")
+            is_container = parts[1] == "c"
+            is_media = parts[1] == "m"
+            played = parts[2] == "1"
+            item_id = parts[-1]
 
-            self.wfile.write(
-                bytes(
-                    f'''{{
-                        "action":"scan",
-                        "data_id":"{container_id}"
-                    }}'''.replace("\n", " "),
-                    "utf-8"
-                )
-            )
-        elif 'i' in params:
-            self.send_response(200)
-            self.send_header("Content-type", "text/json")
-            self.end_headers()
+            code = 400
+            reply = None
+            content_type = "text/json"
 
-            identifiable_id = params['i'][0]
+            if is_container:
+                code, unplayed_count = api.container_played(item_id, played)
+                reply = {'unplayed_count': unplayed_count}
 
-            db = DB.get_instance()
-            db.connect()
+            elif is_media:
+                code, played = api.media_played(item_id, played)
+                reply = {'played': played}
 
-            if db.get_container(identifiable_id) is not None:
-                code, reply = api.container_identify(identifiable_id)
-            else:
-                code, reply = api.media_identify(identifiable_id)
+            if reply:
+                reply = json.dumps({**reply, 'data_id': item_id})
 
-            self.wfile.write(
-                bytes(
-                    f'''{{
-                        "action":"identify",
-                        "data_id":"{identifiable_id}",
-                        "message":"{reply}"
-                    }}'''.replace("\n", " "),
-                    "utf-8"
-                )
-            )
-        elif 'p' in params:
-            to_play = params['p'][0].split(",")
+        elif self.path.startswith("/info/"):
+            parts = self.path[1:].split("/")
+            is_container = parts[1] == "c"
+            is_media = parts[1] == "m"
+            item_id = parts[-1]
 
-            code, reply = api.play(to_play)
+            code = 400
+            reply = None
+            content_type = "text/json"
 
-            self.send_response(code)
-            self.send_header("Content-type", "text/json")
-            self.end_headers()
+            if is_container:
+                code, update_item = api.container_get_info(item_id)
+                if update_item:
+                    reply = json.dumps(DictContainer.dict(update_item))
 
-            self.wfile.write(
-                bytes(
-                    f'''{{
-                        "action":"play",
-                        "message": "{reply}"
-                    }}'''.replace("\n", " "),
-                    "utf-8"
-                )
-            )
-
-        elif 'pa' in params or 'pr' in params:
-            self.send_response(200)
-            self.send_header("Content-type", "text/json")
-            self.end_headers()
-
-            add = 'pa' in params
-            remove = 'pr' in params
-            item_id = params['pa'][0] if add else params['pr'][0]
-
-            if params['type'][0] == "media":
-                code, reply = api.media_played(item_id, add is True)
-            elif params['type'][0] == "container":
-                code, reply = api.container_played(item_id, add is True)
-
-            message = f"""
-                marked {"played" if add else "unplayed"}
-            """
-
-            self.wfile.write(
-                bytes(
-                    f'''{{
-                        "action":"played",
-                        "data_id":"{item_id}",
-                        "message": "{message}"
-                    }}'''.replace("\n", " "),
-                    "utf-8"
-                )
-            )
-
-        elif 'gic' in params or 'gim' in params:
-
-            self.send_response(200)
-            self.send_header("Content-type", "text/json")
-            self.end_headers()
-
-            if 'gic' in params:
-                code, reply = api.container_get_info(params['gic'][0])
-
-            elif 'gim' in params:
-                code, reply = api.media_get_info(params['gim'][0])
-
-            self.wfile.write(
-                bytes(
-                    f'''{{
-                        "action":"get_info",
-                        "data_id":"{params['gic'][0]
-                            if 'gic' in params else params['gim'][0]}",
-                        "message": "{reply}"
-                    }}'''.replace("\n", " "),
-                    "utf-8"
-                )
-            )
-        elif self.path == "/cpn":
-            import re
-            self.send_response(200)
-            self.send_header("Content-type", "text/json")
-            self.end_headers()
-
-            api.clear_play_next_list()
-
-            ret = f'''{{
-                "action":"clear watchlist",
-                "message": "cleared"
-            }}'''
-
-            self.wfile.write(
-                bytes(
-                    re.sub(r"\s+", " ", ret),
-                    "utf-8"
-                )
-            )
-
-        elif self.path == "/scripts.js":
-
-            self.send_response(200)
-            self.send_header("Content-type", "text/javascript")
-            self.end_headers()
-
-            f = open(os.path.join(sys.path[0], 'scripts.js'), "rb")
-            self.wfile.write(f.read())
-            f.close()
-        elif self.path == "/html/styles/styles.css":
-
-            self.send_response(200)
-            self.send_header("Content-type", "text/css")
-            self.end_headers()
-
-            f = open(os.path.join(
-                sys.path[0],
-                'html',
-                'styles',
-                'styles.css'
-            ), "rb")
-            self.wfile.write(f.read())
-            f.close()
+            elif is_media:
+                code, update_item = api.media_get_info(item_id)
+                if update_item:
+                    reply = json.dumps(DictMedia.dict(update_item))
 
         elif (
             (
-                self.path.startswith("/images/thumbnails/") and
-                self.path.endswith(".png")
+                self.path.startswith("/images/thumbnails/")
+                and self.path.endswith(".png")
             )
             or (
-                self.path.startswith("/images/posters/") and
-                self.path.endswith(".jpg")
+                self.path.startswith("/images/posters/")
+                and self.path.endswith(".jpg")
             )
             or self.path == "/html/images/play-icon.png"
         ):
+            import os
+            import sys
+            code = 404
+            reply = None
+            content_type = None
+
             file_path = os.path.join(
                 sys.path[0],
                 os.sep.join(self.path[1:].split("/"))
             )
 
             if os.path.exists(file_path):
-                self.send_response(200)
-                self.send_header("Content-type", f"image/{file_path[-3:]}")
-                self.end_headers()
+                code = 200
+                with open(file_path, "rb") as f:
+                    reply = f.read()
 
-                f = open(file_path, "rb")
-                self.wfile.write(f.read())
-                f.close()
-            else:
-                self.send_response(404)
-                self.end_headers()
+                content_type = f"image/{file_path[-3:]}"
+                cache_control = "private, max-age=604800"
+        elif self.path in (
+            "/images/play-icon.png",
+            "/scripts/page_builder.js",
+            "/scripts/scripts.js",
+            "/styles/styles.css",
+            "/index.html"
+        ):
+            import os
+            import sys
+            code = 404
 
-        elif self.path == "/favicon.ico":
-            pass
+            file_path = os.path.join(
+                sys.path[0],
+                "html",
+                os.sep.join(self.path[1:].split("/"))
+            )
+
+            if os.path.exists(file_path):
+                code = 200
+                with open(file_path, "rb") as f:
+                    reply = f.read()
+
+            if self.path.endswith(".png"):
+                content_type = "image/png"
+            elif self.path.endswith(".js"):
+                content_type = "text/javascript"
+            elif self.path.endswith(".css"):
+                content_type = "text/css"
+            elif self.path.endswith(".html"):
+                content_type = "text/html"
+
         else:
-            self.send_response(400)
-            self.end_headers()
-            print('ignore', self.path)
+            print('ignore', f'"{self.path}"')
+            code = 400
+            reply = None
+            content_type = None
+
+        if code:
+            send_headers(self, code, content_type, cache_control)
+
+        if reply:
+            send_body(self, reply)
 
 
 hostName = "localhost"
 
 try:
-    serverPort = 8080
+    serverPort = 8086
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
+    print('skip', serverPort)
 except OSError:
-    serverPort = 8083
-    httpd = socketserver.TCPServer((hostName, serverPort), Handler)
+    for port in range(8087, 8097):
+        serverPort = port
+        try:
+            httpd = socketserver.TCPServer((hostName, serverPort), Handler)
+            break
+        except OSError:
+            print('skip', serverPort)
 
-print("Server started http://%s:%s" % (hostName, serverPort))
+print(f"Server started http://{hostName}:{serverPort}")
 
 try:
-    subprocess.Popen(['firefox', f'http://{hostName}:{serverPort}'])
+    subprocess.Popen([
+        'firefox',
+        # f'./html/index.html?port={serverPort}'
+        f'http://localhost:{serverPort}/index.html'
+    ])
     httpd.serve_forever()
 except KeyboardInterrupt:
     pass

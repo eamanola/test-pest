@@ -557,13 +557,17 @@ function get_data_id(el) {
   }
 }
 
-var base_url = null
-var get_params_str = window.location.search.substr(1),
-  get_params = get_params_str.split("&")
-for (var i = 0, il = get_params.length; i < il; i++) {
-  if (get_params[i].startsWith('port')) {
-    var port_num = get_params[i].split("=")[1]
-    base_url = ['http://localhost', port_num].join(':')
+var base_url = ""
+if (window.location.port) {
+  base_url = window.location.origin
+} else {
+  var get_params_str = window.location.search.substr(1),
+    get_params = get_params_str.split("&")
+  for (var i = 0, il = get_params.length; i < il; i++) {
+    if (get_params[i].startsWith('port')) {
+      var port_num = get_params[i].split("=")[1]
+      base_url = ['http://localhost', port_num].join(':')
+    }
   }
 }
 
