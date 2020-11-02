@@ -4,6 +4,7 @@ import subprocess
 import json
 import classes.api as api
 from classes.apis.to_dict import DictContainer, DictMedia
+from classes.db import DB
 
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
@@ -15,10 +16,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         cache_control = None
         reply = None
+        db = DB.get_instance()
+        db.connect()
 
         if self.path == "/":
-            media_libraries = api.get_media_libraries()
-            play_next = api.play_next_list()
+            media_library_ids = api.get_media_libraries(db)
+
+            media_libraries = []
+            for media_library_id in media_library_ids:
+                media_libraries.append(api.get_container(db, media_library_id))
+
+                # temp
+                for media_library in media_libraries:
+                    if media_library.title() == "/data/viihde/anime/":
+                        break
+                media_libraries.remove(media_library)
+                media_libraries.insert(0, media_library)
+
+            play_next = api.play_next_list(db)
 
             response_code = 200
             reply = {
@@ -32,7 +47,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             item_id = parts[-1]
 
             if item_id and len(parts) == 2:
-                container = api.get_container(item_id)
+                container = api.get_container(db, item_id)
 
                 if container:
                     response_code = 200
@@ -48,7 +63,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             item_id = parts[-1]
 
             if item_id and len(parts) == 2:
-                media = api.get_media(item_id)
+                media = api.get_media(db, item_id)
 
                 if media:
                     response_code = 200
@@ -60,13 +75,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/playnextlist"):
-            play_next_list = api.play_next_list()
+            play_next_list = api.play_next_list(db)
 
             response_code = 200
             reply = [DictMedia.dict(m) for m in play_next_list]
 
         elif self.path.startswith("/clearplaynextlist"):
-            api.clear_play_next_list()
+            api.clear_play_next_list(db)
 
             response_code = 200
 
@@ -75,11 +90,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             item_id = parts[-1]
 
             if item_id and len(parts) == 2:
-                container_id = api.scan(item_id)
+                container_id = api.scan(db, item_id)
 
                 if container_id:
                     response_code = 200
-                    reply = DictContainer.dict(api.get_container(container_id))
+                    reply = DictContainer.dict(
+                        api.get_container(db, container_id)
+                    )
                 else:
                     response_code = 404
 
@@ -94,16 +111,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if item_id and len(parts) == 3 and (is_media or is_container):
                 if is_container:
-                    found, identified = api.container_identify(item_id)
+                    found, identified = api.container_identify(db, item_id)
                     if identified:
                         item_dict = DictContainer.dict(
-                            api.get_container(item_id)
+                            api.get_container(db, item_id)
                         )
 
                 if is_media:
-                    found, identified = api.media_identify(item_id)
+                    found, identified = api.media_identify(db, item_id)
                     if identified:
-                        item_dict = DictMedia.dict(api.get_media(item_id))
+                        item_dict = DictMedia.dict(api.get_media(db, item_id))
 
                 if found:
                     response_code = 200
@@ -120,7 +137,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             media_ids = self.path.split("/")[-1].split(",")
 
             if len(media_ids) > 0:
-                api.play(media_ids)
+                api.play(db, media_ids)
                 response_code = 200
             else:
                 response_code = 400
@@ -134,20 +151,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if item_id and len(parts) == 4 and (is_media or is_container):
                 if is_container:
-                    found = api.container_played(item_id, played)
+                    found = api.container_played(db, item_id, played)
                     if found:
                         unplayed_count = 0
 
                         if not played:
-                            from classes.db import DB
-                            db = DB.get_instance()
-                            db.connect()
                             unplayed_count = db.get_unplayed_count(item_id)
 
                         message = {'unplayed_count': unplayed_count}
 
                 if is_media:
-                    found = api.media_played(item_id, played)
+                    found = api.media_played(db, item_id, played)
 
                     if found:
                         message = {'played': played}
@@ -169,7 +183,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if item_id and len(parts) == 3 and (is_media or is_container):
                 if is_container:
-                    found, updated = api.container_get_info(item_id)
+                    found, updated = api.container_get_info(db, item_id)
                     if updated:
                         item_dict = DictContainer.dict(
                             api.get_container(item_id)
@@ -178,7 +192,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if is_media:
                     found, updated = api.media_get_info(item_id)
                     if updated:
-                        item_dict = DictMedia.dict(api.get_media(item_id))
+                        item_dict = DictMedia.dict(api.get_media(db, item_id))
 
                 if found:
                     response_code = 200
@@ -252,6 +266,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         else:
             print('ignore', f'"{self.path}"')
             response_code = 400
+
+        db.close()
 
         if response_code == 200 and reply is None:
             reply = OK_REPLY

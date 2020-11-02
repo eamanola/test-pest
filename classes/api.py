@@ -6,10 +6,7 @@ from classes.watchinglist import WatchingList
 from classes.ext_apis.anidb import AniDB
 
 
-def get_container(container_id):
-    db = DB.get_instance()
-    db.connect()
-
+def get_container(db, container_id):
     container = db.get_container(container_id)
 
     if container:
@@ -49,14 +46,10 @@ def get_container(container_id):
 
         container.set_unplayed_count(db.get_unplayed_count(container.id()))
 
-    db.close()
-
     return container
 
 
-def get_media(media_id):
-    db = DB.get_instance()
-    db.connect()
+def get_media(db, media_id):
     media = db.get_media(media_id)
 
     if media:
@@ -68,40 +61,17 @@ def get_media(media_id):
                 parent.set_parent(db.get_container(parent.parent()))
                 parent = parent.parent()
 
-    db.close()
-
     return media
 
 
-def get_media_libraries():
-    media_libraries = []
-
-    db = DB.get_instance()
-    db.connect()
+def get_media_libraries(db):
     cur = db.conn.cursor()
     sql = 'select id from containers where type="MediaLibrary"'
     cur.execute(sql)
-    media_library_ids = [result[0] for result in cur.fetchall()]
-    db.close()
-
-    for media_library_id in media_library_ids:
-        container = get_container(media_library_id)
-        media_libraries.append(container)
-
-    # temp
-    for media_library in media_libraries:
-        if media_library.title() == "/data/viihde/anime/":
-            break
-    media_libraries.remove(media_library)
-    media_libraries.insert(0, media_library)
-
-    return media_libraries
+    return [result[0] for result in cur.fetchall()]
 
 
-def play_next_list():
-    db = DB.get_instance()
-    db.connect()
-
+def play_next_list(db):
     play_next_list = WatchingList.get_play_next_list(db)
 
     for media in play_next_list:
@@ -111,12 +81,10 @@ def play_next_list():
                 parent.set_parent(db.get_container(parent.parent()))
                 parent = parent.parent()
 
-    db.close()
-
     return play_next_list
 
 
-def scan(container_id):
+def scan(db, container_id):
     from classes.scanner import Scanner
 
     scanned = None
@@ -129,9 +97,6 @@ def scan(container_id):
             containers, media = collect_objs(container, containers, media)
 
         return containers, media
-
-    db = DB.get_instance()
-    db.connect()
 
     container = db.get_container(container_id)
     if container:
@@ -172,8 +137,6 @@ def scan(container_id):
 
             scanned = result.id()
 
-        db.close()
-
     return scanned
 
 
@@ -190,11 +153,8 @@ def _identify(db, identifiable, media_type):
     return anidb_id
 
 
-def container_identify(container_id):
+def container_identify(db, container_id):
     found, identified = False, False
-
-    db = DB.get_instance()
-    db.connect()
 
     container = db.get_container(container_id)
 
@@ -208,16 +168,11 @@ def container_identify(container_id):
             db.update_containers([container])
             identified = True
 
-    db.close()
-
     return found, identified
 
 
-def media_identify(media_id):
+def media_identify(db, media_id):
     found, identified = False, False
-
-    db = DB.get_instance()
-    db.connect()
 
     media = db.get_media(media_id)
 
@@ -230,18 +185,13 @@ def media_identify(media_id):
             db.update_media([media])
             identified = True
 
-    db.close()
-
     return found, identified
 
 
-def play(media_ids):
+def play(db, media_ids):
     import os
     import sys
     import subprocess
-
-    db = DB.get_instance()
-    db.connect()
 
     media = []
     for media_id in media_ids:
@@ -268,14 +218,10 @@ def play(media_ids):
 
         WatchingList.started_play(db, media)
 
-    db.close()
 
-
-def media_played(media_id, played):
+def media_played(db, media_id, played):
     found = False
 
-    db = DB.get_instance()
-    db.connect()
     media = db.get_media(media_id)
 
     if media:
@@ -285,23 +231,16 @@ def media_played(media_id, played):
             media.set_played(played)
             db.update_media([media])
 
-    db.close()
-
     return found
 
 
-def container_played(container_id, played):
+def container_played(db, container_id, played):
     found = False
-
-    db = DB.get_instance()
-    db.connect()
     container = db.get_container(container_id)
 
     if container:
         found = True
         db.set_played(container_id, played)
-
-    db.close()
 
     return found
 
@@ -327,40 +266,27 @@ def _get_info(db, identifiable):
     return info_updated
 
 
-def media_get_info(media_id):
+def media_get_info(db, media_id):
     found, updated = False, False
-
-    db = DB.get_instance()
-    db.connect()
 
     identifiable = db.get_media(media_id)
     if identifiable and isinstance(identifiable, Identifiable):
         found = True
         updated = _get_info(db, identifiable)
 
-    db.close()
-
     return found, updated
 
 
-def container_get_info(container_id):
+def container_get_info(db, container_id):
     found, updated = False, False
-
-    db = DB.get_instance()
-    db.connect()
 
     identifiable = db.get_container(container_id)
     if identifiable and isinstance(identifiable, Identifiable):
         found = True
         updated = _get_info(db, identifiable)
 
-    db.close()
-
     return found, updated
 
 
-def clear_play_next_list():
-    db = DB.get_instance()
-    db.connect()
+def clear_play_next_list(db):
     WatchingList.remove_all(db)
-    db.close()
