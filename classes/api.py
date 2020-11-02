@@ -272,14 +272,14 @@ def play(media_ids):
 
 
 def media_played(media_id, played):
-    code = 404
+    found = False
 
     db = DB.get_instance()
     db.connect()
     media = db.get_media(media_id)
 
     if media:
-        code = 200
+        found = True
 
         if media.played() != played:
             media.set_played(played)
@@ -287,30 +287,23 @@ def media_played(media_id, played):
 
     db.close()
 
-    return code, played
+    return found
 
 
 def container_played(container_id, played):
-    code, unplayed_count = 404, None
+    found = False
 
     db = DB.get_instance()
     db.connect()
     container = db.get_container(container_id)
 
     if container:
-        code = 200
+        found = True
         db.set_played(container_id, played)
-
-        if played:
-            unplayed_count = 0
-        else:
-            unplayed_count = db.get_unplayed_count(container_id)
-
-        container.set_unplayed_count(unplayed_count)
 
     db.close()
 
-    return code, unplayed_count
+    return found
 
 
 def _get_info(db, identifiable):

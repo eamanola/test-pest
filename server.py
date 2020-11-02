@@ -132,7 +132,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if is_container:
                     found, identified = api.container_identify(item_id)
                     if identified:
-                        item_dict = DictContainer.dict(api.get_container(item_id))
+                        item_dict = DictContainer.dict(
+                            api.get_container(item_id)
+                        )
 
                 if is_media:
                     found, identified = api.media_identify(item_id)
@@ -174,20 +176,39 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             played = parts[2] == "1"
             item_id = parts[-1]
 
-            code = 400
-            reply = None
+            if item_id and len(parts) == 4 and (is_media or is_container):
+                if is_container:
+                    found = api.container_played(item_id, played)
+                    if found:
+                        unplayed_count = 0
+
+                        if not played:
+                            from classes.db import DB
+                            db = DB.get_instance()
+                            db.connect()
+                            unplayed_count = db.get_unplayed_count(item_id)
+
+                        message = {'unplayed_count': unplayed_count}
+
+                if is_media:
+                    found = api.media_played(item_id, played)
+
+                    if found:
+                        message = {'played': played}
+
+                if found:
+                    code = 200
+                    reply = {**message, 'data_id': item_id}
+                    reply = json.dumps(reply)
+                else:
+                    code = 404
+                    reply = json.dumps(NOT_FOUND_REPLY)
+
+            else:
+                code = 400
+                reply = json.dumps(INVALID_REQUEST_REPLY)
+
             content_type = "text/json"
-
-            if is_container:
-                code, unplayed_count = api.container_played(item_id, played)
-                reply = {'unplayed_count': unplayed_count}
-
-            elif is_media:
-                code, played = api.media_played(item_id, played)
-                reply = {'played': played}
-
-            if reply:
-                reply = json.dumps({**reply, 'data_id': item_id})
 
         elif self.path.startswith("/info/"):
             parts = self.path[1:].split("/")
