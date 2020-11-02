@@ -103,7 +103,7 @@ def get_media_libraries():
     media_libraries.remove(media_library)
     media_libraries.insert(0, media_library)
 
-    return 200, media_libraries
+    return media_libraries
 
 
 def play_next_list():
@@ -121,7 +121,7 @@ def play_next_list():
 
     db.close()
 
-    return 200, play_next_list
+    return play_next_list
 
 
 def scan(container_id):

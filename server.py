@@ -30,9 +30,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         cache_control = None
 
         if self.path == "/":
-            code, media_libraries = api.get_media_libraries()
-            code, play_next = api.play_next_list()
+            media_libraries = api.get_media_libraries()
+            play_next = api.play_next_list()
 
+            code = 200
             reply = json.dumps({
                 'play_next_list':  [DictMedia.dict(m) for m in play_next],
                 'media_libraries':
@@ -62,7 +63,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 reply = json.dumps(DictMedia.dict(media))
 
         elif self.path.startswith("/playnextlist"):
-            code, play_next_list = api.play_next_list()
+            play_next_list = api.play_next_list()
+
+            code = 200
             reply = json.dumps([DictMedia.dict(m) for m in play_next_list])
             content_type = "text/json"
 
