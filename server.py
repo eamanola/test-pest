@@ -66,14 +66,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = "text/json"
 
         elif self.path.startswith("/m/"):
-            item_id = self.path.split("/")[-1]
+            parts = self.path[1:].split("/")
+            item_id = parts[-1]
 
-            code, media = api.get_media(item_id)
-            reply = None
+            if item_id and len(parts) == 2:
+                media = api.get_media(item_id)
+
+                if media:
+                    code = 200
+                    reply = json.dumps(DictMedia.dict(media))
+                else:
+                    code = 404
+                    reply = json.dumps(NOT_FOUND_REPLY)
+
+            else:
+                code = 400
+                reply = json.dumps(INVALID_REQUEST_REPLY)
+
             content_type = "text/json"
-
-            if media:
-                reply = json.dumps(DictMedia.dict(media))
 
         elif self.path.startswith("/playnextlist"):
             play_next_list = api.play_next_list()
@@ -237,6 +247,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             code = 400
             reply = None
             content_type = None
+
+        #if isinstance(reply, dict):
+        #    reply = json.dumps(reply)
+        #    content_type = "text/json"
 
         if code:
             self.send_response(code)

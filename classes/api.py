@@ -55,15 +55,11 @@ def get_container(container_id):
 
 
 def get_media(media_id):
-    code = 404
-
     db = DB.get_instance()
     db.connect()
     media = db.get_media(media_id)
 
     if media:
-        code = 200
-
         if isinstance(media, Episode):
             media.set_parent(db.get_container(media.parent()))
             parent = media.parent()
@@ -74,7 +70,7 @@ def get_media(media_id):
 
     db.close()
 
-    return code, media
+    return media
 
 
 def get_media_libraries():
@@ -356,7 +352,7 @@ def media_get_info(media_id):
     identifiable = db.get_media(media_id)
 
     if _get_info(db, identifiable):
-        code, reply = get_media(media_id)
+        reply = get_media(media_id)
 
     db.close()
 
