@@ -101,14 +101,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = "text/json"
 
         elif self.path.startswith("/scan/"):
-            container_id = self.path.split("/")[-1]
+            parts = self.path[1:].split("/")
+            item_id = parts[-1]
 
-            code, container = api.scan(container_id)
-            reply = None
+            if item_id and len(parts) == 2:
+                container_id = api.scan(item_id)
+
+                if container_id:
+                    code = 200
+                    reply = json.dumps(
+                        DictContainer.dict(api.get_container(container_id))
+                    )
+                else:
+                    code = 404
+                    reply = json.dumps(NOT_FOUND_REPLY)
+
+            else:
+                code = 400
+                reply = json.dumps(INVALID_REQUEST_REPLY)
+
             content_type = "text/json"
-
-            if container:
-                reply = json.dumps(DictContainer.dict(container))
 
         elif self.path.startswith("/identify/"):
             parts = self.path[1:].split("/")

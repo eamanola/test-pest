@@ -119,7 +119,7 @@ def play_next_list():
 def scan(container_id):
     from classes.scanner import Scanner
 
-    code, reply = 200, None
+    scanned = None
 
     def collect_objs(con, containers=[], media=[]):
         containers = containers + con.containers
@@ -134,46 +134,47 @@ def scan(container_id):
     db.connect()
 
     container = db.get_container(container_id)
-    containers, media = collect_objs(container)
-    containers.append(container)
-    db.delete_containers(containers)
-    db.delete_media(media)
+    if container:
+        containers, media = collect_objs(container)
+        containers.append(container)
+        db.delete_containers(containers)
+        db.delete_media(media)
 
-    container.containers.clear()
-    container.media.clear()
+        container.containers.clear()
+        container.media.clear()
 
-    result = None
-    if isinstance(container, Extra):
-        result = Scanner().scan_extra(container)
-    elif isinstance(container, Season):
-        result = Scanner().scan_season(container)
-    elif isinstance(container, Show):
-        result = Scanner().scan_show(container)
-    elif isinstance(container, MediaLibrary):
-        result = Scanner().scan_media_library(container)
+        result = None
+        if isinstance(container, Extra):
+            result = Scanner().scan_extra(container)
+        elif isinstance(container, Season):
+            result = Scanner().scan_season(container)
+        elif isinstance(container, Show):
+            result = Scanner().scan_show(container)
+        elif isinstance(container, MediaLibrary):
+            result = Scanner().scan_media_library(container)
 
-    if result:
-        containers, media = collect_objs(result)
-        containers.append(result)
+        if result:
+            containers, media = collect_objs(result)
+            containers.append(result)
 
-        db.create_containers_table()
-        db.create_media_table()
+            db.create_containers_table()
+            db.create_media_table()
 
-        db.update_containers(
-            containers,
-            update_identifiables=False
-        )
-        db.update_media(
-            media,
-            update_identifiables=False,
-            overwrite_media_states=False
-        )
+            db.update_containers(
+                containers,
+                update_identifiables=False
+            )
+            db.update_media(
+                media,
+                update_identifiables=False,
+                overwrite_media_states=False
+            )
 
-        reply = get_container(result.id())
+            scanned = result.id()
 
-    db.close()
+        db.close()
 
-    return code, reply
+    return scanned
 
 
 def _identify(db, identifiable, media_type):
