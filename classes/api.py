@@ -7,16 +7,12 @@ from classes.ext_apis.anidb import AniDB
 
 
 def get_container(container_id):
-    code = 404
-
     db = DB.get_instance()
     db.connect()
 
     container = db.get_container(container_id)
 
     if container:
-        code = 200
-
         parent = container.parent()
         while parent and isinstance(parent, (Extra, Season, Show)):
             parent.set_parent(db.get_container(parent.parent()))
@@ -55,7 +51,7 @@ def get_container(container_id):
 
     db.close()
 
-    return code, container
+    return container
 
 
 def get_media(media_id):
@@ -93,7 +89,7 @@ def get_media_libraries():
     db.close()
 
     for media_library_id in media_library_ids:
-        code, container = get_container(media_library_id)
+        container = get_container(media_library_id)
         media_libraries.append(container)
 
     # temp
@@ -177,7 +173,7 @@ def scan(container_id):
             overwrite_media_states=False
         )
 
-        code, reply = get_container(result.id())
+        reply = get_container(result.id())
 
     db.close()
 
@@ -376,7 +372,7 @@ def container_get_info(container_id):
     identifiable = db.get_container(container_id)
 
     if _get_info(db, identifiable):
-        code, reply = get_container(container_id)
+        reply = get_container(container_id)
 
     db.close()
 

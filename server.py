@@ -5,6 +5,9 @@ import json
 import classes.api as api
 from classes.apis.to_dict import DictContainer, DictMedia
 
+NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
+INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
+
 
 class Handler(http.server.SimpleHTTPRequestHandler):
 
@@ -43,14 +46,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = "text/json"
 
         elif self.path.startswith("/c/"):
-            item_id = self.path.split("/")[-1]
+            parts = self.path[1:].split("/")
+            item_id = parts[-1]
 
-            code, container = api.get_container(item_id)
-            reply = None
+            if item_id and len(parts) == 2:
+                container = api.get_container(item_id)
+
+                if container:
+                    code = 200
+                    reply = json.dumps(DictContainer.dict(container))
+                else:
+                    code = 404
+                    reply = json.dumps(NOT_FOUND_REPLY)
+
+            else:
+                code = 400
+                reply = json.dumps(INVALID_REQUEST_REPLY)
+
             content_type = "text/json"
-
-            if container:
-                reply = json.dumps(DictContainer.dict(container))
 
         elif self.path.startswith("/m/"):
             item_id = self.path.split("/")[-1]
