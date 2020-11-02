@@ -380,5 +380,3 @@ def clear_play_next_list():
     db.connect()
     WatchingList.remove_all(db)
     db.close()
-
-    return 200, None

@@ -7,6 +7,7 @@ from classes.apis.to_dict import DictContainer, DictMedia
 
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
+OK_REPLY = {'code': 200, 'message': 'Ok'}
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
@@ -93,7 +94,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = "text/json"
 
         elif self.path.startswith("/clearplaynextlist"):
-            code, reply = api.clear_play_next_list()
+            api.clear_play_next_list()
+
+            code = 200
+            reply = json.dumps(OK_REPLY)
             content_type = "text/json"
 
         elif self.path.startswith("/scan/"):
@@ -248,7 +252,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             reply = None
             content_type = None
 
-        #if isinstance(reply, dict):
+        # if isinstance(reply, dict):
         #    reply = json.dumps(reply)
         #    content_type = "text/json"
 
