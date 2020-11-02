@@ -12,39 +12,20 @@ OK_REPLY = {'code': 200, 'message': 'Ok'}
 
 class Handler(http.server.SimpleHTTPRequestHandler):
 
-    def send_headers(self, content_type, cache_control):
-        self.send_header("Content-type", content_type)
-        if cache_control is not None:
-            self.send_header("Cache-Control", cache_control)
-
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-
-    def send_body(self, reply):
-
-        if reply:
-            if isinstance(reply, str):
-                reply = bytes(reply, "utf-8")
-            try:
-                self.wfile.write(reply)
-            except Exception as e:
-                print('handler.wfile.write(reply) FAIL!!!!', e)
-
     def do_GET(self):
         cache_control = None
+        reply = None
 
         if self.path == "/":
             media_libraries = api.get_media_libraries()
             play_next = api.play_next_list()
 
-            code = 200
-            reply = json.dumps({
+            response_code = 200
+            reply = {
                 'play_next_list':  [DictMedia.dict(m) for m in play_next],
                 'media_libraries':
                     [DictContainer.dict(ml) for ml in media_libraries]
-            })
-
-            content_type = "text/json"
+            }
 
         elif self.path.startswith("/c/"):
             parts = self.path[1:].split("/")
@@ -54,17 +35,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 container = api.get_container(item_id)
 
                 if container:
-                    code = 200
-                    reply = json.dumps(DictContainer.dict(container))
+                    response_code = 200
+                    reply = DictContainer.dict(container)
                 else:
-                    code = 404
-                    reply = json.dumps(NOT_FOUND_REPLY)
+                    response_code = 404
 
             else:
-                code = 400
-                reply = json.dumps(INVALID_REQUEST_REPLY)
-
-            content_type = "text/json"
+                response_code = 400
 
         elif self.path.startswith("/m/"):
             parts = self.path[1:].split("/")
@@ -74,31 +51,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 media = api.get_media(item_id)
 
                 if media:
-                    code = 200
-                    reply = json.dumps(DictMedia.dict(media))
+                    response_code = 200
+                    reply = DictMedia.dict(media)
                 else:
-                    code = 404
-                    reply = json.dumps(NOT_FOUND_REPLY)
+                    response_code = 404
 
             else:
-                code = 400
-                reply = json.dumps(INVALID_REQUEST_REPLY)
-
-            content_type = "text/json"
+                response_code = 400
 
         elif self.path.startswith("/playnextlist"):
             play_next_list = api.play_next_list()
 
-            code = 200
-            reply = json.dumps([DictMedia.dict(m) for m in play_next_list])
-            content_type = "text/json"
+            response_code = 200
+            reply = [DictMedia.dict(m) for m in play_next_list]
 
         elif self.path.startswith("/clearplaynextlist"):
             api.clear_play_next_list()
 
-            code = 200
-            reply = json.dumps(OK_REPLY)
-            content_type = "text/json"
+            response_code = 200
 
         elif self.path.startswith("/scan/"):
             parts = self.path[1:].split("/")
@@ -108,19 +78,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 container_id = api.scan(item_id)
 
                 if container_id:
-                    code = 200
-                    reply = json.dumps(
-                        DictContainer.dict(api.get_container(container_id))
-                    )
+                    response_code = 200
+                    reply = DictContainer.dict(api.get_container(container_id))
                 else:
-                    code = 404
-                    reply = json.dumps(NOT_FOUND_REPLY)
+                    response_code = 404
 
             else:
-                code = 400
-                reply = json.dumps(INVALID_REQUEST_REPLY)
-
-            content_type = "text/json"
+                response_code = 400
 
         elif self.path.startswith("/identify/"):
             parts = self.path[1:].split("/")
@@ -142,32 +106,24 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         item_dict = DictMedia.dict(api.get_media(item_id))
 
                 if found:
-                    code = 200
+                    response_code = 200
                     reply = {'identified': identified}
                     if identified:
                         reply = {**reply, **item_dict}
-                    reply = json.dumps(reply)
                 else:
-                    code = 404
-                    reply = json.dumps(NOT_FOUND_REPLY)
-
-                content_type = "text/json"
+                    response_code = 404
 
             else:
-                code = 400
-                reply = json.dumps(INVALID_REQUEST_REPLY)
+                response_code = 400
 
         elif self.path.startswith("/play/"):
             media_ids = self.path.split("/")[-1].split(",")
 
             if len(media_ids) > 0:
                 api.play(media_ids)
-                code = 200
-                reply = json.dumps(OK_REPLY)
-                content_type = "text/json"
+                response_code = 200
             else:
-                code = 400
-                reply = json.dumps(INVALID_REQUEST_REPLY)
+                response_code = 400
 
         elif self.path.startswith("/played/"):
             parts = self.path[1:].split("/")
@@ -197,18 +153,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         message = {'played': played}
 
                 if found:
-                    code = 200
+                    response_code = 200
                     reply = {**message, 'data_id': item_id}
-                    reply = json.dumps(reply)
                 else:
-                    code = 404
-                    reply = json.dumps(NOT_FOUND_REPLY)
+                    response_code = 404
 
             else:
-                code = 400
-                reply = json.dumps(INVALID_REQUEST_REPLY)
-
-            content_type = "text/json"
+                response_code = 400
 
         elif self.path.startswith("/info/"):
             parts = self.path[1:].split("/")
@@ -230,18 +181,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         item_dict = DictMedia.dict(api.get_media(item_id))
 
                 if found:
-                    code = 200
+                    response_code = 200
                     reply = item_dict
-                    reply = json.dumps(reply)
                 else:
-                    code = 404
-                    reply = json.dumps(NOT_FOUND_REPLY)
-
-                content_type = "text/json"
+                    response_code = 404
 
             else:
-                code = 400
-                reply = json.dumps(INVALID_REQUEST_REPLY)
+                response_code = 400
 
         elif (
             (
@@ -256,7 +202,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         ):
             import os
             import sys
-            code = 404
+            response_code = 404
             reply = None
             content_type = None
 
@@ -266,7 +212,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
 
             if os.path.exists(file_path):
-                code = 200
+                response_code = 200
                 with open(file_path, "rb") as f:
                     reply = f.read()
 
@@ -281,7 +227,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         ):
             import os
             import sys
-            code = 404
+            response_code = 404
 
             file_path = os.path.join(
                 sys.path[0],
@@ -290,7 +236,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
 
             if os.path.exists(file_path):
-                code = 200
+                response_code = 200
                 with open(file_path, "rb") as f:
                     reply = f.read()
 
@@ -305,22 +251,34 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         else:
             print('ignore', f'"{self.path}"')
-            code = 400
-            reply = None
-            content_type = None
+            response_code = 400
 
-        # if isinstance(reply, dict):
-        #    reply = json.dumps(reply)
-        #    content_type = "text/json"
+        if response_code == 200 and reply is None:
+            reply = OK_REPLY
+        if response_code == 400:
+            reply = INVALID_REQUEST_REPLY
+        elif response_code == 404:
+            reply = NOT_FOUND_REPLY
 
-        if code:
-            self.send_response(code)
+        if isinstance(reply, dict):
+            reply = json.dumps(reply)
+            content_type = "text/json"
 
-        if content_type or cache_control:
-            self.send_headers(content_type, cache_control)
+        if isinstance(reply, str):
+            reply = bytes(reply, "utf-8")
 
-        if reply:
-            self.send_body(reply)
+        self.send_response(response_code)
+
+        self.send_header("Content-type", content_type)
+        if cache_control is not None:
+            self.send_header("Cache-Control", cache_control)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+
+        try:
+            self.wfile.write(reply)
+        except Exception as e:
+            print('handler.wfile.write(reply) FAIL!!!!', e)
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
