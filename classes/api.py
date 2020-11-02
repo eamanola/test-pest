@@ -328,35 +328,35 @@ def _get_info(db, identifiable):
 
 
 def media_get_info(media_id):
-    code, reply = 200, None
+    found, updated = False, False
 
     db = DB.get_instance()
     db.connect()
 
     identifiable = db.get_media(media_id)
-
-    if _get_info(db, identifiable):
-        reply = get_media(media_id)
+    if identifiable and isinstance(identifiable, Identifiable):
+        found = True
+        updated = _get_info(db, identifiable)
 
     db.close()
 
-    return code, reply
+    return found, updated
 
 
 def container_get_info(container_id):
-    code, reply = 200, None
+    found, updated = False, False
 
     db = DB.get_instance()
     db.connect()
 
     identifiable = db.get_container(container_id)
-
-    if _get_info(db, identifiable):
-        reply = get_container(container_id)
+    if identifiable and isinstance(identifiable, Identifiable):
+        found = True
+        updated = _get_info(db, identifiable)
 
     db.close()
 
-    return code, reply
+    return found, updated
 
 
 def clear_play_next_list():
