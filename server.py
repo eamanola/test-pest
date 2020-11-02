@@ -158,8 +158,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/play/"):
             media_ids = self.path.split("/")[-1].split(",")
 
-            code, reply = api.play(media_ids)
-            content_type = "text/json"
+            if len(media_ids) > 0:
+                api.play(media_ids)
+                code = 200
+                reply = json.dumps(OK_REPLY)
+                content_type = "text/json"
+            else:
+                code = 400
+                reply = json.dumps(INVALID_REQUEST_REPLY)
 
         elif self.path.startswith("/played/"):
             parts = self.path[1:].split("/")

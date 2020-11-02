@@ -240,8 +240,6 @@ def play(media_ids):
     import sys
     import subprocess
 
-    code, reply = 404, None
-
     db = DB.get_instance()
     db.connect()
 
@@ -270,12 +268,7 @@ def play(media_ids):
 
         WatchingList.started_play(db, media)
 
-        code = 200
-        reply = f"playing {', '.join([m.title() for m in media])}"
-
     db.close()
-
-    return code, reply
 
 
 def media_played(media_id, played):
