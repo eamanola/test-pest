@@ -127,6 +127,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     reply = {'identified': identified}
                     if identified:
                         reply = {**reply, **item_dict}
+                    else:
+                        reply = {**reply, 'data_id': item_id}
                 else:
                     response_code = 404
 

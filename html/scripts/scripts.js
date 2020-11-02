@@ -242,17 +242,19 @@ function onClearPlayClick(e) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+function onIdentifyError(data_id) {
+  var el = document.querySelector('[data-id="' + data_id + '"] .js-identify')
+  el.innerHTML = "Identify"
+  el.addEventListener('click', onIdentifyClick, false)
+}
+
 function onIdentifyCompleted(responseText) {
   var item = JSON.parse(responseText)
 
   if (item.identified === true){
     update_items(item)
   } else {
-    var el = document.querySelector(
-      '[data-id="' + item.data_id + '"] .js-identify'
-    )
-    el.innerHTML = "Identify"
-    el.addEventListener('click', onIdentifyClick, false)
+    onIdentifyError(item.data_id)
   }
 }
 
@@ -266,11 +268,16 @@ function onIdentifyClick(e) {
 
     ajax(
       [
-        base_url,
-        '/identify',
-        '/', type.substring(0, 1),
-        '/', data_id
-      ].join(""), onIdentifyCompleted)
+        base_url, '/identify', '/', type.substring(0, 1), '/', data_id
+      ].join(""),
+      onIdentifyCompleted,
+      (
+        function (data_id) {
+          return function() {
+            onIdentifyError(data_id)
+          }
+        }
+      )(data_id))
 
     var query = '[data-id="' + data_id + '"] .js-identify'
     var el = document.querySelectorAll(query)[0]
@@ -282,6 +289,13 @@ function onIdentifyClick(e) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+
+function onScanError(data_id) {
+  var query = '[data-id="' + data_id + '"] .js-scan'
+  var el = document.querySelector(query)
+  el.innerHTML = "Scan"
+  el.addEventListener('click', onScanClick, false)
+}
 
 function onScanCompleted(responseText) {
   var item = JSON.parse(responseText)
@@ -296,7 +310,17 @@ function onScanClick(e) {
     e.preventDefault();
     e.stopPropagation();
 
-    ajax(base_url + '/scan/' + data_id, onScanCompleted)
+    ajax(
+      base_url + '/scan/' + data_id,
+      onScanCompleted,
+      (
+        function (data_id) {
+          return function() {
+            onScanError(data_id)
+          }
+        }
+      )(data_id)
+    )
 
     var query = '[data-id="' + data_id + '"] .js-scan'
     var el = document.querySelectorAll(query)[0]
@@ -442,6 +466,7 @@ function getMedia(media_id, dont_push) {
     onMediaReceived
   )
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 
 function onPlayNextListReceived(responseText) {
@@ -528,11 +553,17 @@ function cache_get_item(item_id) {
   return ret
 }
 
-function ajax(url, callback) {
+function ajax(url, callback, errorcallback) {
   var xhttp = new XMLHttpRequest();
   xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      callback(this.responseText)
+    if (this.readyState == 4) {
+      if (this.status == 200) {
+        callback(this.responseText)
+      } else /* if (this.status == 400 || this.status == 404) */ {
+        if (typeof(errorcallback) == "function") {
+          errorcallback(this.responseText)
+        }
+      }
     }
   };
   xhttp.open("GET", url, true);
