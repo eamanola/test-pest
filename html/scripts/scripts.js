@@ -559,10 +559,12 @@ function ajax(url, callback, errorcallback) {
     if (this.readyState == 4) {
       if (this.status == 200) {
         callback(this.responseText)
-      } else /* if (this.status == 400 || this.status == 404) */ {
+      } else if (this.status == 400 || this.status == 404) {
         if (typeof(errorcallback) == "function") {
           errorcallback(this.responseText)
         }
+      } else {
+        console.log(this.status, this)
       }
     }
   };

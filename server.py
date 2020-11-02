@@ -5,80 +5,142 @@ import json
 import classes.api as api
 from classes.apis.to_dict import DictContainer, DictMedia
 from classes.db import DB
+import os
+import sys
 
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
 OK_REPLY = {'code': 200, 'message': 'Ok'}
 
 
+def epoch_to_httptime(secs):
+    from datetime import datetime, timezone
+
+    dt = datetime.fromtimestamp(secs, timezone.utc)
+
+    return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
+
+
+def check_if_modified_since(headers, file_path):
+    use_cache_304 = False
+
+    if 'If-Modified-Since' in headers.keys():
+        from datetime import datetime, timezone
+
+        last_modified = int(os.path.getmtime(file_path))
+
+        b = datetime.fromtimestamp(
+            last_modified, timezone.utc
+        ).replace(tzinfo=None)
+        a = datetime.strptime(
+            headers['If-Modified-Since'], '%a, %d %b %Y %H:%M:%S %Z'
+        )
+
+        use_cache_304 = b <= a
+
+    if use_cache_304:
+        print('use cache')
+    else:
+        print('dont use cache')
+
+    return use_cache_304
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
-        cache_control = None
         reply = None
+        cache_control = None
+        last_modified = None
+
         db = DB.get_instance()
         db.connect()
 
         if self.path == "/":
-            media_library_ids = api.get_media_libraries(db)
+            if check_if_modified_since(self.headers, './example.db'):
+                response_code = 304
+            else:
+                media_library_ids = api.get_media_libraries(db)
 
-            media_libraries = []
-            for media_library_id in media_library_ids:
-                media_libraries.append(api.get_container(db, media_library_id))
+                media_libraries = []
+                for media_library_id in media_library_ids:
+                    media_libraries.append(
+                        api.get_container(db, media_library_id)
+                    )
 
-                # temp
-                for media_library in media_libraries:
-                    if media_library.title() == "/data/viihde/anime/":
-                        break
-                media_libraries.remove(media_library)
-                media_libraries.insert(0, media_library)
+                    # temp
+                    for media_library in media_libraries:
+                        if media_library.title() == "/data/viihde/anime/":
+                            break
+                    media_libraries.remove(media_library)
+                    media_libraries.insert(0, media_library)
 
-            play_next = api.play_next_list(db)
+                play_next = api.play_next_list(db)
 
-            response_code = 200
-            reply = {
-                'play_next_list':  [DictMedia.dict(m) for m in play_next],
-                'media_libraries':
-                    [DictContainer.dict(ml) for ml in media_libraries]
-            }
+                response_code = 200
+                reply = {
+                    'play_next_list':  [DictMedia.dict(m) for m in play_next],
+                    'media_libraries':
+                        [DictContainer.dict(ml) for ml in media_libraries]
+                }
+                cache_control = "private, must-revalidate"
+                last_modified = os.path.getmtime('./example.db')
 
         elif self.path.startswith("/c/"):
-            parts = self.path[1:].split("/")
-            item_id = parts[-1]
-
-            if item_id and len(parts) == 2:
-                container = api.get_container(db, item_id)
-
-                if container:
-                    response_code = 200
-                    reply = DictContainer.dict(container)
-                else:
-                    response_code = 404
-
+            if check_if_modified_since(self.headers, './example.db'):
+                response_code = 304
             else:
-                response_code = 400
+                parts = self.path[1:].split("/")
+                item_id = parts[-1]
+
+                if item_id and len(parts) == 2:
+                    container = api.get_container(db, item_id)
+
+                    if container:
+                        response_code = 200
+                        reply = DictContainer.dict(container)
+
+                        cache_control = "private, must-revalidate"
+                        last_modified = os.path.getmtime('./example.db')
+                    else:
+                        response_code = 404
+
+                else:
+                    response_code = 400
 
         elif self.path.startswith("/m/"):
-            parts = self.path[1:].split("/")
-            item_id = parts[-1]
-
-            if item_id and len(parts) == 2:
-                media = api.get_media(db, item_id)
-
-                if media:
-                    response_code = 200
-                    reply = DictMedia.dict(media)
-                else:
-                    response_code = 404
-
+            if check_if_modified_since(self.headers, './example.db'):
+                response_code = 304
             else:
-                response_code = 400
+                parts = self.path[1:].split("/")
+                item_id = parts[-1]
+
+                if item_id and len(parts) == 2:
+                    media = api.get_media(db, item_id)
+
+                    if media:
+                        response_code = 200
+                        reply = DictMedia.dict(media)
+
+                        cache_control = "private, must-revalidate"
+                        last_modified = os.path.getmtime('./example.db')
+                    else:
+                        response_code = 404
+
+                else:
+                    response_code = 400
 
         elif self.path.startswith("/playnextlist"):
-            play_next_list = api.play_next_list(db)
+            if check_if_modified_since(self.headers, './example.db'):
+                response_code = 304
+            else:
+                play_next_list = api.play_next_list(db)
 
-            response_code = 200
-            reply = [DictMedia.dict(m) for m in play_next_list]
+                response_code = 200
+                reply = [DictMedia.dict(m) for m in play_next_list]
+
+                cache_control = "private, must-revalidate"
+                last_modified = os.path.getmtime('./example.db')
 
         elif self.path.startswith("/clearplaynextlist"):
             api.clear_play_next_list(db)
@@ -216,8 +278,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
             or self.path == "/html/images/play-icon.png"
         ):
-            import os
-            import sys
             response_code = 404
             reply = None
             content_type = None
@@ -234,6 +294,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 content_type = f"image/{file_path[-3:]}"
                 cache_control = "private, max-age=604800"
+
         elif self.path in (
             "/images/play-icon.png",
             "/scripts/page_builder.js",
@@ -241,8 +302,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             "/styles/styles.css",
             "/index.html"
         ):
-            import os
-            import sys
             response_code = 404
 
             file_path = os.path.join(
@@ -251,19 +310,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 os.sep.join(self.path[1:].split("/"))
             )
 
-            if os.path.exists(file_path):
-                response_code = 200
-                with open(file_path, "rb") as f:
-                    reply = f.read()
+            if check_if_modified_since(self.headers, file_path):
+                response_code = 304
+            else:
+                if os.path.exists(file_path):
+                    response_code = 200
+                    with open(file_path, "rb") as f:
+                        reply = f.read()
 
-            if self.path.endswith(".png"):
-                content_type = "image/png"
-            elif self.path.endswith(".js"):
-                content_type = "text/javascript"
-            elif self.path.endswith(".css"):
-                content_type = "text/css"
-            elif self.path.endswith(".html"):
-                content_type = "text/html"
+                if self.path.endswith(".png"):
+                    content_type = "image/png"
+                elif self.path.endswith(".js"):
+                    content_type = "text/javascript"
+                elif self.path.endswith(".css"):
+                    content_type = "text/css"
+                elif self.path.endswith(".html"):
+                    content_type = "text/html"
+
+                cache_control = "private, must-revalidate"
+                last_modified = os.path.getmtime(file_path)
 
         else:
             print('ignore', f'"{self.path}"')
@@ -271,7 +336,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         db.close()
 
-        if response_code == 200 and reply is None:
+        if response_code in (200, 304) and reply is None:
             reply = OK_REPLY
         if response_code == 400:
             reply = INVALID_REQUEST_REPLY
@@ -285,13 +350,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if isinstance(reply, str):
             reply = bytes(reply, "utf-8")
 
+        self.protocol_version = 'HTTP/1.1'
+
         self.send_response(response_code)
 
         self.send_header("Content-type", content_type)
         if cache_control is not None:
             self.send_header("Cache-Control", cache_control)
+        if last_modified is not None:
+            self.send_header("Last-Modified", epoch_to_httptime(last_modified))
+
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
+
+        print(self.headers)
 
         try:
             self.wfile.write(reply)
@@ -334,6 +406,7 @@ print(f"Server started http://{hostName}:{serverPort}")
 try:
     subprocess.Popen([
         'firefox',
+        # 'chromium',
         # f'./html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}/index.html'
     ])
