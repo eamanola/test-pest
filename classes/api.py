@@ -180,8 +180,6 @@ def scan(container_id):
 def _identify(db, identifiable, media_type):
     from classes.identifier import Identifier
 
-    updated_item = None
-
     anidb_id = Identifier(AniDB).guess_id(
         db,
         identifiable.title(),
@@ -189,53 +187,52 @@ def _identify(db, identifiable, media_type):
         media_type
     )
 
-    if anidb_id:
-        identifiable.ext_ids()[AniDB.KEY] = anidb_id
-        updated_item = identifiable
-
-    return 200, updated_item
+    return anidb_id
 
 
 def container_identify(container_id):
-    code, updated_item = 404, None
+    found, identified = False, False
 
     db = DB.get_instance()
     db.connect()
 
     container = db.get_container(container_id)
 
-    if container:
-        code, updated_item = _identify(db, container, AniDB.TV_SHOW)
+    if container and isinstance(container, Identifiable):
+        found = True
 
-        if updated_item:
-            db.update_containers([updated_item])
+        anidb_id = _identify(db, container, AniDB.TV_SHOW)
 
-            updated_item.set_unplayed_count(
-                db.get_unplayed_count(updated_item.id())
-            )
+        if anidb_id:
+            container.ext_ids()[AniDB.KEY] = anidb_id
+            db.update_containers([container])
+            identified = True
 
     db.close()
 
-    return code, updated_item
+    return found, identified
 
 
 def media_identify(media_id):
-    code, updated_item = 404, None
+    found, identified = False, False
 
     db = DB.get_instance()
     db.connect()
 
     media = db.get_media(media_id)
 
-    if media:
-        code, updated_item = _identify(db, media, AniDB.MOVIE)
+    if media and isinstance(media, Identifiable):
+        found = True
+        anidb_id = _identify(db, media, AniDB.MOVIE)
 
-        if updated_item:
-            db.update_media([updated_item])
+        if anidb_id:
+            media.ext_ids()[AniDB.KEY] = anidb_id
+            db.update_media([media])
+            identified = True
 
     db.close()
 
-    return code, updated_item
+    return found, identified
 
 
 def play(media_ids):

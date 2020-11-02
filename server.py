@@ -128,27 +128,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             is_media = parts[1] == "m"
             item_id = parts[-1]
 
-            code = 400
-            reply = {'data_id': item_id, 'identified': False}
-            content_type = "text/json"
+            if item_id and len(parts) == 3 and (is_media or is_container):
+                if is_container:
+                    found, identified = api.container_identify(item_id)
+                    if identified:
+                        item_dict = DictContainer.dict(api.get_container(item_id))
 
-            if is_container:
-                code, update_item = api.container_identify(item_id)
-                if update_item:
-                    reply = {
-                        'identified': True,
-                        **DictContainer.dict(update_item)
-                    }
+                if is_media:
+                    found, identified = api.media_identify(item_id)
+                    if identified:
+                        item_dict = DictMedia.dict(api.get_media(item_id))
 
-            elif is_media:
-                code, update_item = api.media_identify(item_id)
-                if update_item:
-                    reply = {
-                        'identified': True,
-                        **DictMedia.dict(update_item)
-                    }
+                if found:
+                    code = 200
+                    reply = {'identified': identified}
+                    if identified:
+                        reply = {**reply, **item_dict}
+                    reply = json.dumps(reply)
+                else:
+                    code = 404
+                    reply = json.dumps(NOT_FOUND_REPLY)
 
-            reply = json.dumps(reply)
+                content_type = "text/json"
+
+            else:
+                code = 400
+                reply = json.dumps(INVALID_REQUEST_REPLY)
 
         elif self.path.startswith("/play/"):
             media_ids = self.path.split("/")[-1].split(",")
