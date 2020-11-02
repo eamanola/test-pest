@@ -38,11 +38,6 @@ def check_if_modified_since(headers, file_path):
 
         use_cache_304 = b <= a
 
-    if use_cache_304:
-        print('use cache')
-    else:
-        print('dont use cache')
-
     return use_cache_304
 
 
@@ -83,7 +78,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     'media_libraries':
                         [DictContainer.dict(ml) for ml in media_libraries]
                 }
-                cache_control = "private, must-revalidate"
+                cache_control = "private, must-revalidate, max-age=0"
                 last_modified = os.path.getmtime('./example.db')
 
         elif self.path.startswith("/c/"):
@@ -100,7 +95,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         response_code = 200
                         reply = DictContainer.dict(container)
 
-                        cache_control = "private, must-revalidate"
+                        cache_control = "private, must-revalidate, max-age=0"
                         last_modified = os.path.getmtime('./example.db')
                     else:
                         response_code = 404
@@ -122,7 +117,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         response_code = 200
                         reply = DictMedia.dict(media)
 
-                        cache_control = "private, must-revalidate"
+                        cache_control = "private, must-revalidate, max-age=0"
                         last_modified = os.path.getmtime('./example.db')
                     else:
                         response_code = 404
@@ -139,7 +134,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 response_code = 200
                 reply = [DictMedia.dict(m) for m in play_next_list]
 
-                cache_control = "private, must-revalidate"
+                cache_control = "private, must-revalidate, max-age=0"
                 last_modified = os.path.getmtime('./example.db')
 
         elif self.path.startswith("/clearplaynextlist"):
@@ -327,7 +322,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 elif self.path.endswith(".html"):
                     content_type = "text/html"
 
-                cache_control = "private, must-revalidate"
+                cache_control = "private, must-revalidate, max-age=0"
                 last_modified = os.path.getmtime(file_path)
 
         else:
@@ -363,7 +358,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
-        print(self.headers)
+        # print(self.headers)
 
         try:
             self.wfile.write(reply)
