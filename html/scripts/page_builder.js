@@ -126,10 +126,12 @@ function container_page(container) {
         '<span>', container.title, '</span>',
         parents(container),
         description(container),
-        '<a href="#" class="js-scan">Scan</a>',
-        identify_link(container, false),
-        anidb_link(container),
-        get_info_link(container, false),
+        '<div class="actions">',
+          '<a href="#" class="js-scan">Scan</a>',
+          identify_link(container, false),
+          anidb_link(container),
+          get_info_link(container, false),
+        '</div>',
       '</span>',
     '</div>'
   ]
@@ -225,9 +227,11 @@ function media_page(media) {
         '<span>', media.title, '</span>',
         parents(media),
         description(media),
-        identify_link(media, false),
-        anidb_link(media),
-        get_info_link(media, false),
+        '<div class="actions">',
+          identify_link(media, false),
+          anidb_link(media),
+          get_info_link(media, false),
+        '</div>',
       '</span>',
     '</div>'
   ]

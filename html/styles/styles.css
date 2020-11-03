@@ -68,6 +68,19 @@
     display: block;
   }
 }
+@media (max-width: 64em) {
+  body {
+    font-size: 1.6em;
+  }
+
+  a {
+    font-size: 1.5em;
+  }
+
+  .media .js-play {
+    opacity: 0.6;
+  }
+}
 
 .media.line .line1,
 .media.line .line2,
@@ -153,10 +166,14 @@
 .container.page.header .info * {
   display: block;
 }
+.media.page.header .info .actions,
+.container.page.header .info .actions {
+  padding: 0.2em 0
+}
 .media.page.header .info .actions *,
 .container.page.header .info .actions * {
   display: inline-block;
-  padding: 0 0.2em;
+  padding: 0 0.2em 0 0;
 }
 
 .media.page.header .info .parents *,
