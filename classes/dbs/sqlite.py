@@ -617,6 +617,11 @@ class Sqlite(DB):
 
         return cur.fetchall()
 
+    def last_modified(self, database='example.db'):
+        import os
+
+        return int(os.path.getmtime(database))
+
     def print_table(self, table):
         self.conn.row_factory = sqlite3.Row
         cur = self.conn.cursor()

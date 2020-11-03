@@ -1101,6 +1101,29 @@ class TestSqlite(unittest.TestCase):
 
         db.close()
 
+    def test_last_modified(self):
+        from pathlib import Path
+        import os
+        import sys
+
+        path = [sys.path[0]]
+        if __name__ != '__main__':
+            path.append('test')
+        path = os.sep.join(path)
+
+        test_db_path = os.path.join(path, "test.db")
+
+        Path(test_db_path).touch()
+        self.assertTrue(os.path.exists(test_db_path))
+
+        self.assertEqual(
+            Sqlite().last_modified(database=test_db_path),
+            int(os.path.getmtime(test_db_path))
+        )
+
+        os.remove(test_db_path)
+        self.assertFalse(os.path.exists(test_db_path))
+
 
 if __name__ == '__main__':
     unittest.main()

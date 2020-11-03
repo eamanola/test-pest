@@ -21,13 +21,11 @@ def epoch_to_httptime(secs):
     return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
 
-def check_if_modified_since(headers, file_path):
+def check_if_modified_since(headers, last_modified):
     use_cache_304 = False
 
     if 'If-Modified-Since' in headers.keys():
         from datetime import datetime, timezone
-
-        last_modified = int(os.path.getmtime(file_path))
 
         b = datetime.fromtimestamp(
             last_modified, timezone.utc
@@ -52,7 +50,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         db.connect()
 
         if self.path == "/":
-            if check_if_modified_since(self.headers, './example.db'):
+            if (
+                'If-Modified-Since' in self.headers.keys()
+                and check_if_modified_since(self.headers, db.last_modified())
+            ):
                 response_code = 304
             else:
                 media_library_ids = api.get_media_libraries(db)
@@ -79,10 +80,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         [DictContainer.dict(ml) for ml in media_libraries]
                 }
                 cache_control = "private, must-revalidate, max-age=0"
-                last_modified = os.path.getmtime('./example.db')
+                last_modified = db.last_modified()
 
         elif self.path.startswith("/c/"):
-            if check_if_modified_since(self.headers, './example.db'):
+            if (
+                'If-Modified-Since' in self.headers.keys()
+                and check_if_modified_since(self.headers, db.last_modified())
+            ):
                 response_code = 304
             else:
                 parts = self.path[1:].split("/")
@@ -96,7 +100,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         reply = DictContainer.dict(container)
 
                         cache_control = "private, must-revalidate, max-age=0"
-                        last_modified = os.path.getmtime('./example.db')
+                        last_modified = db.last_modified()
                     else:
                         response_code = 404
 
@@ -104,7 +108,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_code = 400
 
         elif self.path.startswith("/m/"):
-            if check_if_modified_since(self.headers, './example.db'):
+            if (
+                'If-Modified-Since' in self.headers.keys()
+                and check_if_modified_since(self.headers, db.last_modified())
+            ):
                 response_code = 304
             else:
                 parts = self.path[1:].split("/")
@@ -118,7 +125,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         reply = DictMedia.dict(media)
 
                         cache_control = "private, must-revalidate, max-age=0"
-                        last_modified = os.path.getmtime('./example.db')
+                        last_modified = db.last_modified()
                     else:
                         response_code = 404
 
@@ -126,7 +133,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_code = 400
 
         elif self.path.startswith("/playnextlist"):
-            if check_if_modified_since(self.headers, './example.db'):
+            if (
+                'If-Modified-Since' in self.headers.keys()
+                and check_if_modified_since(self.headers, db.last_modified())
+            ):
                 response_code = 304
             else:
                 play_next_list = api.play_next_list(db)
@@ -135,7 +145,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 reply = [DictMedia.dict(m) for m in play_next_list]
 
                 cache_control = "private, must-revalidate, max-age=0"
-                last_modified = os.path.getmtime('./example.db')
+                last_modified = db.last_modified()
 
         elif self.path.startswith("/clearplaynextlist"):
             api.clear_play_next_list(db)
@@ -305,7 +315,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 os.sep.join(self.path[1:].split("/"))
             )
 
-            if check_if_modified_since(self.headers, file_path):
+            if (
+                'If-Modified-Since' in self.headers.keys()
+                and check_if_modified_since(
+                    self.headers, int(os.path.getmtime(file_path))
+                )
+            ):
                 response_code = 304
             else:
                 if os.path.exists(file_path):
@@ -400,8 +415,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 
 try:
     subprocess.Popen([
-        'firefox',
-        # 'chromium',
+        # 'firefox',
+        'chromium',
         # f'./html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}/index.html'
     ])

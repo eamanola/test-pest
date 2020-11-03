@@ -77,6 +77,9 @@ class DB(object):
     def set_played(self, container_id, played):
         raise NotImplementedError()
 
+    def last_modified(self):
+        raise NotImplementedError()
+
     @staticmethod
     def get_instance():
         instance = None
