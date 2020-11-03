@@ -281,7 +281,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path.startswith("/images/posters/")
                 and self.path.endswith(".jpg")
             )
-            or self.path == "/html/images/play-icon.png"
         ):
             response_code = 404
             reply = None
@@ -338,6 +337,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     content_type = "text/html"
 
                 cache_control = "private, must-revalidate, max-age=0"
+
+                if content_type.startswith("image"):
+                    cache_control = "private, max-age=604800"
+
                 last_modified = os.path.getmtime(file_path)
 
         else:
@@ -370,6 +373,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if last_modified is not None:
             self.send_header("Last-Modified", epoch_to_httptime(last_modified))
 
+        # should be null?
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
@@ -415,9 +419,9 @@ print(f"Server started http://{hostName}:{serverPort}")
 
 try:
     subprocess.Popen([
-        # 'firefox',
-        'chromium',
-        # f'./html/index.html?api_url=http://{hostName}:{serverPort}'
+        'firefox',
+        # 'chromium',
+        # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}/index.html'
     ])
     httpd.serve_forever()
