@@ -26,7 +26,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def revalidate_client_cache(self, file_path=None):
         response_code = None
 
-        if 'If-Modified-Since' in self.headers.keys():
+        if 'If-None-Match' in self.headers.keys():
+            if file_path is not None:
+                from hashlib import sha256
+
+                with open(file_path, "rb") as f:
+                    _bytes = f.read()
+
+                etag = sha256(_bytes).hexdigest()
+            else:
+                etag = DB.get_instance().version()
+
+            if f'"{etag}"' == self.headers['If-None-Match']:
+                response_code = 304
+
+        elif 'If-Modified-Since' in self.headers.keys():
             from datetime import datetime, timezone
 
             if file_path is not None:
@@ -43,21 +57,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             if dt_last_modified <= dt_if_modified_since:
                 response_code = 304
-        elif (
-            any([header in self.headers.keys() for header in (
-                'If-Unmodified-Since',
-                'If-Match',
-                'If-None-Match')])
-        ):
-            print('Not implemented revalidate(s)')
+        # elif 'If-Unmodified-Since', 'If-Match'
 
-        print('revalidate_client_cache:', response_code)
+        # print('revalidate_client_cache:', response_code)
         return response_code
 
     def do_GET(self):
         reply = None
         cache_control = None
         last_modified = None
+        etag = None
 
         db = DB.get_instance()
         db.connect()
@@ -90,7 +99,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         [DictContainer.dict(ml) for ml in media_libraries]
                 }
                 cache_control = "private, must-revalidate, max-age=0"
-                last_modified = db.last_modified()
+                # last_modified = db.last_modified()
+                etag = db.version()
 
         elif self.path.startswith("/c/"):
             response_code = self.revalidate_client_cache()
@@ -107,7 +117,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         reply = DictContainer.dict(container)
 
                         cache_control = "private, must-revalidate, max-age=0"
-                        last_modified = db.last_modified()
+                        # last_modified = db.last_modified()
+                        etag = db.version()
                     else:
                         response_code = 404
 
@@ -129,7 +140,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         reply = DictMedia.dict(media)
 
                         cache_control = "private, must-revalidate, max-age=0"
-                        last_modified = db.last_modified()
+                        # last_modified = db.last_modified()
+                        etag = db.version()
                     else:
                         response_code = 404
 
@@ -146,7 +158,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 reply = [DictMedia.dict(m) for m in play_next_list]
 
                 cache_control = "private, must-revalidate, max-age=0"
-                last_modified = db.last_modified()
+                # last_modified = db.last_modified()
+                etag = db.version()
 
         elif self.path.startswith("/clearplaynextlist"):
             api.clear_play_next_list(db)
@@ -337,7 +350,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if content_type.startswith("image"):
                     cache_control = "private, max-age=604800"
 
-                last_modified = os.path.getmtime(file_path)
+                # last_modified = os.path.getmtime(file_path)
+                from hashlib import sha256
+
+                with open(file_path, "rb") as f:
+                    _bytes = f.read()
+
+                etag = sha256(_bytes).hexdigest()
 
         else:
             print('ignore', f'"{self.path}"')
@@ -368,6 +387,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Cache-Control", cache_control)
         if last_modified is not None:
             self.send_header("Last-Modified", epoch_to_httptime(last_modified))
+        if etag is not None:
+            self.send_header("ETag", f'"{etag}"')
 
         # should be null?
         self.send_header("Access-Control-Allow-Origin", "*")
