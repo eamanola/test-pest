@@ -425,7 +425,7 @@ function onHomeReceived(responseText) {
 }
 
 function home() {
-  ajax(base_url, onHomeReceived)
+  ajax(base_url + '/frontpage', onHomeReceived)
 }
 
 ////////////////////////////////////////////////////////////////////////////////

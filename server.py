@@ -71,7 +71,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         db = DB.get_instance()
         db.connect()
 
-        if self.path == "/":
+        if self.path in ("/", ""):
+            self.path = "/index.html"
+
+        if self.path == "/frontpage":
             response_code = self.revalidate_client_cache()
 
             if response_code is None:
@@ -439,7 +442,7 @@ try:
         # 'firefox',
         'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
-        f'http://{hostName}:{serverPort}/index.html'
+        f'http://{hostName}:{serverPort}'
     ])
     httpd.serve_forever()
 except KeyboardInterrupt:
