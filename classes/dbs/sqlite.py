@@ -622,6 +622,17 @@ class Sqlite(DB):
 
         return int(os.path.getmtime(database))
 
+    def version(self, database='example.db'):
+        from hashlib import sha256
+
+        with open(database, "rb") as f:
+            bytes = f.read()
+
+        # works but horrible
+        # bytes = ''.join(self.conn.iterdump()).encode('utf-8')
+
+        return sha256(bytes).hexdigest()
+
     def print_table(self, table):
         self.conn.row_factory = sqlite3.Row
         cur = self.conn.cursor()

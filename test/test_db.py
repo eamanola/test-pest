@@ -69,6 +69,7 @@ class TestDB(unittest.TestCase):
             NotImplementedError, DB().set_played, "container_id", "played"
         )
         self.assertRaises(NotImplementedError, DB().last_modified)
+        self.assertRaises(NotImplementedError, DB().version)
 
     def test_get_instance(self):
         from classes.dbs.sqlite import Sqlite

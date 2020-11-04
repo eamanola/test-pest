@@ -80,6 +80,9 @@ class DB(object):
     def last_modified(self):
         raise NotImplementedError()
 
+    def version(self):
+        raise NotImplementedError()
+
     @staticmethod
     def get_instance():
         instance = None

@@ -1118,6 +1118,33 @@ class TestSqlite(unittest.TestCase):
         os.remove(test_db_path)
         self.assertFalse(os.path.exists(test_db_path))
 
+    def test_version(self):
+        from pathlib import Path
+        from hashlib import sha256
+        import os
+        import sys
+
+        path = [sys.path[0]]
+        if __name__ != '__main__':
+            path.append('test')
+        path = os.sep.join(path)
+
+        test_db_path = os.path.join(path, "test.db")
+
+        Path(test_db_path).touch()
+        self.assertTrue(os.path.exists(test_db_path))
+
+        with open(test_db_path, "rb") as f:
+            bytes = f.read()
+
+        self.assertEqual(
+            Sqlite().version(database=test_db_path),
+            sha256(bytes).hexdigest()
+        )
+
+        os.remove(test_db_path)
+        self.assertFalse(os.path.exists(test_db_path))
+
 
 if __name__ == '__main__':
     unittest.main()
