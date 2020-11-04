@@ -1018,12 +1018,6 @@ class TestSqlite(unittest.TestCase):
 
         db.connect()
 
-        con = '34ba81959a86317eb75206ffdab76512'
-        print(db.get_unplayed_count(con))
-        db.set_played(con, True)
-        print(db.get_unplayed_count(con))
-
-
     def test_watchlist(self):
         root, containers, media = create_test_library()
 

@@ -23,6 +23,9 @@ class TestImages(unittest.TestCase):
             f'{"/".join(Images.THUMBNAIL_FOLDER)}/{media.thumbnail()}.png'
         )
 
+        SYS_PATH_0 = sys.path[0]
+        self.assertEqual(SYS_PATH_0, sys.path[0])
+
         if __name__ != '__main__':
             sys.path[0] = os.sep.join([sys.path[0], 'test'])
 
@@ -126,6 +129,11 @@ class TestImages(unittest.TestCase):
 
         thumbnail = Images.thumbnail(media, create_ifmissing=True)
         self.assertFalse(os.path.exists(thumbnail_path))
+
+        if __name__ != '__main__':
+            sys.path[0] = os.sep.join(sys.path[0].split(os.sep)[0:-1])
+
+        self.assertEqual(SYS_PATH_0, sys.path[0])
 
     def test_poster(self):
         from classes.media import Movie

@@ -6,10 +6,12 @@ def test_file_paths():
     import sys
     import os
 
-    if __name__ != '__main__':
-        sys.path[0] = os.sep.join([sys.path[0], 'test'])
+    test_folder_path = sys.path[0]
 
-    tmp = os.path.join(sys.path[0], 'tmp')
+    if __name__ != '__main__':
+        test_folder_path = os.sep.join([test_folder_path, 'test'])
+
+    tmp = os.path.join(test_folder_path, 'tmp')
 
     test_files = [
         os.path.join(tmp, "movie.mkv"),
