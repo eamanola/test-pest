@@ -162,16 +162,22 @@ function onPlayedClick(e) {
 
   if (data_id && type && (type === "container" || type === "media")) {
     e.stopPropagation();
+  }
 
-    var checkbox = document.querySelector(
-      '[data-id="' + data_id + '"] .js-played input'
-    )
+  return false
+}
 
+function onPlayedChange(e) {
+  var id_obj = get_data_id(e.target)
+  var data_id = id_obj.data_id
+  var type = id_obj.type
+
+  if (data_id && type && (type === "container" || type === "media")) {
     var url = [
         base_url,
         "/played",
         '/', type.substring(0, 1),
-        '/', checkbox.checked ? "1" : "0",
+        '/', e.target.checked ? "1" : "0",
         '/', data_id
     ].join("")
 
@@ -379,6 +385,11 @@ function connect(parent) {
   var played_items = parent.querySelectorAll('.js-played')
   for (var i = 0, il = played_items.length; i < il; i++) {
     played_items[i].addEventListener('click', onPlayedClick, false)
+  }
+
+  var played_items_inputs = parent.querySelectorAll('.js-played input')
+  for (var i = 0, il = played_items_inputs.length; i < il; i++) {
+    played_items_inputs[i].addEventListener('change', onPlayedChange, false)
   }
 
   var get_info_items = parent.querySelectorAll('.js-get-info')
