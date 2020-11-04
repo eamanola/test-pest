@@ -21,25 +21,38 @@ def epoch_to_httptime(secs):
     return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
 
-def check_if_modified_since(headers, last_modified):
-    use_cache_304 = False
-
-    if 'If-Modified-Since' in headers.keys():
-        from datetime import datetime, timezone
-
-        b = datetime.fromtimestamp(
-            last_modified, timezone.utc
-        ).replace(tzinfo=None)
-        a = datetime.strptime(
-            headers['If-Modified-Since'], '%a, %d %b %Y %H:%M:%S %Z'
-        )
-
-        use_cache_304 = b <= a
-
-    return use_cache_304
-
-
 class Handler(http.server.SimpleHTTPRequestHandler):
+
+    def revalidate_client_cache(self, file_path=None):
+        response_code = None
+
+        if 'If-Modified-Since' in self.headers.keys():
+            from datetime import datetime, timezone
+
+            if file_path is not None:
+                last_modified = int(os.path.getmtime(file_path))
+            else:
+                last_modified = DB.get_instance().last_modified()
+
+            dt_last_modified = datetime.fromtimestamp(
+                last_modified, timezone.utc
+            ).replace(tzinfo=None)
+            dt_if_modified_since = datetime.strptime(
+                self.headers['If-Modified-Since'], '%a, %d %b %Y %H:%M:%S %Z'
+            )
+
+            if dt_last_modified <= dt_if_modified_since:
+                response_code = 304
+        elif (
+            any([header in self.headers.keys() for header in (
+                'If-Unmodified-Since',
+                'If-Match',
+                'If-None-Match')])
+        ):
+            print('Not implemented revalidate(s)')
+
+        print('revalidate_client_cache:', response_code)
+        return response_code
 
     def do_GET(self):
         reply = None
@@ -50,12 +63,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         db.connect()
 
         if self.path == "/":
-            if (
-                'If-Modified-Since' in self.headers.keys()
-                and check_if_modified_since(self.headers, db.last_modified())
-            ):
-                response_code = 304
-            else:
+            response_code = self.revalidate_client_cache()
+
+            if response_code is None:
                 media_library_ids = api.get_media_libraries(db)
 
                 media_libraries = []
@@ -83,12 +93,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 last_modified = db.last_modified()
 
         elif self.path.startswith("/c/"):
-            if (
-                'If-Modified-Since' in self.headers.keys()
-                and check_if_modified_since(self.headers, db.last_modified())
-            ):
-                response_code = 304
-            else:
+            response_code = self.revalidate_client_cache()
+
+            if response_code is None:
                 parts = self.path[1:].split("/")
                 item_id = parts[-1]
 
@@ -108,12 +115,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_code = 400
 
         elif self.path.startswith("/m/"):
-            if (
-                'If-Modified-Since' in self.headers.keys()
-                and check_if_modified_since(self.headers, db.last_modified())
-            ):
-                response_code = 304
-            else:
+            response_code = self.revalidate_client_cache()
+
+            if response_code is None:
                 parts = self.path[1:].split("/")
                 item_id = parts[-1]
 
@@ -133,12 +137,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_code = 400
 
         elif self.path.startswith("/playnextlist"):
-            if (
-                'If-Modified-Since' in self.headers.keys()
-                and check_if_modified_since(self.headers, db.last_modified())
-            ):
-                response_code = 304
-            else:
+            response_code = self.revalidate_client_cache()
+
+            if response_code is None:
                 play_next_list = api.play_next_list(db)
 
                 response_code = 200
@@ -314,14 +315,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 os.sep.join(self.path[1:].split("/"))
             )
 
-            if (
-                'If-Modified-Since' in self.headers.keys()
-                and check_if_modified_since(
-                    self.headers, int(os.path.getmtime(file_path))
-                )
-            ):
-                response_code = 304
-            else:
+            response_code = self.revalidate_client_cache(file_path=file_path)
+
+            if response_code is None:
                 if os.path.exists(file_path):
                     response_code = 200
                     with open(file_path, "rb") as f:
@@ -405,8 +401,8 @@ hostName = get_ip()
 try:
     serverPort = 8086
     httpd = socketserver.TCPServer((hostName, serverPort), Handler)
-    print('skip', serverPort)
 except OSError:
+    print('skip', serverPort)
     for port in range(8087, 8097):
         serverPort = port
         try:
@@ -419,8 +415,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 
 try:
     subprocess.Popen([
-        'firefox',
-        # 'chromium',
+        # 'firefox',
+        'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}/index.html'
     ])
