@@ -436,10 +436,11 @@ function onContainerReceived(responseText, user_navigation) {
     container_page(container)
   connect(document.body)
 
-  history_update_state()
-
   if (user_navigation === true) {
     history_push_state("container", container.id)
+
+    var el = document.querySelector('.js-container.page.header')
+    el.scrollIntoView({ behavior: "smooth" })
   }
 }
 
@@ -461,10 +462,11 @@ function onMediaReceived(responseText, user_navigation) {
     media_page(media)
   connect(document.body)
 
-  history_update_state()
-
   if (user_navigation === true) {
     history_push_state("media", media.id)
+
+    var el = document.querySelector('.js-media.page.header')
+    el.scrollIntoView({ behavior: "smooth" })
   }
 }
 
@@ -506,10 +508,6 @@ function getPlayNextList() {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
-function history_update_state() {
-  console.log('save_scroll')
-}
 
 function history_push_state(type, data_id) {
   history.pushState({
