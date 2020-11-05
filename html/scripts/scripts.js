@@ -405,6 +405,24 @@ function connect(parent) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+function set_page(page_html, restore_scroll) {
+  save_scroll()
+
+  var page_el = document.getElementById('page')
+  page_el.innerHTML = page_html
+  connect(page_el)
+
+  if (restore_scroll === true)
+    scrollTo({ top: get_scroll() })
+
+  if (history.state !== null)
+    visibile_state_index = history.state.index
+  else
+    visibile_state_index = 0
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 function onHomeReceived(responseText) {
   var data = JSON.parse(responseText)
 
@@ -419,9 +437,8 @@ function onHomeReceived(responseText) {
 
     cache.push(media_library)
   }
-  var page_el = document.getElementById('page')
-  page_el.innerHTML = page.join("")
-  connect(page_el)
+
+  set_page(page.join(""), true)
 }
 
 function home() {
@@ -429,40 +446,39 @@ function home() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-function onContainerReceived(responseText, user_navigation) {
+function onContainerReceived(responseText, navigation_click) {
   container = JSON.parse(responseText)
   cache.push(container)
-  document.getElementById('page').innerHTML =
-    container_page(container)
-  connect(document.body)
 
-  if (user_navigation === true) {
+  set_page(container_page(container), !navigation_click)
+
+  if (navigation_click === true) {
     history_push_state("container", container.id)
+
 
     var el = document.querySelector('.js-container.page.header')
     el.scrollIntoView({ behavior: "smooth" })
   }
 }
 
-function getContainer(container_id, user_navigation) {
+function getContainer(container_id, navigation_click) {
   ajax(
     base_url + '/c/' + container_id,
-    (function(self, user_navigation){return function(responseText){
-      self.onContainerReceived(responseText, user_navigation)
-    }})(window, user_navigation)
+    (function(self, navigation_click){return function(responseText){
+      self.onContainerReceived(responseText, navigation_click)
+    }})(window, navigation_click)
   )
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function onMediaReceived(responseText, user_navigation) {
+function onMediaReceived(responseText, navigation_click) {
   media = JSON.parse(responseText)
   cache.push(media)
-  document.getElementById('page').innerHTML =
-    media_page(media)
-  connect(document.body)
 
-  if (user_navigation === true) {
+  set_page(media_page(media), !navigation_click)
+
+  if (navigation_click === true) {
     history_push_state("media", media.id)
 
     var el = document.querySelector('.js-media.page.header')
@@ -470,12 +486,12 @@ function onMediaReceived(responseText, user_navigation) {
   }
 }
 
-function getMedia(media_id, user_navigation) {
+function getMedia(media_id, navigation_click) {
   ajax(
     base_url + '/m/' + media_id,
-    (function(self, user_navigation){return function(responseText){
-      self.onMediaReceived(responseText, user_navigation)
-    }})(window, user_navigation)
+    (function(self, navigation_click){return function(responseText){
+      self.onMediaReceived(responseText, navigation_click)
+    }})(window, navigation_click)
   )
 }
 
@@ -509,11 +525,33 @@ function getPlayNextList() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+var history_index_counter = 0
 function history_push_state(type, data_id) {
   history.pushState({
+    index: ++history_index_counter,
     type: type,
     data_id: data_id
   }, "")
+  visibile_state_index = history_index_counter
+}
+
+var scoll_positions = {}
+var visibile_state_index = 0
+function save_scroll() {
+  var index = visibile_state_index
+  scoll_positions[index] = window.scrollY
+}
+
+function get_scroll() {
+  var index = 0
+  if (history.state !== null)
+    index = history.state.index
+
+  var scroll = 0
+  if (scoll_positions[index] !== undefined)
+    scroll = scoll_positions[index]
+
+  return scroll
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -677,6 +715,10 @@ function update_items(item) {
   for (var i = 0, il = els.length; i < il; i++) {
     connect(els[i])
   }
+}
+
+if (history.scrollRestoration) {
+  history.scrollRestoration = 'manual';
 }
 
 window.addEventListener("popstate", function(e) {
