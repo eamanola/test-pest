@@ -349,9 +349,9 @@ function onNavigationClick(e) {
     e.stopPropagation();
 
     if (type == "container") {
-      getContainer(data_id)
+      getContainer(data_id, true)
     } else if (type == "media") {
-      getMedia(data_id)
+      getMedia(data_id, true)
     }
   }
 
@@ -429,52 +429,51 @@ function home() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-function onContainerReceived(responseText) {
+function onContainerReceived(responseText, user_navigation) {
   container = JSON.parse(responseText)
   cache.push(container)
   document.getElementById('page').innerHTML =
     container_page(container)
   connect(document.body)
+
+  history_update_state()
+
+  if (user_navigation === true) {
+    history_push_state("container", container.id)
+  }
 }
 
-function getContainer(container_id, dont_push) {
-  if (!container_id)
-    container_id = "d16c4b170f395bcdeaedcd5c9786eb01"
-
-  if (!dont_push) {
-    history.pushState({
-      type: "container",
-      data_id: container_id,
-    }, "")
-  }
-
+function getContainer(container_id, user_navigation) {
   ajax(
     base_url + '/c/' + container_id,
-    onContainerReceived
+    (function(self, user_navigation){return function(responseText){
+      self.onContainerReceived(responseText, user_navigation)
+    }})(window, user_navigation)
   )
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function onMediaReceived(responseText) {
+function onMediaReceived(responseText, user_navigation) {
   media = JSON.parse(responseText)
   cache.push(media)
   document.getElementById('page').innerHTML =
     media_page(media)
   connect(document.body)
+
+  history_update_state()
+
+  if (user_navigation === true) {
+    history_push_state("media", media.id)
+  }
 }
 
-function getMedia(media_id, dont_push) {
-  if (!dont_push) {
-    history.pushState({
-      type: "media",
-      data_id: media_id
-    }, "")
-  }
-
+function getMedia(media_id, user_navigation) {
   ajax(
     base_url + '/m/' + media_id,
-    onMediaReceived
+    (function(self, user_navigation){return function(responseText){
+      self.onMediaReceived(responseText, user_navigation)
+    }})(window, user_navigation)
   )
 }
 
@@ -505,6 +504,19 @@ function getPlayNextList() {
   ajax(base_url + '/playnextlist', onPlayNextListReceived)
 }
 
+
+////////////////////////////////////////////////////////////////////////////////
+
+function history_update_state() {
+  console.log('save_scroll')
+}
+
+function history_push_state(type, data_id) {
+  history.pushState({
+    type: type,
+    data_id: data_id
+  }, "")
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -626,9 +638,9 @@ function updatePage(state) {
   if (state == null){
     home()
   } else if (state.type == "container") {
-    getContainer(state.data_id, true)
+    getContainer(state.data_id, false)
   } else if (state.type == "media") {
-    getMedia(state.data_id, true)
+    getMedia(state.data_id, false)
   }
 }
 
