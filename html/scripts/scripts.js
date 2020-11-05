@@ -539,7 +539,8 @@ var scoll_positions = {}
 var visibile_state_index = 0
 function save_scroll() {
   var index = visibile_state_index
-  scoll_positions[index] = window.scrollY
+  scoll_positions[index] =
+    window.scrollY - document.getElementById('page').offsetTop
 }
 
 function get_scroll() {
@@ -549,10 +550,15 @@ function get_scroll() {
 
   var scroll = 0
   if (scoll_positions[index] !== undefined)
-    scroll = scoll_positions[index]
+    scroll =
+      scoll_positions[index] + document.getElementById('page').offsetTop
 
   return scroll
 }
+
+window.addEventListener("resize", function() {
+  scoll_positions= {}
+}, false)
 
 ////////////////////////////////////////////////////////////////////////////////
 
