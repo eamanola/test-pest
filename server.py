@@ -272,11 +272,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     found, updated = api.container_get_info(db, item_id)
                     if updated:
                         item_dict = DictContainer.dict(
-                            api.get_container(item_id)
+                            api.get_container(db, item_id)
                         )
 
                 if is_media:
-                    found, updated = api.media_get_info(item_id)
+                    found, updated = api.media_get_info(db, item_id)
                     if updated:
                         item_dict = DictMedia.dict(api.get_media(db, item_id))
 

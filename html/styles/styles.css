@@ -132,6 +132,7 @@
 .grid .container.line .poster
 {
   max-width: 10em;
+  /* max-height: 10em; */ /*TODO: TBD*/
   display: block;
   margin: 0 auto;
 }
@@ -205,12 +206,26 @@
   display: none;
 }
 
-
 .action
 {
   margin: 0.2em;
   display: inline-block;
   text-decoration: underline;
+}
+.action, .action:visited,
+.navigation, .navigation:visited
+{
+  color: #000;
+}
+.action:hover,
+.navigation:hover
+{
+  color: #555;
+}
+.action:active,
+.navigation:active
+{
+  color: #999;
 }
 
 .grid .action
@@ -220,6 +235,7 @@
 
 .navigation {
   text-decoration: underline;
+  font-size: 1.2em;
 }
 
 /*
@@ -232,7 +248,6 @@
     font-size: 1.6em;
   }
 
-  .action,
   .action {
     font-size: 1.2em;
     border: 1px solid;
@@ -241,15 +256,17 @@
     padding: 0.2em;
   }
 
+  .action:hover {
+    background-color: #ddd;
+  }
+  .action:active {
+    background-color: #bbb;
+  }
+
   .media.line .played input[type="checkbox"],
   .container.line .played input[type="checkbox"] {
     width: 1.5em;
     height: 1.5em;
-  }
-
-  .media.line .action:active,
-  .container.line .action:active {
-    background-color: #ddd;
   }
 
   .media .js-play {
