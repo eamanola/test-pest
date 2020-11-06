@@ -374,12 +374,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif response_code == 404:
             reply = NOT_FOUND_REPLY
 
-        if isinstance(reply, dict):
+        if isinstance(reply, (dict, list)):
             reply = json.dumps(reply)
             content_type = "text/json"
 
         if isinstance(reply, str):
             reply = bytes(reply, "utf-8")
+
+        if content_type is None:
+            cache_control = "no-store"
 
         self.protocol_version = 'HTTP/1.1'
 

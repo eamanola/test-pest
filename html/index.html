@@ -6,11 +6,12 @@
     <meta charset="utf-8" />
   </head>
   <body class="grid">
-    <a href="#" onclick="return home()">Home</a>
+    <a class="action" href="#" onclick="return home()">Home</a>
+    <a class="action" href="#" id="toggle-grid">Lines</a>
     <!--{media_library}-->
     <div id="add-to-play-list"></div>
-    <button id="play-button">Play</button>
-    <button id="clear-add-to-play-list-button">Clear</button>
+    <a class="action" href="#" id="play-button">Play</a>
+    <a class="action" href="#" id="clear-add-to-play-list-button">Clear</a>
     <div id="play-next-list" style="display:none">
       <div class="container page header">
         Day's Menu
@@ -18,7 +19,8 @@
       <div id="play-next-list-content">
       </div>
       <div>
-        <button id="clear-play-next-list-button">Clear</button>
+        <a class="action" href="#" id="refresh-play-next-list-button">!Refresh</a>
+        <a class="action" href="#" id="clear-play-next-list-button">Clear</a>
       </div>
     </div>
     <div id="page">

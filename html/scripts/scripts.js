@@ -1,3 +1,25 @@
+function onToggleGridClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  var remove = document.body.classList.contains("grid")
+  var body_class = undefined
+  var toggle_grid_button_text = undefined
+
+  if (remove) {
+    body_class = ""
+    toggle_grid_button_text = "Grid"
+  } else {
+    body_class = "grid"
+    toggle_grid_button_text = "Lines"
+  }
+
+  document.body.className = body_class
+  document.getElementById('toggle-grid').innerHTML = toggle_grid_button_text
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 function onClearPlayNextListCleared(responseText) {
   document.getElementById('play-next-list').style.display = "none"
   document.getElementById("play-next-list-content").innerHTML = ""
@@ -9,6 +31,13 @@ function onClearPlayNextListClick(e) {
   e.stopPropagation();
 
   ajax(base_url + "/clearplaynextlist", onClearPlayNextListCleared)
+}
+
+function onRefreshPlayNextListClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  getPlayNextList()
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -743,6 +772,16 @@ window.addEventListener("popstate", function(e) {
     document.getElementById('clear-play-next-list-button')
   clear_play_next_list_button
     .addEventListener('click', onClearPlayNextListClick, false)
+
+  var refresh_play_next_list_button =
+    document.getElementById('refresh-play-next-list-button')
+  refresh_play_next_list_button
+    .addEventListener('click', onRefreshPlayNextListClick, false)
+
+    var toggle_grid_button =
+      document.getElementById('toggle-grid')
+    toggle_grid_button
+      .addEventListener('click', onToggleGridClick, false)
 
   home()
   create_add_to_play_list()

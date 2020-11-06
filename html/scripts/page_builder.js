@@ -2,11 +2,11 @@ function parents(item, hide) {
   var ret = []
 
   if (item.parents && !hide) {
-    ret.push('<span class="parents js-parents"{wrapper_style}>')
+    ret.push('<span class="parents js-parents">')
 
     for (var i = 0, il = item.parents.length; i < il; i++) {
       ret.push(
-        ['<span class="js-navigation js-parent" data-id="', item.parents[i].id,
+        ['<span class="navigation js-navigation js-parent" data-id="', item.parents[i].id,
         '">[', item.parents[i].title, ']</span>'].join("")
       )
     }
@@ -57,7 +57,7 @@ function get_info_link(item, show_ifneeded) {
 
   if (item.can_identify && item.is_identified) {
     if (!show_ifneeded || (item.is_identified && !item.has_info)) {
-      ret = ['<a href="#" class="js-get-info">',
+      ret = ['<a href="#" class="action js-get-info">',
         item.has_info ? "Update Info" : "Get Info",
       '</a>'].join("")
     }
@@ -71,7 +71,7 @@ function identify_link(item, show_ifneeded) {
 
   if (item.can_identify) {
     if (!show_ifneeded || !item.is_identified) {
-      ret = '<a href="#" class="js-identify">Identify</a>'
+      ret = '<a href="#" class="action js-identify">Identify</a>'
     }
   }
 
@@ -117,6 +117,17 @@ function description(item) {
   return ret
 }
 
+function played(item) {
+  return [
+    '<label class="action played js-played"><input type="checkbox" ',
+    'name="js-played-', item.id ,'"',
+    item.played ? ' checked="checked"' : "",
+    '/><span>Played</span>',
+    item.unplayed_count !== undefined ? container_unplayed(item) : "",
+    '</label>'
+  ].join("")
+}
+
 function container_page(container) {
   var ret = [
     '<div class="container js-container page header" ',
@@ -126,11 +137,11 @@ function container_page(container) {
         '<span>', container.title, '</span>',
         parents(container),
         description(container),
-        '<div class="actions">',
-          '<a href="#" class="js-scan">Scan</a>',
+        '<div>',
+          '<a href="#" class="action js-scan">Scan</a>',
           identify_link(container, false),
-          anidb_link(container),
           get_info_link(container, false),
+          anidb_link(container),
         '</div>',
       '</span>',
     '</div>'
@@ -189,27 +200,21 @@ function container_line(container) {
   var ret = [
     '<div class="container line js-container js-navigation" ',
       'data-id="', container.id, '">',
+      container_img(container),
       '<span class="left">',
-        container_img(container),
-        '<span class="info">',
-          '<span class="line1">',
-            parents(container),
-            '<span class="">', container.title, '</span>',
-          '</span>',
-          '<span class="line2">',
-            rating(container),
-            container_unplayed(container),
-            '<label class="played js-played"><input type="checkbox" ',
-              'name="js-played-', container.id ,'"',
-              container.played ? ' checked="checked"' : "",
-              '/><span>Played</span></label>',
-          '</span>',
+        '<span class="info-line">',
+          parents(container),
+          '<span class="navigation">', container.title, '</span>',
+        '</span>',
+        '<span class="info-line">',
+          rating(container),
+          played(container),
         '</span>',
       '</span>',
       '<span class="right">',
-        '<span class="line1">',
+        '<span class="info-line">',
           get_info_link(container, true),
-          '<a href="#" class="js-scan">Scan</a>',
+          '<a href="#" class="action js-scan">Scan</a>',
           identify_link(container, true),
         '</span>',
       '</span>',
@@ -227,10 +232,10 @@ function media_page(media) {
         '<span>', media.title, '</span>',
         parents(media),
         description(media),
-        '<div class="actions">',
+        '<div>',
           identify_link(media, false),
-          anidb_link(media),
           get_info_link(media, false),
+          anidb_link(media),
         '</div>',
       '</span>',
     '</div>'
@@ -245,23 +250,18 @@ function media_line(media, opts) {
     '<div class="media js-navigation ',
       media.is_movie ? "movie " : "", 'js-media line" ',
     'data-id="', media.id, '">',
+      media_img(media),
       '<span class="left">',
-        media_img(media),
-        '<span class="info">',
-          '<span class="line1">',
-            parents(media, hide_parents),
-            '<span>', media.title, '</span>',
-          '</span>',
-          '<span class="line2">',
-            rating(media),
-            '<a href="#" class="js-add-to-play">',
-              in_add_to_play_list(media.id) ? '-Play' : '+Play',
-            ,'</a>',
-            '<label class="played js-played"><input type="checkbox"',
-              ' name="js-played-', media.id ,'"',
-              media.played ? ' checked="checked"' : "",
-              '/><span>Played</span></label>',
-          '</span>',
+        '<span class="info-line">',
+          parents(media, hide_parents),
+          '<span class="navigation">', media.title, '</span>',
+        '</span>',
+        '<span class="info-line">',
+          rating(media),
+          '<a href="#" class="action js-add-to-play">',
+            in_add_to_play_list(media.id) ? '-Play' : '+Play',
+          ,'</a>',
+          played(media),
         '</span>',
       '</span>',
       '<span class="right" ',
@@ -269,7 +269,7 @@ function media_line(media, opts) {
           media.is_identified && media.has_info
         ) ? 'style=display:none"':'',
       '>',
-        '<span class="line1">',
+        '<span class="info-line">',
           get_info_link(media, true),
           identify_link(media, true),
         '</span>',
