@@ -64,6 +64,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         reply = None
+        send_file_path = None
         cache_control = None
         last_modified = None
         etag = None
@@ -289,6 +290,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 response_code = 400
 
+        elif self.path.startswith("/streams/"):
+            parts = self.path[1:].split("/")
+            media_id = parts[-1]
+
+            if media_id and len(parts) == 2:
+                streams = api.get_streams(db, media_id)
+                if streams:
+                    reply = streams
+                    response_code = 200
+                else:
+                    response_code = 404
+
+            else:
+                response_code = 400
         elif (
             (
                 self.path.startswith("/images/thumbnails/")
@@ -298,23 +313,49 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path.startswith("/images/posters/")
                 and self.path.endswith(".jpg")
             )
+            or self.path.startswith("/video/")
+            or (
+                self.path.startswith("/audio/")
+                and self.path.endswith(".opus")
+            )
+            or (
+                self.path.startswith("/subtitles/")
+                and self.path.endswith(".vtt")
+            )
         ):
             response_code = 404
             reply = None
             content_type = None
 
-            file_path = os.path.join(
-                sys.path[0],
-                os.sep.join(self.path[1:].split("/"))
-            )
+            path = [sys.path[0]]
+            if self.path.startswith(("/video/", "/audio/", "/subtitles/")):
+                path.append("streams")
+            path = path + self.path[1:].split("/")
+
+            file_path = os.sep.join(path)
 
             if os.path.exists(file_path):
                 response_code = 200
-                with open(file_path, "rb") as f:
-                    reply = f.read()
+                send_file_path = file_path
 
-                content_type = f"image/{file_path[-3:]}"
+                if self.path.endswith(".png"):
+                    content_type = "image/png"
+                elif self.path.endswith(".jpg"):
+                    content_type = "image/jpg"
+                elif self.path.endswith(".vtt"):
+                    content_type = "text/vtt"
+                elif self.path.endswith(".webm"):
+                    content_type = "video/webm"
+                elif self.path.endswith(".mkv"):
+                    content_type = "video/x-matroska"
+                elif self.path.endswith(".mp4"):
+                    content_type = "video/mp4"
+                elif self.path.endswith(".opus"):
+                    content_type = "audio/ogg"
+
                 cache_control = "private, max-age=604800"
+                if self.path.startswith(("/video/", "/audio/", "/subtitles/")):
+                    cache_control = "no-store"
 
         elif self.path in (
             "/images/play-icon.png",
@@ -353,33 +394,29 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if content_type.startswith("image"):
                     cache_control = "private, max-age=604800"
 
-                # last_modified = os.path.getmtime(file_path)
-                from hashlib import sha256
+                last_modified = os.path.getmtime(file_path)
 
-                with open(file_path, "rb") as f:
-                    _bytes = f.read()
-
-                etag = sha256(_bytes).hexdigest()
-
+                send_file_path = file_path
         else:
             print('ignore', f'"{self.path}"')
             response_code = 400
 
         db.close()
 
-        if response_code in (200, 304) and reply is None:
-            reply = OK_REPLY
-        if response_code == 400:
-            reply = INVALID_REQUEST_REPLY
-        elif response_code == 404:
-            reply = NOT_FOUND_REPLY
+        if not send_file_path:
+            if response_code in (200, 304) and reply is None:
+                reply = OK_REPLY
+            if response_code == 400:
+                reply = INVALID_REQUEST_REPLY
+            elif response_code == 404:
+                reply = NOT_FOUND_REPLY
 
-        if isinstance(reply, (dict, list)):
-            reply = json.dumps(reply)
-            content_type = "text/json"
+            if isinstance(reply, (dict, list)):
+                reply = json.dumps(reply)
+                content_type = "text/json"
 
-        if isinstance(reply, str):
-            reply = bytes(reply, "utf-8")
+            if isinstance(reply, str):
+                reply = bytes(reply, "utf-8")
 
         if content_type is None:
             cache_control = "no-store"
@@ -402,10 +439,31 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # print(self.headers)
 
-        try:
-            self.wfile.write(reply)
-        except Exception as e:
-            print('handler.wfile.write(reply) FAIL!!!!', e)
+        if send_file_path is not None:
+            self.send_file(send_file_path)
+        else:
+            try:
+                self.wfile.write(reply)
+            except Exception as e:
+                print('handler.wfile.write(reply) FAIL!!!!', e)
+
+    def send_file(self, file_path):
+        CHUNK_SIZE = 1024 * 1024 * 1  # 1 MiB
+        with open(file_path, "rb") as f:
+            while True:
+                chunk = f.read(CHUNK_SIZE)
+
+                if not chunk:
+                    break
+                else:
+                    try:
+                        self.wfile.write(chunk)
+                    except Exception as e:
+                        print('handler.send_file FAIL!!!!', e)
+
+                        break
+                    finally:
+                        del chunk
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
@@ -427,13 +485,13 @@ hostName = get_ip()
 
 try:
     serverPort = 8086
-    httpd = socketserver.TCPServer((hostName, serverPort), Handler)
+    httpd = socketserver.ThreadingTCPServer((hostName, serverPort), Handler)
 except OSError:
     print('skip', serverPort)
     for port in range(8087, 8097):
         serverPort = port
         try:
-            httpd = socketserver.TCPServer((hostName, serverPort), Handler)
+            httpd = socketserver.ThreadingTCPServer((hostName, serverPort), Handler)
             break
         except OSError:
             print('skip', serverPort)

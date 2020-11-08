@@ -290,3 +290,9 @@ def container_get_info(db, container_id):
 
 def clear_play_next_list(db):
     WatchingList.remove_all(db)
+
+
+def get_streams(db, media_id):
+    import classes.streaming as streaming
+
+    return streaming.get_streams(db, media_id)

@@ -1,4 +1,4 @@
-var player = "vlc"
+var player = "web"
 function onTogglePlayClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -238,6 +238,46 @@ function onPlayedChange(e) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+function onStreamsReceived(responseText) {
+  console.log(responseText)
+
+  var v = document.createElement('video')
+  v.setAttribute("width", "640")
+  v.setAttribute("controls", "1")
+
+  var info = JSON.parse(responseText)
+  var  src = null, subtitle = null
+
+  for (var i = 0, il = info.subtitles.length; i < il; i ++) {
+    subtitle = document.createElement('track')
+    subtitle.setAttribute('src', info.subtitles[i].src)
+    subtitle.setAttribute("label", info.subtitles[i].lang)
+    subtitle.setAttribute("kind", "subtitles")
+    subtitle.setAttribute("srclang", info.subtitles[i].lang)
+    v.appendChild(subtitle)
+  }
+
+  var error_count = 0
+  for (var i = 0, il = info.streams.length; i < il; i ++) {
+    src = document.createElement('source')
+    //src.setAttribute("type", "video/webm")
+    src.setAttribute("src", info.streams[i])
+    src.addEventListener("error", function(e) {
+      console.log(++error_count, e)
+      if (error_count == v.querySelectorAll('source').length) {
+        console.error('transcode required')
+      }
+    }, false)
+
+    v.appendChild(src)
+  }
+
+  v.addEventListener("canplay", function(e) {
+    document.body.prepend(v)
+    v.scrollIntoView({ behavior: "smooth" })
+  }, false)
+}
+
 function onPlayConfirmed(responseText) {
   console.log(responseText.replace(/\s+/g, " "))
 }
@@ -253,7 +293,7 @@ function onPlaySingleClick(e) {
     if (player === "vlc")
       ajax(base_url + '/play/' + data_id, onPlayConfirmed)
     else {
-      ajax(base_url + '/stream/' + data_id, onPlayConfirmed)
+      ajax(base_url + '/streams/' + data_id, onStreamsReceived)
     }
   }
 
