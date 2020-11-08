@@ -1,3 +1,23 @@
+var player = "vlc"
+function onTogglePlayClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  var new_text = null
+  if (player === "vlc") {
+    player = "web"
+    new_text = "Play in VLC"
+  } else {
+    player = "vlc"
+    new_text = "Play in Browser"
+  }
+
+  document.getElementById('toggle-player').innerHTML = new_text
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+
 function onToggleGridClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -230,7 +250,11 @@ function onPlaySingleClick(e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    ajax(base_url + '/play/' + data_id, onPlayConfirmed)
+    if (player === "vlc")
+      ajax(base_url + '/play/' + data_id, onPlayConfirmed)
+    else {
+      ajax(base_url + '/stream/' + data_id, onPlayConfirmed)
+    }
   }
 
   return false
@@ -782,6 +806,11 @@ window.addEventListener("popstate", function(e) {
       document.getElementById('toggle-grid')
     toggle_grid_button
       .addEventListener('click', onToggleGridClick, false)
+
+    var toggle_player_button =
+      document.getElementById('toggle-player')
+    toggle_player_button
+      .addEventListener('click', onTogglePlayClick, false)
 
   home()
   create_add_to_play_list()
