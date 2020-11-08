@@ -52,6 +52,14 @@
   display: block;
 }
 
+.grid .media.line .title,
+.grid .container.line .title
+{
+  max-height: 4em;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 .media.line .right,
 .container.line .right
 {
