@@ -491,7 +491,9 @@ except OSError:
     for port in range(8087, 8097):
         serverPort = port
         try:
-            httpd = socketserver.ThreadingTCPServer((hostName, serverPort), Handler)
+            httpd = socketserver.ThreadingTCPServer(
+                (hostName, serverPort), Handler
+            )
             break
         except OSError:
             print('skip', serverPort)
@@ -500,8 +502,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 
 try:
     subprocess.Popen([
-        'firefox',
-        # 'chromium',
+        #'firefox',
+        'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}'
     ])

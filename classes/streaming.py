@@ -7,7 +7,7 @@ STREAM_FOLDER = [sys.path[0], "streams"]
 VIDEO_FOLDER = os.sep.join([sys.path[0], "streams"] + ["video"])
 SUBTITLES_FOLDER = os.sep.join([sys.path[0], "streams"] + ["subtitles"])
 AUDIO_FOLDER = os.sep.join([sys.path[0], "streams"] + ["audio"])
-R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)\(([a-zA-Z]{3})\).*'
+R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 
 
 def _create_subtitles(stream_lines, media_id, file_path, format=None):
@@ -39,12 +39,41 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
 def _create_audio(stream_lines, media_id, file_path):
     # TODO: ?
     re_sub_audio = re.compile(R_SUB_AUDIO)
-    for stream_line in stream_lines:
-        if "Audio" in stream_line:
-            print(stream_line)
-            info = re_sub_audio.search(stream_line)
+
+    audio_lines = [line for line in stream_lines if "Audio" in line]
+
+    for line in audio_lines:
+        if "(default)" in line:
+            audio_lines.remove(line)
+            audio_lines.insert(0, line)
+            break
+
+    if len(audio_lines) > 0:
+        audio_lines.pop(0)
+
+    for line in audio_lines:
+        if "Audio" in line:
+            print(line)
+            info = re_sub_audio.search(line)
             if info:
                 print(f'Audio stream {info.group(1)}: {info.group(2)}')
+                audio_path = os.path.join(
+                    AUDIO_FOLDER,
+                    f'{media_id}.{info.group(2)}'
+                ).strip(".")
+                cmd = [
+                    'ffmpeg',
+                    '-y', '-hide_banner',
+                    '-i', file_path,
+                    '-map', f'0:{info.group(1)}',
+                    '-c:a', 'libopus',
+                    f'{audio_path}.opus'
+                ]
+
+                print(" ".join(cmd))
+                if subprocess.call(cmd) != 0:
+                    print('Audio Fail')
+                    os.remove(f'{audio_path}.opus')
 
 
 def _get_stream_info(file_path):
@@ -77,7 +106,7 @@ def _create_default_stream(db, media_id, file_path):
 
 
 def get_streams(db, media_id):
-    TEST = True
+    TEST = False
 
     if TEST:
         media_id = "6d6c38560dcd3c17831c1910b1f9525a"
@@ -126,7 +155,13 @@ def get_streams(db, media_id):
     ):
         for filename in filenames:
             if filename.startswith(media_id):
-                audio.append(filename)
+                parts = filename.split('.')
+                if len(parts) == 3:
+                    lang = parts[1]
+                else:
+                    lang = None
+
+                audio.append({'src': filename, 'lang': lang})
 
     if TEST:
         streams.append('xxx6d6c38560dcd3c17831c1910b1f9525a.webm')
@@ -141,5 +176,12 @@ def get_streams(db, media_id):
                 'lang': subtitle["lang"]
 
             } for subtitle in subtitles
+        ],
+        'audio': [
+            {
+                'src': f'/audio/{a["src"]}',
+                'lang': a["lang"]
+
+            } for a in audio
         ]
     }

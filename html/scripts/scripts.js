@@ -1,4 +1,127 @@
-var player = "web"
+function create_sources(video, streams) {
+  var error_count = 0
+  var src = null
+  for (var i = 0, il = streams.length; i < il; i ++) {
+    src = document.createElement('source')
+    //src.setAttribute("type", "video/webm")
+    src.setAttribute("src", streams[i])
+    src.addEventListener("error", function(e) {
+      console.log(++error_count, e)
+      if (error_count == v.querySelectorAll('source').length) {
+        console.error('transcode required')
+      }
+    }, false)
+
+    video.appendChild(src)
+  }
+}
+
+function create_subtitles(video, subtitles) {
+  var subtitle = null
+  for (var i = 0, il = subtitles.length; i < il; i ++) {
+    subtitle = document.createElement('track')
+    subtitle.setAttribute('src', subtitles[i].src)
+    subtitle.setAttribute("label", subtitles[i].lang)
+    subtitle.setAttribute("kind", "subtitles")
+    subtitle.setAttribute("srclang", subtitles[i].lang)
+    video.appendChild(subtitle)
+  }
+}
+
+function create_audio(wrapper, video, audio_obj) {
+  var audio_select = null, audio_option = null
+  if (audio_obj.length > 0) {
+    audio_select = document.createElement('select')
+    wrapper.appendChild(audio_select)
+
+    var current_audio = null
+    video.addEventListener("play", function(){
+      if (current_audio !== null) {
+        setTimeout(function(){
+          current_audio.currentTime = video.currentTime
+          current_audio.play()
+        }, 100)
+      }
+    }, false)
+
+    video.addEventListener('timeupdate', function() {
+      if (current_audio != null) {
+        if (Math.abs(current_audio.currentTime - video.currentTime) > 1)
+          current_audio.currentTime = video.currentTime
+      }
+    }, false)
+
+    video.addEventListener("pause", function(){
+      if (current_audio !== null) {
+        current_audio.pause()
+      }
+    }, false)
+
+    audio_select.addEventListener("change", function() {
+      if (current_audio !== null) current_audio.pause()
+      if (this.value == "") {
+        current_audio = null
+        video.muted = false
+      } else {
+        var audio_el = wrapper.querySelector(
+          'audio[data-lang="' + this.value + '"]'
+        )
+        current_audio = audio_el
+        video.muted = true
+
+        if (!video.paused) {
+          current_audio.play()
+        }
+      }
+      console.log(current_audio)
+    }, false)
+
+    audio_option = document.createElement('option')
+    audio_option.innerHTML = "default"
+    audio_option.setAttribute("value", "")
+    audio_select.appendChild(audio_option)
+  }
+
+  var audio = null
+  for (var i = 0, il = audio_obj.length; i < il; i++) {
+    audio = document.createElement('audio')
+    //audio.setAttribute("type", "audio/ogg")
+    audio.setAttribute("src", audio_obj[i].src)
+    audio.setAttribute("data-lang", audio_obj[i].lang)
+    audio.setAttribute("controls", "1")
+    audio.preload = "auto"
+    audio.style.display = "none"
+    wrapper.appendChild(audio);
+
+    audio_option = document.createElement('option')
+    audio_option.innerHTML = audio_obj[i].lang
+    audio_option.setAttribute("value", audio_obj[i].lang)
+    audio_select.appendChild(audio_option);
+  }
+}
+
+function create_player(streams_obj) {
+  var wrapper = document.createElement('div')
+
+  var v = document.createElement('video')
+  v.setAttribute("width", "640")
+  v.setAttribute("controls", "1")
+  wrapper.appendChild(v)
+
+  create_sources(v, streams_obj.streams)
+
+  create_subtitles(v, streams_obj.subtitles)
+
+  create_audio(wrapper, v, streams_obj.audio)
+
+  v.addEventListener("canplay", function(e) {
+    document.body.prepend(wrapper)
+    wrapper.scrollIntoView({ behavior: "smooth" })
+  }, false)
+}
+////////////////////////////////////////////////////////////////////////////////
+
+var player = "vlc"
 function onTogglePlayClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -16,7 +139,6 @@ function onTogglePlayClick(e) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
 
 function onToggleGridClick(e) {
   e.preventDefault();
@@ -241,41 +363,9 @@ function onPlayedChange(e) {
 function onStreamsReceived(responseText) {
   console.log(responseText)
 
-  var v = document.createElement('video')
-  v.setAttribute("width", "640")
-  v.setAttribute("controls", "1")
+  var streams = JSON.parse(responseText);
 
-  var info = JSON.parse(responseText)
-  var  src = null, subtitle = null
-
-  for (var i = 0, il = info.subtitles.length; i < il; i ++) {
-    subtitle = document.createElement('track')
-    subtitle.setAttribute('src', info.subtitles[i].src)
-    subtitle.setAttribute("label", info.subtitles[i].lang)
-    subtitle.setAttribute("kind", "subtitles")
-    subtitle.setAttribute("srclang", info.subtitles[i].lang)
-    v.appendChild(subtitle)
-  }
-
-  var error_count = 0
-  for (var i = 0, il = info.streams.length; i < il; i ++) {
-    src = document.createElement('source')
-    //src.setAttribute("type", "video/webm")
-    src.setAttribute("src", info.streams[i])
-    src.addEventListener("error", function(e) {
-      console.log(++error_count, e)
-      if (error_count == v.querySelectorAll('source').length) {
-        console.error('transcode required')
-      }
-    }, false)
-
-    v.appendChild(src)
-  }
-
-  v.addEventListener("canplay", function(e) {
-    document.body.prepend(v)
-    v.scrollIntoView({ behavior: "smooth" })
-  }, false)
+  create_player(streams);
 }
 
 function onPlayConfirmed(responseText) {
