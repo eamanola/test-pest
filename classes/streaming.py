@@ -56,7 +56,37 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
     return count
 
 
+def _create_audio_file(file_path, stream_index, audio_path):
+    cmd = (
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+        '-i', file_path,
+        '-map', f'0:{stream_index}',
+        '-c:a', 'libopus',
+        audio_path
+    )
+
+    try:
+        print("Audio:", " ".join(cmd))
+
+        if subprocess.call(cmd) != 0:
+            print('Audio: Fail')
+
+            os.remove(audio_path)
+            print(audio_path, "removed")
+        else:
+            print('Audio: Completed 0')
+
+    # Doesn't fire | TODO:
+    except(SystemExit, KeyboardInterrupt):
+        os.remove(audio_path)
+        print(audio_path, "removed")
+        raise
+
+
 def _create_audio(stream_lines, media_id, file_path):
+    import threading
+    import time
+
     count = 0
 
     re_sub_audio = re.compile(R_SUB_AUDIO)
@@ -82,32 +112,16 @@ def _create_audio(stream_lines, media_id, file_path):
                 ).strip(".")
 
                 if not os.path.exists(audio_path):
-                    cmd = (
-                        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
-                        '-i', file_path,
-                        '-map', f'0:{info.group(1)}',
-                        '-c:a', 'libopus',
-                        audio_path
-                    )
+                    audio_thread = threading.Thread(
+                        target=_create_audio_file,
+                        name=f"AudioThread{info.group(2)}",
+                        args=(file_path, info.group(1), audio_path))
 
-                    try:
-                        print("Audio:", " ".join(cmd))
+                    audio_thread.start()
 
-                        if subprocess.call(cmd) != 0:
-                            print('Audio: Fail')
+                    time.sleep(1)
 
-                            os.remove(audio_path)
-                            print(audio_path, "removed")
-                        else:
-                            print('Audio: Completed 0')
-
-                            count = count + 1
-
-                    # Doesn't fire | TODO:
-                    except(SystemExit, KeyboardInterrupt):
-                        os.remove(audio_path)
-                        print(audio_path, "removed")
-                        raise
+                    count = count + 1
 
     return count
 
@@ -164,9 +178,11 @@ def _transcode(file_path, stream_path):
 
 
 def _create_stream(media_id, file_path):
+    import threading
+    import time
+
     stream_path = os.path.join(VIDEO_FOLDER, f'{media_id}.webm')
 
-    import threading
     transcode_thread = threading.Thread(
         target=_transcode,
         name="TrancodeThread",
@@ -174,7 +190,6 @@ def _create_stream(media_id, file_path):
     # transcode_thread.daemon = True  # why this breaks everything
     transcode_thread.start()
 
-    import time
     time.sleep(1)
 
     if not os.path.exists(stream_path):
@@ -182,12 +197,12 @@ def _create_stream(media_id, file_path):
 
     stream_lines = _get_stream_info(file_path)
 
-    subtitles_created = _create_subtitles(stream_lines, media_id, file_path)
-    audio_created = _create_audio(stream_lines, media_id, file_path)
+    _create_subtitles(stream_lines, media_id, file_path)
+    _create_audio(stream_lines, media_id, file_path)
 
-    buffer_time = 10 - (0.5 * subtitles_created) - (15 * audio_created)
-    if buffer_time > 0:
-        time.sleep(int(buffer_time))
+    # TODO: Move to UI?
+    BUFFER_TIME = 10
+    time.sleep(BUFFER_TIME)
 
     return get_streams(None, media_id)
 

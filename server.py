@@ -354,7 +354,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     content_type = "audio/ogg"
 
                 cache_control = "private, max-age=604800"
-                if self.path.startswith(("/video/")):
+                if self.path.startswith(("/audio/", "/video/")):
                     cache_control = "no-store,max-age=0"
 
         elif self.path in (
@@ -448,6 +448,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 print('handler.wfile.write(reply) FAIL!!!!', e)
 
     def send_file(self, file_path):
+        import time
+
         CHUNK_SIZE = 1024 * 1024 * 1  # 1 MiB
         with open(file_path, "rb") as f:
             while True:
@@ -467,7 +469,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 if self.path.startswith("/video/"):
                     # allow transcoder to catch up
-                    import time
                     time.sleep(1)
 
 
