@@ -25,7 +25,7 @@ function create_subtitles(video, subtitles) {
     subtitle.setAttribute("kind", "subtitles")
     subtitle.setAttribute("srclang", subtitles[i].lang)
     if (subtitles[i].default === true) {
-      subtitle.setAttribute("default", "1")      
+      subtitle.setAttribute("default", "1")
     }
     video.appendChild(subtitle)
   }
@@ -105,6 +105,12 @@ function create_audio(wrapper, video, audio_obj) {
 
 function create_player(streams_obj) {
   var wrapper = document.createElement('div')
+  wrapper.className = "video-wrapper buffering"
+
+  var loading = document.createElement('img');
+  loading.setAttribute("src", "images/loading.gif")
+  loading.className = "loading"
+  wrapper.appendChild(loading)
 
   var v = document.createElement('video')
   v.setAttribute("width", "640")
@@ -115,8 +121,7 @@ function create_player(streams_obj) {
     console.error(e)
   }, false)
 
-  console.log("player state: buffering")
-  var BUFFER_TIME = 1000 * 10 // 10s
+  var BUFFER_TIME = 1000 * 5 // 1s
   setTimeout(function(){
     create_sources(v, streams_obj.streams)
     create_subtitles(v, streams_obj.subtitles)
@@ -125,7 +130,7 @@ function create_player(streams_obj) {
 
   v.addEventListener("canplay", function(e) {
     setTimeout(function() {
-      console.log("player state: ready")
+      wrapper.className = "video-wrapper"
       v.play()
     }, 1000)
   }, false)

@@ -246,6 +246,24 @@
   font-size: 1.2em;
 }
 
+.video-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.video-wrapper img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+}
+
+.video-wrapper.buffering img {
+  display: initial;
+}
+
 /*
     Large: 1024 pixels /min-width: 64em
     Medium: 640 pixels /min-width: 40em

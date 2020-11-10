@@ -364,6 +364,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path in (
             "/images/play-icon.png",
+            "/images/loading.gif",
             "/scripts/page_builder.js",
             "/scripts/scripts.js",
             "/styles/styles.css",
@@ -387,6 +388,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 if self.path.endswith(".png"):
                     content_type = "image/png"
+                elif self.path.endswith(".gif"):
+                    content_type = "image/gif"
                 elif self.path.endswith(".js"):
                     content_type = "text/javascript"
                 elif self.path.endswith(".css"):
