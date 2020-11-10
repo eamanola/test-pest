@@ -3,10 +3,11 @@ import os
 import subprocess
 import re
 
-STREAM_FOLDER = [sys.path[0], "streams"]
-VIDEO_FOLDER = os.sep.join([sys.path[0], "streams"] + ["video"])
-SUBTITLES_FOLDER = os.sep.join([sys.path[0], "streams"] + ["subtitles"])
-AUDIO_FOLDER = os.sep.join([sys.path[0], "streams"] + ["audio"])
+STREAM_FOLDER = os.path.join(sys.path[0], "streams")
+VIDEO_FOLDER = os.path.join(STREAM_FOLDER, "video")
+SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
+AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
+TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 
 
@@ -205,13 +206,15 @@ def _create_stream(media_id, file_path):
 
 def get_streams(db, media_id):
     streams = []
+    audio = []
+    subtitles = []
+
     for dirpath, dirnames, filenames in os.walk(
         VIDEO_FOLDER,
         followlinks=True
     ):
-        for filename in filenames:
-            if filename.startswith(media_id):
-                streams.append(filename)
+        for filename in [f for f in filenames if f.startswith(media_id)]:
+            streams.append(f'/video/{filename}')
 
     if len(streams) == 0:
         media = db.get_media(media_id)
@@ -225,52 +228,43 @@ def get_streams(db, media_id):
         # file_path = os.path.join(sys.path[0], "test", "sample-video-12s.mkv")
         return _create_stream(media_id, file_path)
 
-    subtitles = []
-    for dirpath, dirnames, filenames in os.walk(
-        SUBTITLES_FOLDER,
-        followlinks=True
-    ):
-        for filename in filenames:
-            if filename.startswith(media_id):
-                parts = filename.split('.')
-                if len(parts) == 3:
-                    lang = parts[1]
-                else:
-                    lang = None
-
-                subtitles.append({'src': filename, 'lang': lang})
-
-    audio = []
     for dirpath, dirnames, filenames in os.walk(
         AUDIO_FOLDER,
         followlinks=True
     ):
-        for filename in filenames:
-            if filename.startswith(media_id):
-                parts = filename.split('.')
-                if len(parts) == 3:
-                    lang = parts[1]
-                else:
-                    lang = None
+        for filename in [f for f in filenames if f.startswith(media_id)]:
+            parts = filename.split('.')
+            if len(parts) == 3:
+                lang = parts[1]
+            else:
+                lang = None
 
-                audio.append({'src': filename, 'lang': lang})
+            audio.append({'src': f'/audio/{filename}', 'lang': lang})
+
+    for dirpath, dirnames, filenames in os.walk(
+        SUBTITLES_FOLDER,
+        followlinks=True
+    ):
+        for filename in [f for f in filenames if f.startswith(media_id)]:
+            parts = filename.split('.')
+            lang = None
+            is_default = False
+
+            if len(parts) == 3:
+                lang = parts[1]
+            elif len(parts) == 4:
+                is_default = True
+            else:
+                lang = None
+
+            subtitles.append({
+                'src': f'/subtitles/{filename}',
+                'lang': lang,
+                'default': is_default
+            })
 
     return {
-        'streams': [
-            f'/video/{stream}' for stream in streams
-        ],
-        'subtitles': [
-            {
-                'src': f'/subtitles/{subtitle["src"]}',
-                'lang': subtitle["lang"]
-
-            } for subtitle in subtitles
-        ],
-        'audio': [
-            {
-                'src': f'/audio/{a["src"]}',
-                'lang': a["lang"]
-
-            } for a in audio
-        ]
+        'streams': streams,
+        'audio': audio,
+        'subtitles': subtitles
     }
