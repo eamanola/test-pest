@@ -200,10 +200,6 @@ def _create_stream(media_id, file_path):
     _create_subtitles(stream_lines, media_id, file_path)
     _create_audio(stream_lines, media_id, file_path)
 
-    # TODO: Move to UI?
-    BUFFER_TIME = 10
-    time.sleep(BUFFER_TIME)
-
     return get_streams(None, media_id)
 
 

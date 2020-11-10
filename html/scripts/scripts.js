@@ -112,16 +112,23 @@ function create_player(streams_obj) {
     console.error(e)
   }, false)
 
-  create_sources(v, streams_obj.streams)
-
-  create_subtitles(v, streams_obj.subtitles)
-
-  create_audio(wrapper, v, streams_obj.audio)
+  console.log("player state: buffering")
+  var BUFFER_TIME = 1000 * 10 // 10s
+  setTimeout(function(){
+    create_sources(v, streams_obj.streams)
+    create_subtitles(v, streams_obj.subtitles)
+    create_audio(wrapper, v, streams_obj.audio)
+  }, BUFFER_TIME)
 
   v.addEventListener("canplay", function(e) {
-    document.body.prepend(wrapper)
-    wrapper.scrollIntoView({ behavior: "smooth" })
+    setTimeout(function() {
+      console.log("player state: ready")
+      v.play()
+    }, 1000)
   }, false)
+
+  document.body.prepend(wrapper)
+  wrapper.scrollIntoView({ behavior: "smooth" })
 }
 
 ////////////////////////////////////////////////////////////////////////////////
