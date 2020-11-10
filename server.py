@@ -314,6 +314,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 and self.path.endswith(".jpg")
             )
             or self.path.startswith("/video/")
+            or self.path.startswith(
+                ("/tmp/video_", "/tmp/audio_", "/tmp/subtitle_")
+            )
             or (
                 self.path.startswith("/audio/")
                 and self.path.endswith(".opus")
@@ -328,7 +331,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = None
 
             path = [sys.path[0]]
-            if self.path.startswith(("/video/", "/audio/", "/subtitles/")):
+            if self.path.startswith(
+                ("/video/", "/audio/", "/subtitles/", "/tmp/")
+            ):
                 path.append("streams")
             path = path + self.path[1:].split("/")
 
@@ -354,7 +359,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     content_type = "audio/ogg"
 
                 cache_control = "private, max-age=604800"
-                if self.path.startswith(("/audio/", "/video/")):
+                if self.path.startswith("/tmp/"):
                     cache_control = "no-store,max-age=0"
 
         elif self.path in (
@@ -467,7 +472,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     finally:
                         del chunk
 
-                if self.path.startswith("/video/"):
+                if self.path.startswith("/tmp/"):
                     # allow transcoder to catch up
                     time.sleep(1)
 
@@ -519,12 +524,14 @@ except KeyboardInterrupt:
 
 httpd.server_close()
 
-#VIDEO_FOLDER = os.sep.join([sys.path[0], "streams", "video"])
-#video = [
-#    f for f in os.listdir(VIDEO_FOLDER)
-#]
-#for f in video:
-#    print(f'removing {f}')
-#    os.remove(os.path.join(VIDEO_FOLDER, f))
+
+STREAM_FOLDER = os.path.join(sys.path[0], "streams")
+TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
+tmp = [
+    f for f in os.listdir(TMP_FOLDER)
+]
+for f in tmp:
+    print(f'removing {f}')
+    os.remove(os.path.join(TMP_FOLDER, f))
 
 print("Server stopped.")
