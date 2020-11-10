@@ -76,7 +76,6 @@ function create_audio(wrapper, video, audio_obj) {
           current_audio.play()
         }
       }
-      console.log(current_audio)
     }, false)
 
     audio_option = document.createElement('option')
@@ -121,7 +120,7 @@ function create_player(streams_obj) {
     console.error(e)
   }, false)
 
-  var BUFFER_TIME = 1000 * 5 // 1s
+  var BUFFER_TIME = 1000 * 10 // 10s
   setTimeout(function(){
     create_sources(v, streams_obj.streams)
     create_subtitles(v, streams_obj.subtitles)

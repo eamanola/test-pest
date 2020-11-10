@@ -247,20 +247,34 @@
 }
 
 .video-wrapper {
-  position: relative;
-  display: inline-block;
-}
-
-.video-wrapper img {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  display: none;
+  z-index: 1;
+  background: #000a;
 }
 
-.video-wrapper.buffering img {
+.video-wrapper video {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.video-wrapper .loading {
+  position: fixed;
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: 100%;
+  transform: translate(-50%, -50%);
+  display: none;
+  z-index: 2;
+}
+
+.video-wrapper.buffering .loading {
   display: initial;
 }
 
