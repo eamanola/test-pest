@@ -360,7 +360,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 cache_control = "private, max-age=604800"
                 if self.path.startswith("/tmp/"):
-                    cache_control = "no-store,max-age=0"
+                    cache_control = "private, must-revalidate, max-age=0"
 
         elif self.path in (
             "/images/play-icon.png",
