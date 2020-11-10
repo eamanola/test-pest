@@ -278,6 +278,13 @@
   display: initial;
 }
 
+.video-wrapper .close {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  margin: 1em;
+}
+
 /*
     Large: 1024 pixels /min-width: 64em
     Medium: 640 pixels /min-width: 40em

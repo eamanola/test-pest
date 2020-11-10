@@ -111,6 +111,15 @@ function create_player(streams_obj) {
   loading.className = "loading"
   wrapper.appendChild(loading)
 
+  var close_button = document.createElement('button')
+  close_button.addEventListener("click", function() {
+    v.pause()
+    document.body.removeChild(wrapper)
+  }, false)
+  close_button.innerHTML = "Close"
+  close_button.className = "close"
+  wrapper.appendChild(close_button)
+
   var v = document.createElement('video')
   v.setAttribute("width", "640")
   v.setAttribute("controls", "1")
