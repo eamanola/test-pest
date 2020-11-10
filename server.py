@@ -354,8 +354,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     content_type = "audio/ogg"
 
                 cache_control = "private, max-age=604800"
-                if self.path.startswith(("/video/", "/audio/", "/subtitles/")):
-                    cache_control = "no-store"
+                if self.path.startswith(("/video/")):
+                    cache_control = "no-store,max-age=0"
 
         elif self.path in (
             "/images/play-icon.png",
@@ -465,6 +465,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     finally:
                         del chunk
 
+                if self.path.startswith("/video/"):
+                    # allow transcoder to catch up
+                    import time
+                    time.sleep(1)
+
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
 def get_ip():
@@ -502,8 +507,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 
 try:
     subprocess.Popen([
-        #'firefox',
-        'chromium',
+        'firefox',
+        # 'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}'
     ])
@@ -512,4 +517,13 @@ except KeyboardInterrupt:
     pass
 
 httpd.server_close()
+
+#VIDEO_FOLDER = os.sep.join([sys.path[0], "streams", "video"])
+#video = [
+#    f for f in os.listdir(VIDEO_FOLDER)
+#]
+#for f in video:
+#    print(f'removing {f}')
+#    os.remove(os.path.join(VIDEO_FOLDER, f))
+
 print("Server stopped.")

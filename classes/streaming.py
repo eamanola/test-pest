@@ -11,33 +11,54 @@ R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 
 
 def _create_subtitles(stream_lines, media_id, file_path, format=None):
+    count = 0
+
     re_sub_audio = re.compile(R_SUB_AUDIO)
+
     for stream_line in stream_lines:
         if "Subtitle" in stream_line:
-            print(stream_line)
             info = re_sub_audio.search(stream_line)
             if info:
-                print(f'Subtitle stream {info.group(1)}: {info.group(2)}')
                 subtitle_path = os.path.join(
                     SUBTITLES_FOLDER,
-                    f'{media_id}.{info.group(2)}'
+                    f'{media_id}.{info.group(2)}.vtt'
                 )
-                cmd = [
-                    'ffmpeg',
-                    '-y', '-hide_banner',
-                    '-i', file_path,
-                    '-map', f'0:{info.group(1)}',
-                    '-f', 'webvtt',
-                    f'{subtitle_path}.vtt'
-                ]
 
-                if subprocess.call(cmd) != 0:
-                    os.remove(f'{subtitle_path}.vtt')
-                    # try bitmap formats
+                if not os.path.exists(subtitle_path):
+                    cmd = (
+                        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+                        '-i', file_path,
+                        '-map', f'0:{info.group(1)}',
+                        '-f', 'webvtt',
+                        subtitle_path
+                    )
+
+                    try:
+                        print("Subtitle:", " ".join(cmd))
+
+                        if subprocess.call(cmd) != 0:
+                            print('Subtitle: Fail')
+                            print('TODO: Bitmap subtitles')
+
+                            os.remove(subtitle_path)
+                            print(subtitle_path, "removed")
+                        else:
+                            print('Subtitle: Completed 0')
+
+                            count = count + 1
+
+                    # Doesn't fire | TODO:
+                    except(SystemExit, KeyboardInterrupt):
+                        os.remove(subtitle_path)
+                        print(subtitle_path, "removed")
+                        raise
+
+    return count
 
 
 def _create_audio(stream_lines, media_id, file_path):
-    # TODO: ?
+    count = 0
+
     re_sub_audio = re.compile(R_SUB_AUDIO)
 
     audio_lines = [line for line in stream_lines if "Audio" in line]
@@ -53,27 +74,42 @@ def _create_audio(stream_lines, media_id, file_path):
 
     for line in audio_lines:
         if "Audio" in line:
-            print(line)
             info = re_sub_audio.search(line)
             if info:
-                print(f'Audio stream {info.group(1)}: {info.group(2)}')
                 audio_path = os.path.join(
                     AUDIO_FOLDER,
-                    f'{media_id}.{info.group(2)}'
+                    f'{media_id}.{info.group(2)}.opus'
                 ).strip(".")
-                cmd = [
-                    'ffmpeg',
-                    '-y', '-hide_banner',
-                    '-i', file_path,
-                    '-map', f'0:{info.group(1)}',
-                    '-c:a', 'libopus',
-                    f'{audio_path}.opus'
-                ]
 
-                print(" ".join(cmd))
-                if subprocess.call(cmd) != 0:
-                    print('Audio Fail')
-                    os.remove(f'{audio_path}.opus')
+                if not os.path.exists(audio_path):
+                    cmd = (
+                        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+                        '-i', file_path,
+                        '-map', f'0:{info.group(1)}',
+                        '-c:a', 'libopus',
+                        audio_path
+                    )
+
+                    try:
+                        print("Audio:", " ".join(cmd))
+
+                        if subprocess.call(cmd) != 0:
+                            print('Audio: Fail')
+
+                            os.remove(audio_path)
+                            print(audio_path, "removed")
+                        else:
+                            print('Audio: Completed 0')
+
+                            count = count + 1
+
+                    # Doesn't fire | TODO:
+                    except(SystemExit, KeyboardInterrupt):
+                        os.remove(audio_path)
+                        print(audio_path, "removed")
+                        raise
+
+    return count
 
 
 def _get_stream_info(file_path):
@@ -87,30 +123,76 @@ def _get_stream_info(file_path):
     ]
 
 
-def _create_default_stream(db, media_id, file_path):
-    stream_path = os.path.join(
-        VIDEO_FOLDER,
-        media_id + os.path.splitext(file_path)[1]
+def _transcode(file_path, stream_path):
+    cmd = (
+        'ffmpeg',
+        '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
+        '-i', file_path,
+        '-r', '30',
+        '-g', '90',
+        '-vf', 'scale=w=1920:h=1080:force_original_aspect_ratio=decrease',
+        '-quality', 'realtime',
+        '-speed', '10',
+        '-threads', '4',
+        '-row-mt', '1',
+        '-tile-columns', '2',
+        '-frame-parallel', '1',
+        '-qmin', '4', '-qmax', '48',
+        '-b:v', '4500k',
+        '-map', '0:v:0', '-map', '0:a:0',
+        '-map', '-0:s', '-map', '-0:d', '-map', '-0:t',
+        stream_path
     )
-    os.symlink(file_path, stream_path)
+
+    try:
+        print('Transcode:', ' '.join(cmd))
+
+        if subprocess.call(cmd) != 0:
+            print('Transcode: Fail / Interrupt')
+
+            os.remove(stream_path)
+            print(stream_path, "removed")
+            # subprocess.Popen(cmd)
+        else:
+            print("Transcode: Completed 0")
+
+    # Doesn't fire | TODO:
+    except (SystemExit, KeyboardInterrupt):
+        os.remove(stream_path)
+        print(stream_path, "removed")
+        raise
+
+
+def _create_stream(media_id, file_path):
+    stream_path = os.path.join(VIDEO_FOLDER, f'{media_id}.webm')
+
+    import threading
+    transcode_thread = threading.Thread(
+        target=_transcode,
+        name="TrancodeThread",
+        args=(file_path, stream_path))
+    # transcode_thread.daemon = True  # why this breaks everything
+    transcode_thread.start()
+
+    import time
+    time.sleep(1)
 
     if not os.path.exists(stream_path):
         return None
 
     stream_lines = _get_stream_info(file_path)
 
-    _create_subtitles(stream_lines, media_id, file_path)
-    _create_audio(stream_lines, media_id, file_path)
+    subtitles_created = _create_subtitles(stream_lines, media_id, file_path)
+    audio_created = _create_audio(stream_lines, media_id, file_path)
 
-    return get_streams(db, media_id)
+    buffer_time = 10 - (0.5 * subtitles_created) - (15 * audio_created)
+    if buffer_time > 0:
+        time.sleep(int(buffer_time))
+
+    return get_streams(None, media_id)
 
 
 def get_streams(db, media_id):
-    TEST = False
-
-    if TEST:
-        media_id = "6d6c38560dcd3c17831c1910b1f9525a"
-
     streams = []
     for dirpath, dirnames, filenames in os.walk(
         VIDEO_FOLDER,
@@ -129,7 +211,8 @@ def get_streams(db, media_id):
         if not os.path.exists(file_path):
             return None
 
-        return _create_default_stream(db, media_id, file_path)
+        # file_path = os.path.join(sys.path[0], "test", "sample-video-12s.mkv")
+        return _create_stream(media_id, file_path)
 
     subtitles = []
     for dirpath, dirnames, filenames in os.walk(
@@ -141,8 +224,6 @@ def get_streams(db, media_id):
                 parts = filename.split('.')
                 if len(parts) == 3:
                     lang = parts[1]
-                    if lang == "eng":
-                        lang = "en"
                 else:
                     lang = None
 
@@ -162,9 +243,6 @@ def get_streams(db, media_id):
                     lang = None
 
                 audio.append({'src': filename, 'lang': lang})
-
-    if TEST:
-        streams.append('xxx6d6c38560dcd3c17831c1910b1f9525a.webm')
 
     return {
         'streams': [

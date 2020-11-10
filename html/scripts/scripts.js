@@ -7,7 +7,7 @@ function create_sources(video, streams) {
     src.setAttribute("src", streams[i])
     src.addEventListener("error", function(e) {
       console.log(++error_count, e)
-      if (error_count == v.querySelectorAll('source').length) {
+      if (error_count == video.querySelectorAll('source').length) {
         console.error('transcode required')
       }
     }, false)
@@ -46,7 +46,7 @@ function create_audio(wrapper, video, audio_obj) {
 
     video.addEventListener('timeupdate', function() {
       if (current_audio != null) {
-        if (Math.abs(current_audio.currentTime - video.currentTime) > 1)
+        if (Math.abs(current_audio.currentTime - video.currentTime) > 0.5)
           current_audio.currentTime = video.currentTime
       }
     }, false)
@@ -108,6 +108,10 @@ function create_player(streams_obj) {
   v.setAttribute("controls", "1")
   wrapper.appendChild(v)
 
+  v.addEventListener("error", function(e) {
+    console.error(e)
+  }, false)
+
   create_sources(v, streams_obj.streams)
 
   create_subtitles(v, streams_obj.subtitles)
@@ -119,6 +123,7 @@ function create_player(streams_obj) {
     wrapper.scrollIntoView({ behavior: "smooth" })
   }, false)
 }
+
 ////////////////////////////////////////////////////////////////////////////////
 
 var player = "vlc"
