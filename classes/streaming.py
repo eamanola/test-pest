@@ -18,11 +18,19 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
 
     for stream_line in stream_lines:
         if "Subtitle" in stream_line:
+
             info = re_sub_audio.search(stream_line)
             if info:
+                file_name = f'{media_id}.{info.group(2)}'
+
+                if "(default)" in stream_line:
+                    file_name = f'{file_name}.default'
+
+                file_name = f'{file_name}.vtt'
+
                 subtitle_path = os.path.join(
                     SUBTITLES_FOLDER,
-                    f'{media_id}.{info.group(2)}.vtt'
+                    file_name
                 )
 
                 if not os.path.exists(subtitle_path):
@@ -233,11 +241,11 @@ def get_streams(db, media_id):
         followlinks=True
     ):
         for filename in [f for f in filenames if f.startswith(media_id)]:
+            lang = None
+
             parts = filename.split('.')
             if len(parts) == 3:
                 lang = parts[1]
-            else:
-                lang = None
 
             audio.append({'src': f'/audio/{filename}', 'lang': lang})
 
@@ -246,16 +254,15 @@ def get_streams(db, media_id):
         followlinks=True
     ):
         for filename in [f for f in filenames if f.startswith(media_id)]:
-            parts = filename.split('.')
             lang = None
             is_default = False
 
+            parts = filename.split('.')
             if len(parts) == 3:
                 lang = parts[1]
             elif len(parts) == 4:
-                is_default = True
-            else:
-                lang = None
+                lang = parts[1]
+                is_default = parts[2] == "default"
 
             subtitles.append({
                 'src': f'/subtitles/{filename}',

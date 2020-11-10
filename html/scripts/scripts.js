@@ -24,6 +24,9 @@ function create_subtitles(video, subtitles) {
     subtitle.setAttribute("label", subtitles[i].lang)
     subtitle.setAttribute("kind", "subtitles")
     subtitle.setAttribute("srclang", subtitles[i].lang)
+    if (subtitles[i].default === true) {
+      subtitle.setAttribute("default", "1")      
+    }
     video.appendChild(subtitle)
   }
 }
