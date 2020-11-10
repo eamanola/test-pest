@@ -212,6 +212,41 @@ def _create_stream(media_id, file_path):
     return get_streams(None, media_id)
 
 
+def format_stream(file_name, is_tmp=False):
+    return f'/{ "video" if is_tmp is False else "tmp" }/{file_name}'
+
+
+def format_audio(file_name, is_tmp=False):
+    lang = None
+
+    parts = file_name.split('.')
+    if len(parts) == 3:
+        lang = parts[1]
+
+    return {
+        'src': f'/{ "video" if is_tmp is False else "tmp" }/{file_name}',
+        'lang': lang
+    }
+
+
+def format_subtitle(file_name, is_tmp=False):
+    lang = None
+    is_default = False
+
+    parts = file_name.split('.')
+    if len(parts) == 3:
+        lang = parts[1]
+    elif len(parts) == 4:
+        lang = parts[1]
+        is_default = parts[2] == "default"
+
+    return {
+        'src': f'/{ "subtitles" if is_tmp is False else "tmp" }/{file_name}',
+        'lang': lang,
+        'default': is_default
+    }
+
+
 def get_streams(db, media_id):
     streams = []
     audio = []
@@ -221,8 +256,8 @@ def get_streams(db, media_id):
         VIDEO_FOLDER,
         followlinks=True
     ):
-        for filename in [f for f in filenames if f.startswith(media_id)]:
-            streams.append(f'/video/{filename}')
+        for file_name in [f for f in filenames if f.startswith(media_id)]:
+            streams.append(format_stream(file_name))
 
     if len(streams) == 0:
         media = db.get_media(media_id)
@@ -240,35 +275,15 @@ def get_streams(db, media_id):
         AUDIO_FOLDER,
         followlinks=True
     ):
-        for filename in [f for f in filenames if f.startswith(media_id)]:
-            lang = None
-
-            parts = filename.split('.')
-            if len(parts) == 3:
-                lang = parts[1]
-
-            audio.append({'src': f'/audio/{filename}', 'lang': lang})
+        for file_name in [f for f in filenames if f.startswith(media_id)]:
+            audio.append(format_audio(file_name))
 
     for dirpath, dirnames, filenames in os.walk(
         SUBTITLES_FOLDER,
         followlinks=True
     ):
-        for filename in [f for f in filenames if f.startswith(media_id)]:
-            lang = None
-            is_default = False
-
-            parts = filename.split('.')
-            if len(parts) == 3:
-                lang = parts[1]
-            elif len(parts) == 4:
-                lang = parts[1]
-                is_default = parts[2] == "default"
-
-            subtitles.append({
-                'src': f'/subtitles/{filename}',
-                'lang': lang,
-                'default': is_default
-            })
+        for file_name in [f for f in filenames if f.startswith(media_id)]:
+            subtitles.append(format_subtitle(file_name))
 
     return {
         'streams': streams,
