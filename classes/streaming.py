@@ -42,25 +42,18 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
                         subtitle_path
                     )
 
-                    try:
-                        print("Subtitle:", " ".join(cmd))
+                    print("Subtitle:", " ".join(cmd))
 
-                        if subprocess.call(cmd) != 0:
-                            print('Subtitle: Fail')
-                            print('TODO: Bitmap subtitles')
+                    if subprocess.call(cmd) == 0:
+                        print('Subtitle: Completed 0')
 
-                            os.remove(subtitle_path)
-                            print(subtitle_path, "removed")
-                        else:
-                            print('Subtitle: Completed 0')
+                        count = count + 1
+                    else:
+                        print('Subtitle: Fail')
+                        print('TODO: Bitmap subtitles')
 
-                            count = count + 1
-
-                    # Doesn't fire | TODO:
-                    except(SystemExit, KeyboardInterrupt):
                         os.remove(subtitle_path)
                         print(subtitle_path, "removed")
-                        raise
 
     return count
 
@@ -74,25 +67,19 @@ def _create_audio_file(file_path, stream_index, audio_path, tmp_path):
         tmp_path
     )
 
-    try:
-        print("Audio:", " ".join(cmd))
+    print("Audio:", " ".join(cmd))
 
-        if subprocess.call(cmd) != 0:
-            print('Audio: Fail')
+    if subprocess.call(cmd) == 0:
+        print('Audio: Completed 0')
 
+        from shutil import copyfile
+        copyfile(tmp_path, audio_path)
+    else:
+        print('Audio: Fail')
+
+        if os.path.exists(tmp_path):
             os.remove(tmp_path)
             print(tmp_path, "removed")
-        else:
-            from shutil import copyfile
-            copyfile(tmp_path, audio_path)
-
-            print('Audio: Completed 0')
-
-    # Doesn't fire | TODO:
-    except(SystemExit, KeyboardInterrupt):
-        os.remove(tmp_path)
-        print(tmp_path, "removed")
-        raise
 
 
 def _create_audio(stream_lines, media_id, file_path):
@@ -173,26 +160,21 @@ def _transcode(file_path, stream_path, tmp_path):
         tmp_path
     )
 
-    try:
-        print('Transcode:', ' '.join(cmd))
+    print('Transcode:', ' '.join(cmd))
 
-        if subprocess.call(cmd) != 0:
-            print('Transcode: Fail / Interrupt')
+    # subprocess.Popen(cmd)
+    if subprocess.call(cmd) == 0:
+        print("Transcode: Completed 0")
 
+        from shutil import copyfile
+        copyfile(tmp_path, stream_path)
+    else:
+        print('Transcode: Fail / Interrupt')
+
+        if os.path.exists(tmp_path):
             os.remove(tmp_path)
             print(tmp_path, "removed")
-            # subprocess.Popen(cmd)
-        else:
-            from shutil import copyfile
-            copyfile(tmp_path, stream_path)
 
-            print("Transcode: Completed 0")
-
-    # Doesn't fire | TODO:
-    except (SystemExit, KeyboardInterrupt):
-        os.remove(tmp_path)
-        print(tmp_path, "removed")
-        raise
 
 
 def _create_stream(media_id, file_path):

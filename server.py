@@ -522,16 +522,16 @@ try:
 except KeyboardInterrupt:
     pass
 
-httpd.server_close()
+finally:
+    STREAM_FOLDER = os.path.join(sys.path[0], "streams")
+    TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
+    tmp = [
+        f for f in os.listdir(TMP_FOLDER)
+    ]
+    for f in tmp:
+        print(f'removing {f}')
+        os.remove(os.path.join(TMP_FOLDER, f))
 
+    httpd.server_close()
 
-STREAM_FOLDER = os.path.join(sys.path[0], "streams")
-TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
-tmp = [
-    f for f in os.listdir(TMP_FOLDER)
-]
-for f in tmp:
-    print(f'removing {f}')
-    os.remove(os.path.join(TMP_FOLDER, f))
-
-print("Server stopped.")
+    print("Server stopped.")
