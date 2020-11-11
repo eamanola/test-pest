@@ -9,6 +9,7 @@ SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
 AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
 TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
+R_DURATION = r'.*Duration\:\ (\d\d\:\d\d\:\d\d).*'
 
 
 def _create_subtitles(stream_lines, media_id, file_path, format=None):
@@ -132,9 +133,7 @@ def _get_stream_info(file_path):
     ffmpeg_info = subprocess.run(cmd, capture_output=True, text=True)
 
     # ffmpeg requires an OUTPUT file use stderr
-    return [
-        line for line in ffmpeg_info.stderr.split("\n") if "Stream" in line
-    ]
+    return ffmpeg_info.stderr.split("\n")
 
 
 def _transcode(file_path, stream_path, tmp_path, codec, width, height):
@@ -315,7 +314,9 @@ def _create_stream(media, codec, width, height):
     if not os.path.exists(file_path):
         return None
 
-    stream_lines = _get_stream_info(file_path)
+    stream_lines = [
+        line for line in _get_stream_info(file_path) if "Stream" in line
+    ]
 
     if not _create_video(
         stream_lines,
@@ -417,8 +418,17 @@ def get_streams(media, codec, width, height):
     ]:
         subtitles.append(format_subtitle(file_name))
 
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    for line in _get_stream_info(os.path.join(file_path)):
+        if "Duration" in line:
+            d = re.compile(R_DURATION).search(line)
+            if d:
+                duration = d.group(1)
+            break
+
     return {
         'streams': streams,
         'audio': audio,
-        'subtitles': subtitles
+        'subtitles': subtitles,
+        'duration': duration
     }
