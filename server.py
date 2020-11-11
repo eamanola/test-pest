@@ -467,6 +467,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def send_file(self, file_path):
         import time
 
+        is_tmp = self.path.startswith("/tmp/")
+
         CHUNK_SIZE = 1024 * 1024 * 1  # 1 MiB
         with open(file_path, "rb") as f:
             while True:
@@ -477,6 +479,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 else:
                     try:
                         self.wfile.write(chunk)
+                    except IOError as e:
+                        print('handler.send_file FAIL!!!!', e)
+
+                        if is_tmp:
+                            import multiprocessing
+                            for process in multiprocessing.active_children():
+                                if self.path in process.name:
+                                    print('KILLING', process.name)
+
+                                    process.terminate()
+                                    time.sleep(1)
+                                    process.close()
+                                    break
+                        break
+
                     except Exception as e:
                         print('handler.send_file FAIL!!!!', e)
 
@@ -484,7 +501,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     finally:
                         del chunk
 
-                if self.path.startswith("/tmp/"):
+                if is_tmp:
                     # allow transcoder to catch up
                     time.sleep(1)
 
@@ -535,15 +552,26 @@ except KeyboardInterrupt:
     pass
 
 finally:
+    httpd.server_close()
+    print("Server stopped.")
+
     STREAM_FOLDER = os.path.join(sys.path[0], "streams")
     TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
+
+    import multiprocessing
+    import time
+
+    for process in [p for p in multiprocessing.active_children() if (
+        p.name.startswith(TMP_FOLDER)
+    )]:
+        print(f'Stopping {process}')
+        process.terminate()
+        time.sleep(1)
+        process.close()
+
     tmp = [
         f for f in os.listdir(TMP_FOLDER)
     ]
     for f in tmp:
         print(f'removing {f}')
         os.remove(os.path.join(TMP_FOLDER, f))
-
-    httpd.server_close()
-
-    print("Server stopped.")

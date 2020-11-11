@@ -81,7 +81,7 @@ def _create_audio_file(file_path, stream_index, audio_path, tmp_path):
 
 
 def _create_audio(stream_lines, media_id, file_path):
-    import threading
+    from multiprocessing import Process
     import time
 
     count = 0
@@ -112,12 +112,12 @@ def _create_audio(stream_lines, media_id, file_path):
                     TMP_FOLDER,
                     f'audio_{media_id}.{info.group(2)}.opus'
                 )
-                audio_thread = threading.Thread(
+                audio_process = Process(
                     target=_create_audio_file,
-                    name=f"AudioThread{info.group(2)}",
+                    name=tmp_path,
                     args=(file_path, info.group(1), audio_path, tmp_path))
-                audio_thread.daemon = True
-                audio_thread.start()
+                audio_process.daemon = True
+                audio_process.start()
 
                 time.sleep(1)
 
@@ -288,7 +288,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
 
 
 def _create_video(stream_lines, media_id, file_path, codec, width, height):
-    import threading
+    from multiprocessing import Process
     import time
 
     file_name = f'{media_id}[{codec}][{width}x{height}].webm'
@@ -296,12 +296,12 @@ def _create_video(stream_lines, media_id, file_path, codec, width, height):
     stream_path = os.path.join(VIDEO_FOLDER, file_name)
     tmp_path = os.path.join(TMP_FOLDER, f'video_{file_name}')
 
-    transcode_thread = threading.Thread(
+    transcode_process = Process(
         target=_transcode,
-        name="TrancodeThread",
+        name=tmp_path,
         args=(file_path, stream_path, tmp_path, codec, w, h))
-    transcode_thread.daemon = True  # why this breaks everything
-    transcode_thread.start()
+    transcode_process.daemon = True  # why this breaks everything
+    transcode_process.start()
 
     time.sleep(1)
 
