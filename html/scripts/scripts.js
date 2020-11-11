@@ -102,6 +102,14 @@ function create_audio(wrapper, video, audio_obj) {
   }
 }
 
+function close_player() {
+  var wrapper = document.querySelector(".video-wrapper")
+  var video = wrapper.querySelector("video")
+
+  video.pause()
+  document.body.removeChild(wrapper)
+}
+
 function create_player(streams_obj) {
   var wrapper = document.createElement('div')
   wrapper.className = "video-wrapper buffering"
@@ -112,10 +120,7 @@ function create_player(streams_obj) {
   wrapper.appendChild(loading)
 
   var close_button = document.createElement('button')
-  close_button.addEventListener("click", function() {
-    v.pause()
-    document.body.removeChild(wrapper)
-  }, false)
+  close_button.addEventListener("click", close_player, false)
   close_button.innerHTML = "Close"
   close_button.className = "close"
   wrapper.appendChild(close_button)
@@ -127,6 +132,18 @@ function create_player(streams_obj) {
 
   v.addEventListener("error", function(e) {
     console.error(e)
+  }, false)
+
+  v.addEventListener("ended", function(e) {
+    close_player()
+
+    var els = document.querySelectorAll(
+      '[data-id=' + streams_obj.id + '] .js-played input'
+    )
+    for (var i = 0, il = els.length; i < il; i++) {
+      els[i].checked = true
+      onPlayedChange( { target: els[i] } )
+    }
   }, false)
 
   var BUFFER_TIME = 1000 * 10 // 10s

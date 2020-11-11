@@ -427,6 +427,7 @@ def get_streams(media, codec, width, height):
             break
 
     return {
+        'id': media.id(),
         'streams': streams,
         'audio': audio,
         'subtitles': subtitles,
