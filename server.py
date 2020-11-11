@@ -293,11 +293,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/streams/"):
             parts = self.path[1:].split("/")
             codec = parts[1]
-            width = parts[2]
-            height = parts[3]
+            width = int(parts[2])
+            height = int(parts[3])
             media_id = parts[4]
 
-            if media_id and len(parts) == 5:
+            if (media_id and codec and width and height and len(parts) == 5):
                 streams = api.get_streams(
                     db,
                     media_id,

@@ -16,44 +16,42 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
 
     re_sub_audio = re.compile(R_SUB_AUDIO)
 
-    for stream_line in stream_lines:
-        if "Subtitle" in stream_line:
+    for subtitle_line in [s for s in stream_lines if "Subtitle" in s]:
+        info = re_sub_audio.search(subtitle_line)
+        if info:
+            file_name = f'{media_id}.{info.group(2)}'
 
-            info = re_sub_audio.search(stream_line)
-            if info:
-                file_name = f'{media_id}.{info.group(2)}'
+            if "(default)" in subtitle_line:
+                file_name = f'{file_name}.default'
 
-                if "(default)" in stream_line:
-                    file_name = f'{file_name}.default'
+            file_name = f'{file_name}.vtt'
 
-                file_name = f'{file_name}.vtt'
+            subtitle_path = os.path.join(
+                SUBTITLES_FOLDER,
+                file_name
+            )
 
-                subtitle_path = os.path.join(
-                    SUBTITLES_FOLDER,
-                    file_name
+            if not os.path.exists(subtitle_path):
+                cmd = (
+                    'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+                    '-i', file_path,
+                    '-map', f'0:{info.group(1)}',
+                    '-f', 'webvtt',
+                    subtitle_path
                 )
 
-                if not os.path.exists(subtitle_path):
-                    cmd = (
-                        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
-                        '-i', file_path,
-                        '-map', f'0:{info.group(1)}',
-                        '-f', 'webvtt',
-                        subtitle_path
-                    )
+                print("Subtitle:", " ".join(cmd))
 
-                    print("Subtitle:", " ".join(cmd))
+                if subprocess.call(cmd) == 0:
+                    print('Subtitle: Completed 0')
 
-                    if subprocess.call(cmd) == 0:
-                        print('Subtitle: Completed 0')
+                    count = count + 1
+                else:
+                    print('Subtitle: Fail')
+                    print('TODO: Bitmap subtitles')
 
-                        count = count + 1
-                    else:
-                        print('Subtitle: Fail')
-                        print('TODO: Bitmap subtitles')
-
-                        os.remove(subtitle_path)
-                        print(subtitle_path, "removed")
+                    os.remove(subtitle_path)
+                    print(subtitle_path, "removed")
 
     return count
 
@@ -118,7 +116,7 @@ def _create_audio(stream_lines, media_id, file_path):
                     target=_create_audio_file,
                     name=f"AudioThread{info.group(2)}",
                     args=(file_path, info.group(1), audio_path, tmp_path))
-
+                audio_thread.daemon = True
                 audio_thread.start()
 
                 time.sleep(1)
@@ -139,70 +137,198 @@ def _get_stream_info(file_path):
     ]
 
 
-def _transcode(file_path, stream_path, tmp_path):
-    cmd = (
-        'ffmpeg',
-        '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
-        '-i', file_path,
-        '-r', '30',
-        '-g', '90',
-        '-vf', 'scale=w=1920:h=1080:force_original_aspect_ratio=decrease',
-        '-quality', 'realtime',
-        '-speed', '10',
-        '-threads', '4',
-        '-row-mt', '1',
-        '-tile-columns', '2',
-        '-frame-parallel', '1',
-        '-qmin', '4', '-qmax', '48',
-        '-b:v', '4500k',
-        '-map', '0:v:0', '-map', '0:a:0',
-        '-map', '-0:s', '-map', '-0:d', '-map', '-0:t',
-        tmp_path
-    )
+def _transcode(file_path, stream_path, tmp_path, codec, width, height):
+    cmd = None
 
-    print('Transcode:', ' '.join(cmd))
+    if codec in ("vp8", "vp9"):
+        cmd = [
+            'ffmpeg',
+            '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
+            '-i', file_path,
+            '-r', '30', '-g', '90',
+            '-quality', 'realtime',
+            '-qmin', '4', '-qmax', '48',
+            '-c:a', 'libopus', '-f', 'webm',
+            '-speed', '10',
+            '-map', '0:v:0', '-map', '0:a:0',
+            '-map', '-0:s', '-map', '-0:d', '-map', '-0:t'
+        ]
 
-    # subprocess.Popen(cmd)
-    if subprocess.call(cmd) == 0:
-        print("Transcode: Completed 0")
+        if codec == "vp9":
+            cmd = cmd + ['-c:v', 'vp9', '-row-mt', '1']
+        elif codec == "vp8":
+            cmd = cmd + ['-c:v', 'libvpx']
 
-        from shutil import copyfile
-        copyfile(tmp_path, stream_path)
-    else:
-        print('Transcode: Fail / Interrupt')
+        if width <= 426 and height <= 240:
+            cmd = cmd + [
+                '-vf',
+                'scale=w=426:h=240:force_original_aspect_ratio=decrease',
+                # '-speed', '8',
+                '-threads', '2', '-b:v', '365k'
+            ]
+            if codec == "vp9":
+                cmd = cmd + [
+                    '-tile-columns', '0', '-frame-parallel', '0'
+                ]
 
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
-            print(tmp_path, "removed")
+        elif width <= 640 and height <= 360:
+            cmd = cmd + [
+                '-vf',
+                'scale=w=640:h=360:force_original_aspect_ratio=decrease',
+                # '-speed', '7',
+                '-threads', '4', '-b:v', '730k'
+            ]
+            if codec == "vp9":
+                cmd = cmd + [
+                    '-tile-columns', '1', '-frame-parallel', '0'
+                ]
+
+        elif width <= 854 and height <= 480:
+            cmd = cmd + [
+                '-vf',
+                'scale=w=854:h=480:force_original_aspect_ratio=decrease',
+                # '-speed', '6',
+                '-threads', '4', '-b:v', '1800k'
+            ]
+            if codec == "vp9":
+                cmd = cmd + [
+                    '-tile-columns', '1', '-frame-parallel', '1'
+                ]
+
+        elif width <= 1280 and height <= 720:
+            cmd = cmd + [
+                '-vf',
+                'scale=w=1280:h=720:force_original_aspect_ratio=decrease',
+                # '-speed', '5',
+                '-threads', '4', '-b:v', '3000k'
+            ]
+            if codec == "vp9":
+                cmd = cmd + [
+                    '-tile-columns', '2', '-frame-parallel', '1'
+                ]
+
+        elif width <= 1920 and height <= 1080:
+            cmd = cmd + [
+                '-vf',
+                'scale=w=1920:h=1080:force_original_aspect_ratio=decrease',
+                # '-speed', '5',
+                '-threads', '4', '-b:v', '4500k'
+            ]
+            if codec == "vp9":
+                cmd = cmd + [
+                    '-tile-columns', '2', '-frame-parallel', '1'
+                ]
+
+        elif width <= 2560 and height <= 1440:
+            cmd = cmd + [
+                '-vf',
+                'scale=w=2560:h=1440:force_original_aspect_ratio=decrease',
+                # '-speed', '5',
+                '-threads', '4', '-b:v', '6000k'
+            ]
+            if codec == "vp9":
+                cmd = cmd + [
+                    '-tile-columns', '3', '-frame-parallel', '1'
+                ]
+
+        elif width <= 3840 and height <= 2160:
+            cmd = cmd + [
+                '-vf',
+                'scale=w=3840:h=2160:force_original_aspect_ratio=decrease',
+                # '-speed', '5',
+                '-threads', '4', '-b:v', '7800k'
+            ]
+            if codec == "vp9":
+                cmd = cmd + [
+                    '-tile-columns', '3', '-frame-parallel', '1'
+                ]
+
+        cmd = cmd + [
+            tmp_path
+        ]
+
+    if cmd:
+        print('Transcode:', ' '.join(cmd))
+
+        # subprocess.Popen(cmd)
+        if subprocess.call(cmd) == 0:
+            print("Transcode: Completed 0")
+
+            from shutil import copyfile
+            copyfile(tmp_path, stream_path)
+        else:
+            print('Transcode: Fail / Interrupt')
+
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+                print(tmp_path, "removed")
 
 
-def _create_stream(media, file_path):
+def _get_width_height(stream_lines, screen_w, screen_h):
+    width, height = screen_w, screen_h
+
+    is_portait = height > width
+    if is_portait:
+        width, height = height, width
+
+    for line in stream_lines:
+        # first
+        if "Video" in line:
+            video_dimensions = re.compile(r'(\d+)x(\d+)').search(line)
+            if video_dimensions:
+                if int(video_dimensions.group(1)) < width:
+                    width = int(video_dimensions.group(1))
+
+                if int(video_dimensions.group(2)) < height:
+                    height = int(video_dimensions.group(2))
+
+            break
+
+    return width, height
+
+
+def _create_video(stream_lines, media_id, file_path, codec, width, height):
     import threading
     import time
 
-    media_id = media.id()
-
+    w, h = _get_width_height(stream_lines, width, height)
     stream_path = os.path.join(VIDEO_FOLDER, f'{media_id}.webm')
     tmp_path = os.path.join(TMP_FOLDER, f'video_{media_id}.webm')
 
     transcode_thread = threading.Thread(
         target=_transcode,
         name="TrancodeThread",
-        args=(file_path, stream_path, tmp_path))
+        args=(file_path, stream_path, tmp_path, codec, w, h))
     transcode_thread.daemon = True  # why this breaks everything
     transcode_thread.start()
 
     time.sleep(1)
 
-    if not os.path.exists(tmp_path):
+    return os.path.exists(tmp_path)
+
+
+def _create_stream(media, codec, width, height):
+    media_id = media.id()
+
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
         return None
 
     stream_lines = _get_stream_info(file_path)
 
+    if not _create_video(
+        stream_lines,
+        media_id,
+        file_path,
+        codec,
+        width,
+        height
+    ):
+        return None
     _create_audio(stream_lines, media_id, file_path)
     _create_subtitles(stream_lines, media_id, file_path)
 
-    return get_streams(media)
+    return get_streams(media, codec, width, height)
 
 
 def format_stream(file_name, is_tmp=False):
@@ -266,12 +392,7 @@ def get_streams(media, codec, width, height):
             streams.append(format_stream(file_name))
 
     if len(streams) == 0:
-        file_path = os.path.join(media.parent().path(), media.file_path())
-        if not os.path.exists(file_path):
-            return None
-
-        # file_path = os.path.join(sys.path[0], "test", "sample-video-12s.mkv")
-        return _create_stream(media, file_path)
+        return _create_stream(media, codec, width, height)
 
     for dirpath, dirnames, filenames in os.walk(
         AUDIO_FOLDER,
