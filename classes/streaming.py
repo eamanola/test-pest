@@ -199,7 +199,7 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
             cmd = cmd + [
                 '-vf',
                 'scale=w=1280:h=720:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
+                # '-speed', '5', -threads 8
                 '-threads', '4', '-b:v', '3000k'
             ]
             if codec == "vp9":
@@ -211,7 +211,7 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
             cmd = cmd + [
                 '-vf',
                 'scale=w=1920:h=1080:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
+                # '-speed', '5', -threads 8
                 '-threads', '4', '-b:v', '4500k'
             ]
             if codec == "vp9":
@@ -223,7 +223,7 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
             cmd = cmd + [
                 '-vf',
                 'scale=w=2560:h=1440:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
+                # '-speed', '5', -threads 16
                 '-threads', '4', '-b:v', '6000k'
             ]
             if codec == "vp9":
@@ -235,7 +235,7 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
             cmd = cmd + [
                 '-vf',
                 'scale=w=3840:h=2160:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
+                # '-speed', '5', -threads 16
                 '-threads', '4', '-b:v', '7800k'
             ]
             if codec == "vp9":
