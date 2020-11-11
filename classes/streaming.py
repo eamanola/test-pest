@@ -81,7 +81,7 @@ def _create_audio_file(file_path, stream_index, audio_path, tmp_path):
 
 
 def _create_audio(stream_lines, media_id, file_path):
-    from multiprocessing import Process
+    import multiprocessing
     import time
 
     count = 0
@@ -112,7 +112,7 @@ def _create_audio(stream_lines, media_id, file_path):
                     TMP_FOLDER,
                     f'audio_{media_id}.{info.group(2)}.opus'
                 )
-                audio_process = Process(
+                audio_process = multiprocessing.Process(
                     target=_create_audio_file,
                     name=tmp_path,
                     args=(file_path, info.group(1), audio_path, tmp_path))
@@ -288,7 +288,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
 
 
 def _create_video(stream_lines, media_id, file_path, codec, width, height):
-    from multiprocessing import Process
+    import multiprocessing
     import time
 
     file_name = f'{media_id}[{codec}][{width}x{height}].webm'
@@ -296,11 +296,11 @@ def _create_video(stream_lines, media_id, file_path, codec, width, height):
     stream_path = os.path.join(VIDEO_FOLDER, file_name)
     tmp_path = os.path.join(TMP_FOLDER, f'video_{file_name}')
 
-    transcode_process = Process(
+    transcode_process = multiprocessing.Process(
         target=_transcode,
         name=tmp_path,
         args=(file_path, stream_path, tmp_path, codec, w, h))
-    transcode_process.daemon = True  # why this breaks everything
+    transcode_process.daemon = True
     transcode_process.start()
 
     time.sleep(1)
@@ -381,39 +381,41 @@ def get_streams(media, codec, width, height):
 
     media_id = media.id()
 
-    for dirpath, dirnames, filenames in os.walk(TMP_FOLDER):
-        for file_name in [f for f in filenames if media_id in f]:
-            if (
-                file_name.startswith("video_")
-                and f'[{codec}]' in file_name
-                and f'[{width}x{height}]' in file_name
-            ):
-                streams.append(format_stream(file_name, is_tmp=True))
+    for file_name in [
+        f for f in os.listdir(TMP_FOLDER) if media_id in f
+    ]:
+        if (
+            file_name.startswith("video_")
+            and f'[{codec}]' in file_name
+            and f'[{width}x{height}]' in file_name
+        ):
+            streams.append(format_stream(file_name, is_tmp=True))
 
-            elif file_name.startswith("audio_"):
-                audio.append(format_audio(file_name, is_tmp=True))
+        elif file_name.startswith("audio_"):
+            audio.append(format_audio(file_name, is_tmp=True))
 
-            elif file_name.startswith("subtitle_"):
-                subtitles.append(format_subtitle(file_name, is_tmp=True))
+        elif file_name.startswith("subtitle_"):
+            subtitles.append(format_subtitle(file_name, is_tmp=True))
 
-    for dirpath, dirnames, filenames in os.walk(VIDEO_FOLDER):
-        for file_name in [f for f in filenames if (
-            media_id in f
-            and f'[{codec}]' in f
-            and f'[{width}x{height}]' in f
-        )]:
-            streams.append(format_stream(file_name))
+    for file_name in [f for f in os.listdir(SUBTITLES_FOLDER) if (
+        media_id in f
+        and f'[{codec}]' in f
+        and f'[{width}x{height}]' in f
+    )]:
+        streams.append(format_stream(file_name))
 
     if len(streams) == 0:
         return _create_stream(media, codec, width, height)
 
-    for dirpath, dirnames, filenames in os.walk(AUDIO_FOLDER):
-        for file_name in [f for f in filenames if f.startswith(media_id)]:
-            audio.append(format_audio(file_name))
+    for file_name in [
+        f for f in os.listdir(AUDIO_FOLDER) if f.startswith(media_id)
+    ]:
+        audio.append(format_audio(file_name))
 
-    for dirpath, dirnames, filenames in os.walk(SUBTITLES_FOLDER):
-        for file_name in [f for f in filenames if f.startswith(media_id)]:
-            subtitles.append(format_subtitle(file_name))
+    for file_name in [
+        f for f in os.listdir(SUBTITLES_FOLDER) if f.startswith(media_id)
+    ]:
+        subtitles.append(format_subtitle(file_name))
 
     return {
         'streams': streams,

@@ -446,6 +446,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if cache_control is not None:
             self.send_header("Cache-Control", cache_control)
         if last_modified is not None:
+            # self.date_time_string
             self.send_header("Last-Modified", epoch_to_httptime(last_modified))
         if etag is not None:
             self.send_header("ETag", f'"{etag}"')
@@ -479,20 +480,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 else:
                     try:
                         self.wfile.write(chunk)
-                    except IOError as e:
-                        print('handler.send_file FAIL!!!!', e)
-
-                        if is_tmp:
-                            import multiprocessing
-                            for process in multiprocessing.active_children():
-                                if self.path in process.name:
-                                    print('KILLING', process.name)
-
-                                    process.terminate()
-                                    time.sleep(1)
-                                    process.close()
-                                    break
-                        break
 
                     except Exception as e:
                         print('handler.send_file FAIL!!!!', e)
@@ -539,8 +526,8 @@ except OSError:
             print('skip', serverPort)
 
 print(f"Server started http://{hostName}:{serverPort}")
-
 try:
+    httpd.daemon_threads = True
     subprocess.Popen([
         'firefox',
         # 'chromium',
@@ -555,23 +542,19 @@ finally:
     httpd.server_close()
     print("Server stopped.")
 
-    STREAM_FOLDER = os.path.join(sys.path[0], "streams")
-    TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
-
+    from classes.streaming import TMP_FOLDER as TMP_FOLDER_PATH
     import multiprocessing
     import time
 
     for process in [p for p in multiprocessing.active_children() if (
-        p.name.startswith(TMP_FOLDER)
+        p.name.startswith(TMP_FOLDER_PATH)
     )]:
         print(f'Stopping {process}')
         process.terminate()
         time.sleep(1)
         process.close()
+        multiprocessing.active_children()
 
-    tmp = [
-        f for f in os.listdir(TMP_FOLDER)
-    ]
-    for f in tmp:
+    for f in os.listdir(TMP_FOLDER_PATH):
         print(f'removing {f}')
-        os.remove(os.path.join(TMP_FOLDER, f))
+        os.remove(os.path.join(TMP_FOLDER_PATH, f))
