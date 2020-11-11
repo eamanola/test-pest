@@ -292,10 +292,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path.startswith("/streams/"):
             parts = self.path[1:].split("/")
-            media_id = parts[-1]
+            codec = parts[1]
+            width = parts[2]
+            height = parts[3]
+            media_id = parts[4]
 
-            if media_id and len(parts) == 2:
-                streams = api.get_streams(db, media_id)
+            if media_id and len(parts) == 5:
+                streams = api.get_streams(
+                    db,
+                    media_id,
+                    codec,
+                    width,
+                    height
+                )
                 if streams:
                     reply = streams
                     response_code = 200

@@ -253,7 +253,7 @@
   width: 100%;
   height: 100%;
   z-index: 1;
-  background: #000a;
+  background: #000000f1;
 }
 
 .video-wrapper video {
@@ -261,6 +261,10 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+}
+
+.video-wrapper.buffering video {
+  display: none;
 }
 
 .video-wrapper .loading {

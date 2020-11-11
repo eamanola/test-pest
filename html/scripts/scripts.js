@@ -149,7 +149,7 @@ function create_player(streams_obj) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-var player = "vlc"
+var player = "web"
 function onTogglePlayClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -410,8 +410,14 @@ function onPlaySingleClick(e) {
     }
     if (player === "vlc")
       ajax(base_url + '/play/' + data_id, onPlayConfirmed)
-    else {
-      ajax(base_url + '/streams/' + data_id, onStreamsReceived)
+    else if (player === "web") {
+      ajax(
+        [base_url,
+        'streams',
+        stream_codec,
+        screen.width,
+        screen.height,
+        data_id].join('/'), onStreamsReceived)
     }
   }
 
@@ -942,6 +948,7 @@ window.addEventListener("popstate", function(e) {
   updatePage(e.state)
 }, false);
 
+
 (function inits(){
   var play_button = document.getElementById('play-button')
   play_button.addEventListener('click', onPlayClick, false)
@@ -972,4 +979,21 @@ window.addEventListener("popstate", function(e) {
 
   home()
   create_add_to_play_list()
+
+  if (window.MediaSource && MediaSource.isTypeSupported) {
+    if (MediaSource.isTypeSupported('video/webm; codecs="vp9"'))
+      stream_codec = "vp9"
+    else if (MediaSource.isTypeSupported('video/webm; codecs="vp8, vorbis"'))
+      stream_codec = "vp8"
+  }
+
+  if (stream_codec == null) {
+    document.getElementById("toggle-player").display = 'none'
+  } else {
+    if (player === "vlc") {
+      document.getElementById("toggle-player").innerHTML = "Play in Browser"
+    } else if (player === "web") {
+      document.getElementById("toggle-player").innerHTML = "Play in VLC"
+    }
+  }
 })()

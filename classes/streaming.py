@@ -176,10 +176,11 @@ def _transcode(file_path, stream_path, tmp_path):
             print(tmp_path, "removed")
 
 
-
-def _create_stream(media_id, file_path):
+def _create_stream(media, file_path):
     import threading
     import time
+
+    media_id = media.id()
 
     stream_path = os.path.join(VIDEO_FOLDER, f'{media_id}.webm')
     tmp_path = os.path.join(TMP_FOLDER, f'video_{media_id}.webm')
@@ -201,7 +202,7 @@ def _create_stream(media_id, file_path):
     _create_audio(stream_lines, media_id, file_path)
     _create_subtitles(stream_lines, media_id, file_path)
 
-    return get_streams(None, media_id)
+    return get_streams(media)
 
 
 def format_stream(file_name, is_tmp=False):
@@ -239,10 +240,12 @@ def format_subtitle(file_name, is_tmp=False):
     }
 
 
-def get_streams(db, media_id):
+def get_streams(media, codec, width, height):
     streams = []
     audio = []
     subtitles = []
+
+    media_id = media.id()
 
     for dirpath, dirnames, filenames in os.walk(TMP_FOLDER):
         for file_name in [f for f in filenames if media_id in f]:
@@ -263,16 +266,12 @@ def get_streams(db, media_id):
             streams.append(format_stream(file_name))
 
     if len(streams) == 0:
-        media = db.get_media(media_id)
-        if not media:
-            return None
-
         file_path = os.path.join(media.parent().path(), media.file_path())
         if not os.path.exists(file_path):
             return None
 
         # file_path = os.path.join(sys.path[0], "test", "sample-video-12s.mkv")
-        return _create_stream(media_id, file_path)
+        return _create_stream(media, file_path)
 
     for dirpath, dirnames, filenames in os.walk(
         AUDIO_FOLDER,
