@@ -291,9 +291,10 @@ def _create_video(stream_lines, media_id, file_path, codec, width, height):
     import threading
     import time
 
+    file_name = f'{media_id}[{codec}][{width}x{height}].webm'
     w, h = _get_width_height(stream_lines, width, height)
-    stream_path = os.path.join(VIDEO_FOLDER, f'{media_id}.webm')
-    tmp_path = os.path.join(TMP_FOLDER, f'video_{media_id}.webm')
+    stream_path = os.path.join(VIDEO_FOLDER, file_name)
+    tmp_path = os.path.join(TMP_FOLDER, f'video_{file_name}')
 
     transcode_thread = threading.Thread(
         target=_transcode,
@@ -371,40 +372,46 @@ def get_streams(media, codec, width, height):
     audio = []
     subtitles = []
 
+    is_portait = height > width
+    if is_portait:
+        temp = height
+        height = width
+        width = temp
+    # TODO: brackets? see after mp4
+
     media_id = media.id()
 
     for dirpath, dirnames, filenames in os.walk(TMP_FOLDER):
         for file_name in [f for f in filenames if media_id in f]:
-            if (file_name.startswith("video_")):
+            if (
+                file_name.startswith("video_")
+                and f'[{codec}]' in file_name
+                and f'[{width}x{height}]' in file_name
+            ):
                 streams.append(format_stream(file_name, is_tmp=True))
 
-            elif (file_name.startswith("audio_")):
+            elif file_name.startswith("audio_"):
                 audio.append(format_audio(file_name, is_tmp=True))
 
-            elif (file_name.startswith("subtitle_")):
+            elif file_name.startswith("subtitle_"):
                 subtitles.append(format_subtitle(file_name, is_tmp=True))
 
-    for dirpath, dirnames, filenames in os.walk(
-        VIDEO_FOLDER,
-        followlinks=True
-    ):
-        for file_name in [f for f in filenames if f.startswith(media_id)]:
+    for dirpath, dirnames, filenames in os.walk(VIDEO_FOLDER):
+        for file_name in [f for f in filenames if (
+            media_id in f
+            and f'[{codec}]' in f
+            and f'[{width}x{height}]' in f
+        )]:
             streams.append(format_stream(file_name))
 
     if len(streams) == 0:
         return _create_stream(media, codec, width, height)
 
-    for dirpath, dirnames, filenames in os.walk(
-        AUDIO_FOLDER,
-        followlinks=True
-    ):
+    for dirpath, dirnames, filenames in os.walk(AUDIO_FOLDER):
         for file_name in [f for f in filenames if f.startswith(media_id)]:
             audio.append(format_audio(file_name))
 
-    for dirpath, dirnames, filenames in os.walk(
-        SUBTITLES_FOLDER,
-        followlinks=True
-    ):
+    for dirpath, dirnames, filenames in os.walk(SUBTITLES_FOLDER):
         for file_name in [f for f in filenames if f.startswith(media_id)]:
             subtitles.append(format_subtitle(file_name))
 
