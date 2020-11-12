@@ -407,6 +407,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "/images/play-icon.png",
                 "/images/loading.gif",
                 "/scripts/page_builder.js",
+                "/scripts/player.js",
                 "/scripts/scripts.js",
                 "/styles/styles.css",
                 "/index.html"
@@ -604,6 +605,8 @@ finally:
 
         for child in children:
             child.terminate()
+
+        time.sleep(1)
 
         process.close()
 

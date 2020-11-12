@@ -343,6 +343,8 @@ def _create_video(stream_lines, media_id, file_path, codec, width, height):
                 for child in children:
                     child.terminate()
 
+                time.sleep(1)
+
                 proc.close()
 
                 if os.path.exists(proc.name):
