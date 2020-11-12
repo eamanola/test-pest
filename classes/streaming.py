@@ -250,17 +250,30 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
         print('Transcode:', ' '.join(cmd))
 
         # subprocess.Popen(cmd)
+        exit_code = subprocess.call(cmd)
+
+        if exit_code != 0:
+            print('Transcode: Fail')
+            print('Trying libvorbis')
+
+            cmd = ["libvorbis" if c == "libopus" else c for c in cmd]
+
+            exit_code = subprocess.call(cmd)
+
+        if exit_code != 0:
+            print('Transcode: Fail')
+            print('Removing tmp files')
+
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
         if subprocess.call(cmd) == 0:
             print("Transcode: Completed 0")
 
             from shutil import copyfile
             copyfile(tmp_path, stream_path)
-        else:
-            print('Transcode: Fail / Interrupt')
 
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-                print(tmp_path, "removed")
+        return exit_code
 
 
 def _get_width_height(stream_lines, screen_w, screen_h):
@@ -419,7 +432,7 @@ def get_streams(media, codec, width, height):
         subtitles.append(format_subtitle(file_name))
 
     file_path = os.path.join(media.parent().path(), media.file_path())
-    for line in _get_stream_info(os.path.join(file_path)):
+    for line in _get_stream_info(file_path):
         if "Duration" in line:
             d = re.compile(R_DURATION).search(line)
             if d:
