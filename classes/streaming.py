@@ -7,6 +7,7 @@ STREAM_FOLDER = os.path.join(sys.path[0], "streams")
 VIDEO_FOLDER = os.path.join(STREAM_FOLDER, "video")
 SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
 AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
+FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
 TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d\:\d\d\:\d\d).*'
@@ -28,7 +29,12 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
             if "(forced)" in line:
                 file_name = f'{file_name}.forced'
 
-            file_name = f'{file_name}.vtt'
+            is_ass = "Subtitle: ass " in line
+
+            if is_ass:
+                file_name = f'{file_name}.ass'
+            else:
+                file_name = f'{file_name}.vtt'
 
             subtitle_path = os.path.join(
                 SUBTITLES_FOLDER,
@@ -36,11 +42,21 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
             )
 
             if not os.path.exists(subtitle_path):
+                if is_ass:
+                    cmd = (
+                        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+                        '-dump_attachment:t', '',
+                        '-i', file_path
+                    )
+
+                    print(" ".join(cmd))
+
+                    subprocess.call(cmd, cwd=FONTS_FOLDER)
+
                 cmd = (
                     'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
                     '-i', file_path,
                     '-map', f'0:{info.group(1)}',
-                    '-f', 'webvtt',
                     subtitle_path
                 )
 
@@ -406,9 +422,6 @@ def get_streams(media, codec, width, height):
         elif file_name.startswith("audio_"):
             audio.append(format_audio(file_name, is_tmp=True))
 
-        elif file_name.startswith("subtitle_"):
-            subtitles.append(format_subtitle(file_name, is_tmp=True))
-
     for file_name in [f for f in os.listdir(VIDEO_FOLDER) if (
         media_id in f
         and f'[{codec}]' in f
@@ -430,17 +443,39 @@ def get_streams(media, codec, width, height):
         subtitles.append(format_subtitle(file_name))
 
     file_path = os.path.join(media.parent().path(), media.file_path())
-    for line in _get_stream_info(file_path):
+    stream_info = _get_stream_info(file_path)
+
+    for line in stream_info:
         if "Duration" in line:
             d = re.compile(R_DURATION).search(line)
             if d:
                 duration = d.group(1)
             break
 
+    fonts = []
+    is_ass = False
+    for s in subtitles:
+        if s['src'].endswith(".ass"):
+            is_ass = True
+            break
+
+    if is_ass:
+        re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
+        for line in [
+            line for line in stream_info if (
+                line.strip().startswith("filename")
+                and line.strip().endswith((".otf", ".OTF", ".ttf", ".TTF"))
+            )
+        ]:
+            filename = re_attachment_names.search(line)
+            if filename:
+                fonts.append(f"/fonts/{filename.group(1)}")
+
     return {
         'id': media.id(),
         'streams': streams,
         'audio': audio,
         'subtitles': subtitles,
-        'duration': duration
+        'duration': duration,
+        'fonts': fonts
     }

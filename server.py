@@ -30,6 +30,8 @@ def mime_type(file_name):
         content_type = "image/jpg"
     elif file_name.endswith(".vtt"):
         content_type = "text/vtt"
+    elif file_name.endswith(".ass"):
+        content_type = "text/ass"
     elif file_name.endswith(".webm"):
         content_type = "video/webm"
     elif file_name.endswith(".mkv"):
@@ -367,7 +369,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
             or (
                 self.path.startswith("/subtitles/")
-                and self.path.endswith(".vtt")
+                and self.path.endswith((".vtt", ".ass"))
             )
             or (
                 self.path.startswith("/fonts/")
@@ -406,8 +408,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "/styles/styles.css",
                 "/index.html"
             )
-            or self.path.startswith("/scripts/octopus-ass")
-            or self.path == "/out.ass"
+            or self.path in (
+                "/scripts/octopus-ass/subtitles-octopus-worker-legacy.data",
+                "/scripts/octopus-ass/subtitles-octopus-worker-legacy.js",
+                "/scripts/octopus-ass/subtitles-octopus-worker-legacy.js.mem",
+                "/scripts/octopus-ass/subtitles-octopus-worker.data",
+                "/scripts/octopus-ass/subtitles-octopus-worker.js",
+                "/scripts/octopus-ass/subtitles-octopus-worker.wasm",
+                "/scripts/octopus-ass/subtitles-octopus.js"
+            )
         ):
             response_code = 404
 
