@@ -46,6 +46,12 @@ def mime_type(file_name):
         content_type = "text/css"
     elif file_name.endswith(".html"):
         content_type = "text/html"
+    elif file_name.endswith(".wasm"):
+        content_type = "application/wasm"
+    elif file_name.endswith((".otf", ".OTF")):
+        content_type = "application/vnd.ms-opentype"
+    elif file_name.endswith((".ttf", ".TTF")):
+        content_type = "application/x-truetype-font"
 
     return content_type
 
@@ -363,6 +369,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path.startswith("/subtitles/")
                 and self.path.endswith(".vtt")
             )
+            or (
+                self.path.startswith("/fonts/")
+                and self.path.endswith((".otf", ".OTF", ".ttf", ".TTF"))
+            )
         ):
             response_code = 404
             reply = None
@@ -370,30 +380,34 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             path = [sys.path[0]]
             if self.path.startswith(
-                ("/video/", "/audio/", "/subtitles/", "/tmp/")
+                ("/video/", "/audio/", "/subtitles/", "/tmp/", "/fonts/")
             ):
                 path.append("streams")
             path = path + self.path[1:].split("/")
 
-            file_path = os.sep.join(path)
+            file_path = os.sep.join(path).replace("%20", " ")
 
             if os.path.exists(file_path):
                 response_code = 200
                 send_file_path = file_path
 
-                mime_type(file_path)
+                content_type = mime_type(file_path)
 
                 cache_control = "private, max-age=604800"
                 if self.path.startswith("/tmp/"):
                     cache_control = "private, must-revalidate, max-age=0"
 
-        elif self.path in (
-            "/images/play-icon.png",
-            "/images/loading.gif",
-            "/scripts/page_builder.js",
-            "/scripts/scripts.js",
-            "/styles/styles.css",
-            "/index.html"
+        elif (
+            self.path in (
+                "/images/play-icon.png",
+                "/images/loading.gif",
+                "/scripts/page_builder.js",
+                "/scripts/scripts.js",
+                "/styles/styles.css",
+                "/index.html"
+            )
+            or self.path.startswith("/scripts/octopus-ass")
+            or self.path == "/out.ass"
         ):
             response_code = 404
 
@@ -411,7 +425,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     with open(file_path, "rb") as f:
                         reply = f.read()
 
-                mime_type(file_path)
+                content_type = mime_type(file_path)
+
+                if content_type is None:
+                    content_type = "application/octet-stream"
 
                 cache_control = "private, must-revalidate, max-age=0"
 
@@ -488,8 +505,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     try:
                         self.wfile.write(chunk)
 
+                    except ConnectionResetError as e:
+                        print('handler.send_file ConnectionResetError', e)
+
+                        break
+                    except IOError as e:
+                        print('handler.send_file IOError', e)
+
+                        break
                     except Exception as e:
-                        print('handler.send_file FAIL!!!!', e)
+                        print('handler.send_file Unknow Exception', e)
 
                         break
                     finally:
@@ -497,7 +522,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 if is_tmp:
                     # allow transcoder to catch up
-                    time.sleep(1)
+                    time.sleep(1.5)
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib

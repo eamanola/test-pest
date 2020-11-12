@@ -409,7 +409,7 @@ def get_streams(media, codec, width, height):
         elif file_name.startswith("subtitle_"):
             subtitles.append(format_subtitle(file_name, is_tmp=True))
 
-    for file_name in [f for f in os.listdir(SUBTITLES_FOLDER) if (
+    for file_name in [f for f in os.listdir(VIDEO_FOLDER) if (
         media_id in f
         and f'[{codec}]' in f
         and f'[{width}x{height}]' in f

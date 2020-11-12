@@ -35,11 +35,11 @@ function create_subtitles(video, subtitles) {
   }
 }
 
-function create_audio(wrapper, video, audio_obj) {
+function create_audio(wrapper, controls, video, audio_obj) {
   var audio_select = null, audio_option = null
   if (audio_obj.length > 0) {
     audio_select = document.createElement('select')
-    wrapper.appendChild(audio_select)
+    controls.appendChild(audio_select)
 
     var current_audio = null
     video.addEventListener("play", function(){
@@ -118,16 +118,30 @@ function create_player(streams_obj) {
   var wrapper = document.createElement('div')
   wrapper.className = "video-wrapper buffering"
 
+  wrapper.addEventListener("click", function() {
+    wrapper.requestFullscreen()
+  }, false)
+
   var loading = document.createElement('img');
   loading.setAttribute("src", "images/loading.gif")
   loading.className = "loading"
   wrapper.appendChild(loading)
 
+  var controls = document.createElement('div')
+  controls.className = "video-controls"
+  wrapper.appendChild(controls)
+
   var close_button = document.createElement('button')
   close_button.addEventListener("click", close_player, false)
   close_button.innerHTML = "Close"
-  close_button.className = "close"
-  wrapper.appendChild(close_button)
+  controls.appendChild(close_button)
+
+  var fullscreen_button = document.createElement('button')
+  fullscreen_button.addEventListener("click", function() {
+    wrapper.requestFullscreen()
+  }, false)
+  fullscreen_button.innerHTML = "Fullscreen"
+  controls.appendChild(fullscreen_button)
 
   var v = document.createElement('video')
   v.setAttribute("width", "640")
@@ -154,7 +168,7 @@ function create_player(streams_obj) {
   setTimeout(function(){
     create_sources(v, streams_obj.streams)
     create_subtitles(v, streams_obj.subtitles)
-    create_audio(wrapper, v, streams_obj.audio)
+    create_audio(wrapper, controls, v, streams_obj.audio)
   }, BUFFER_TIME)
 
   v.addEventListener("canplay", function(e) {
@@ -166,6 +180,24 @@ function create_player(streams_obj) {
 
   document.body.prepend(wrapper)
   wrapper.scrollIntoView({ behavior: "smooth" })
+  /*
+  var options = {
+    video: v, //document.getElementById('video'), // HTML5 video element
+    subUrl: '../../out.ass', // Link to subtitles
+    fonts: ['/fonts/Brush Strokes_6.ttf', '/fonts/CenturyOldStyle-Light.ttf', '/fonts/ComicBookFun-Regular.ttf',
+      '/fonts/D3Streetism_0.TTF', '/fonts/dekorat.ttf', '/fonts/DenneDelica.ttf', '/fonts/Dry Brush.ttf',
+      '/fonts/emmasophia.ttf', '/fonts/erasdust_0.ttf', '/fonts/FONTIN_SANS_0.OTF', '/fonts/FONTIN_SANS_BI_0.OTF',
+      '/fonts/FRADM.TTF', '/fonts/FREESCPT.TTF', '/fonts/FromWhereYouAre.ttf', '/fonts/GaramondPremrPro.otf',
+      '/fonts/gloriahallelujah.ttf', '/fonts/Hand Of Sean.ttf', '/fonts/hwfont.ttf',
+      '/fonts/JandaSafeandSoundSolid.ttf', '/fonts/JasonSharpie.ttf', '/fonts/Jelly Crazies.ttf',
+      '/fonts/Lato-Reg.ttf', '/fonts/LSANSD.TTF', '/fonts/mangatb.ttf', '/fonts/marker moe_0.otf',
+      '/fonts/Ninoshandwriting.ttf', '/fonts/No more lies.ttf', '/fonts/one_trick_pony_tt.ttf', '/fonts/TheGreatEscapeBold.ttf'
+    ], // ['/test/font-1.ttf', '/test/font-2.ttf'], // Links to fonts (not required, default font already included in build)
+    workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js', // Link to WebAssembly-based file "libassjs-worker.js"
+    legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js' // Link to non-WebAssembly worker
+  };
+  var instance = new SubtitlesOctopus(options);
+  */
 }
 
 ////////////////////////////////////////////////////////////////////////////////
