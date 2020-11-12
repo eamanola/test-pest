@@ -17,13 +17,16 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
 
     re_sub_audio = re.compile(R_SUB_AUDIO)
 
-    for subtitle_line in [s for s in stream_lines if "Subtitle" in s]:
-        info = re_sub_audio.search(subtitle_line)
+    for line in [s for s in stream_lines if "Subtitle" in s]:
+        info = re_sub_audio.search(line)
         if info:
             file_name = f'{media_id}.{info.group(2)}'
 
-            if "(default)" in subtitle_line:
+            if "(default)" in line:
                 file_name = f'{file_name}.default'
+
+            if "(forced)" in line:
+                file_name = f'{file_name}.forced'
 
             file_name = f'{file_name}.vtt'
 
@@ -103,16 +106,18 @@ def _create_audio(stream_lines, media_id, file_path):
     for line in audio_lines:
         info = re_sub_audio.search(line)
         if info:
-            audio_path = os.path.join(
-                AUDIO_FOLDER,
-                f'{media_id}.{info.group(2)}.opus'
-            )
+            file_name = f'{media_id}.{info.group(2)}'
+
+            if "(forced)" in line:
+                file_name = f'{file_name}.forced'
+
+            file_name = f'{file_name}.opus'
+
+            audio_path = os.path.join(AUDIO_FOLDER, file_name)
 
             if not os.path.exists(audio_path):
-                tmp_path = os.path.join(
-                    TMP_FOLDER,
-                    f'audio_{media_id}.{info.group(2)}.opus'
-                )
+                tmp_path = os.path.join(TMP_FOLDER, f'audio_{file_name}')
+
                 audio_process = multiprocessing.Process(
                     target=_create_audio_file,
                     name=tmp_path,
@@ -351,33 +356,26 @@ def format_stream(file_name, is_tmp=False):
 
 
 def format_audio(file_name, is_tmp=False):
-    lang = None
-
-    parts = file_name.split('.')
-    if len(parts) == 3:
-        lang = parts[1]
+    lang = file_name.split('.')[1]
+    is_forced = ".forced" in file_name
 
     return {
         'src': f'/{ "audio" if is_tmp is False else "tmp" }/{file_name}',
-        'lang': lang
+        'lang': lang,
+        'forced': is_forced
     }
 
 
 def format_subtitle(file_name, is_tmp=False):
-    lang = None
-    is_default = False
-
-    parts = file_name.split('.')
-    if len(parts) == 3:
-        lang = parts[1]
-    elif len(parts) == 4:
-        lang = parts[1]
-        is_default = parts[2] == "default"
+    lang = file_name.split('.')[1]
+    is_default = ".default" in file_name
+    is_forced = ".forced" in file_name
 
     return {
         'src': f'/{ "subtitles" if is_tmp is False else "tmp" }/{file_name}',
         'lang': lang,
-        'default': is_default
+        'default': is_default,
+        'forced': is_forced
     }
 
 

@@ -17,11 +17,15 @@ function create_sources(video, streams) {
 }
 
 function create_subtitles(video, subtitles) {
-  var subtitle = null
+  var subtitle = null, label = null
   for (var i = 0, il = subtitles.length; i < il; i ++) {
     subtitle = document.createElement('track')
     subtitle.setAttribute('src', subtitles[i].src)
-    subtitle.setAttribute("label", subtitles[i].lang)
+    label = subtitles[i].lang
+    if (subtitles[i].forced === true) {
+      label = label + "(forced)"
+    }
+    subtitle.setAttribute("label", label)
     subtitle.setAttribute("kind", "subtitles")
     subtitle.setAttribute("srclang", subtitles[i].lang)
     if (subtitles[i].default === true) {
