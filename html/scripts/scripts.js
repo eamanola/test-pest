@@ -55,6 +55,8 @@ function create_subtitles(wrapper, controls, video, subtitles, fonts) {
           'option[value="' + subtitle_select.value + '"]'
         )
 
+        var is_ass = /\.ass$/.test(subtitle.src)
+
         if (is_ass) {
           try {
             if (ass_renderer === null) {
@@ -198,8 +200,13 @@ function create_audio(wrapper, controls, video, audio_obj) {
 function close_player() {
   var wrapper = document.querySelector(".video-wrapper")
   var video = wrapper.querySelector("video")
+  var audio = wrapper.querySelectorAll("audio")
 
   video.pause()
+  for (var i = 0, il = audio.length; i < il; i++) {
+    audio[i].pause()
+  }
+
   try {
     ass_renderer.dispose()
     ass_renderer = null
@@ -230,7 +237,15 @@ function create_player(streams_obj) {
 
   var fullscreen_button = document.createElement('button')
   fullscreen_button.addEventListener("click", function() {
-    wrapper.requestFullscreen()
+    if (window.fullScreen){
+      document.exitFullscreen()
+
+      fullscreen_button.innerHTML = "Fullscreen"
+    } else {
+      wrapper.requestFullscreen()
+
+      fullscreen_button.innerHTML = "Exit Fullscreen"
+    }
   }, false)
   fullscreen_button.innerHTML = "Fullscreen"
   controls.appendChild(fullscreen_button)
