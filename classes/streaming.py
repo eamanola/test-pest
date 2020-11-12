@@ -288,7 +288,7 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-        if subprocess.call(cmd) == 0:
+        if exit_code == 0:
             print("Transcode: Completed 0")
 
             from shutil import copyfile
