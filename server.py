@@ -589,16 +589,24 @@ finally:
     from classes.streaming import TMP_FOLDER as TMP_FOLDER_PATH
     import multiprocessing
     import time
+    import psutil
 
     for process in [p for p in multiprocessing.active_children() if (
         p.name.startswith(TMP_FOLDER_PATH)
     )]:
         print(f'Stopping {process}')
+
+        psp = psutil.Process(process.pid)
+
+        children = psp.children(recursive=True)
+
         process.terminate()
-        time.sleep(1)
+
+        for child in children:
+            child.terminate()
+
         process.close()
-        multiprocessing.active_children()
 
     for f in os.listdir(TMP_FOLDER_PATH):
-        print(f'removing {f}')
+        print(f'Removing {f}')
         os.remove(os.path.join(TMP_FOLDER_PATH, f))

@@ -323,11 +323,31 @@ def _get_width_height(stream_lines, screen_w, screen_h):
 def _create_video(stream_lines, media_id, file_path, codec, width, height):
     import multiprocessing
     import time
+    import psutil
 
     file_name = f'{media_id}[{codec}][{width}x{height}].webm'
     w, h = _get_width_height(stream_lines, width, height)
     stream_path = os.path.join(VIDEO_FOLDER, file_name)
     tmp_path = os.path.join(TMP_FOLDER, f'video_{file_name}')
+
+    for proc in multiprocessing.active_children():
+        if proc.name.startswith(os.path.join(TMP_FOLDER, 'video_')):
+            psp = psutil.Process(proc.pid)
+            if psp.ppid() == multiprocessing.current_process().pid:
+                print(f'Killing {proc}')
+
+                children = psp.children(recursive=True)
+
+                proc.terminate()
+
+                for child in children:
+                    child.terminate()
+
+                proc.close()
+
+                if os.path.exists(proc.name):
+                    print(f'Removing {proc.name}')
+                    os.remove(proc.name)
 
     transcode_process = multiprocessing.Process(
         target=_transcode,
