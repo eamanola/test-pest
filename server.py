@@ -387,7 +387,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 path.append("streams")
             path = path + self.path[1:].split("/")
 
-            file_path = os.sep.join(path).replace("%20", " ")
+            file_path = os.sep.join(path)
+
+            if not os.path.exists(file_path):
+                file_path = file_path.replace("%20", " ")
 
             if os.path.exists(file_path):
                 response_code = 200
@@ -531,7 +534,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 if is_tmp:
                     # allow transcoder to catch up
-                    time.sleep(1.5)
+                    time.sleep(1)
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib

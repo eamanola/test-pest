@@ -25,8 +25,9 @@ function option_to_track(option) {
   return track
 }
 
-function create_subtitles(wrapper, controls, video, subtitles) {
-  if (subtitles.length > 0) {    
+var ass_renderer = null
+function create_subtitles(wrapper, controls, video, subtitles, fonts) {
+  if (subtitles.length > 0) {
     var subtitle_select = document.createElement("select")
     controls.appendChild(subtitle_select)
 
@@ -41,13 +42,40 @@ function create_subtitles(wrapper, controls, video, subtitles) {
         video.removeChild(old_tracks[i])
       }
 
+      try {
+        if (ass_renderer !== null) {
+          ass_renderer.freeTrack()
+        }
+      } catch (e) {
+        console.log('ass render', e)
+      }
+
       if (subtitle_select.value) {
         var selected_option = subtitle_select.querySelector(
           'option[value="' + subtitle_select.value + '"]'
         )
-        var track = option_to_track(selected_option)
-        video.appendChild(track)
-        video.textTracks[0].mode = "showing"
+
+        if (is_ass) {
+          try {
+            if (ass_renderer === null) {
+              ass_renderer = new SubtitlesOctopus({
+                video: video,
+                subUrl: selected_option.value,
+                fonts: fonts,
+                workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js',
+                legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js'
+              })
+            } else {
+              ass_renderer.setTrackByUrl(selected_option.value)
+            }
+          } catch (e) {
+            console.log('ass render', e)
+          }
+        } else {
+          var track = option_to_track(selected_option)
+          video.appendChild(track)
+          video.textTracks[0].mode = "showing"
+        }
       }
     }, false)
 
@@ -65,9 +93,29 @@ function create_subtitles(wrapper, controls, video, subtitles) {
       if (subtitle.default === true) {
         subtitle_option.setAttribute("selected", "selected")
 
-        var track = option_to_track(subtitle_option)
-        video.appendChild(track)
-        video.textTracks[0].mode = "showing"
+        var is_ass = /\.ass$/.test(subtitle.src)
+
+        if (is_ass) {
+          try {
+            if (ass_renderer === null) {
+              ass_renderer = new SubtitlesOctopus({
+                video: video,
+                subUrl: subtitle.src,
+                fonts: fonts,
+                workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js',
+                legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js'
+              })
+            } else {
+              ass_renderer.setTrackByUrl(subtitle.src)
+            }
+          } catch (e) {
+            console.log('ass render', e)
+          }
+        } else {
+          var track = option_to_track(subtitle_option)
+          video.appendChild(track)
+          video.textTracks[0].mode = "showing"
+        }
       }
 
       subtitle_select.appendChild(subtitle_option)
@@ -152,6 +200,13 @@ function close_player() {
   var video = wrapper.querySelector("video")
 
   video.pause()
+  try {
+    ass_renderer.dispose()
+    ass_renderer = null
+  } catch (e) {
+    console.log('ass render', e)
+  }
+
   document.body.removeChild(wrapper)
 }
 
@@ -201,40 +256,23 @@ function create_player(streams_obj) {
     }
   }, false)
 
-  var BUFFER_TIME = 1000 * 10 // 10s
+  var ENCODER_BUFFER_TIME = 1000 * 10 // TODO: check for encoding?
   setTimeout(function(){
     create_sources(v, streams_obj.streams)
-    create_subtitles(wrapper, controls, v, streams_obj.subtitles)
+    create_subtitles(wrapper, controls, v, streams_obj.subtitles, streams_obj.fonts)
     create_audio(wrapper, controls, v, streams_obj.audio)
-  }, BUFFER_TIME)
+  }, ENCODER_BUFFER_TIME)
 
+  var BUFFER_TIME = 1000 * 10 // 10s
   v.addEventListener("canplay", function(e) {
     setTimeout(function() {
       wrapper.className = "video-wrapper"
       v.play()
-    }, 1000)
+    }, BUFFER_TIME)
   }, false)
 
   document.body.prepend(wrapper)
   wrapper.scrollIntoView({ behavior: "smooth" })
-  /*
-  var options = {
-    video: v, //document.getElementById('video'), // HTML5 video element
-    subUrl: '../../out.ass', // Link to subtitles
-    fonts: ['/fonts/Brush Strokes_6.ttf', '/fonts/CenturyOldStyle-Light.ttf', '/fonts/ComicBookFun-Regular.ttf',
-      '/fonts/D3Streetism_0.TTF', '/fonts/dekorat.ttf', '/fonts/DenneDelica.ttf', '/fonts/Dry Brush.ttf',
-      '/fonts/emmasophia.ttf', '/fonts/erasdust_0.ttf', '/fonts/FONTIN_SANS_0.OTF', '/fonts/FONTIN_SANS_BI_0.OTF',
-      '/fonts/FRADM.TTF', '/fonts/FREESCPT.TTF', '/fonts/FromWhereYouAre.ttf', '/fonts/GaramondPremrPro.otf',
-      '/fonts/gloriahallelujah.ttf', '/fonts/Hand Of Sean.ttf', '/fonts/hwfont.ttf',
-      '/fonts/JandaSafeandSoundSolid.ttf', '/fonts/JasonSharpie.ttf', '/fonts/Jelly Crazies.ttf',
-      '/fonts/Lato-Reg.ttf', '/fonts/LSANSD.TTF', '/fonts/mangatb.ttf', '/fonts/marker moe_0.otf',
-      '/fonts/Ninoshandwriting.ttf', '/fonts/No more lies.ttf', '/fonts/one_trick_pony_tt.ttf', '/fonts/TheGreatEscapeBold.ttf'
-    ], // ['/test/font-1.ttf', '/test/font-2.ttf'], // Links to fonts (not required, default font already included in build)
-    workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js', // Link to WebAssembly-based file "libassjs-worker.js"
-    legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js' // Link to non-WebAssembly worker
-  };
-  var instance = new SubtitlesOctopus(options);
-  */
 }
 
 ////////////////////////////////////////////////////////////////////////////////
