@@ -21,6 +21,35 @@ def epoch_to_httptime(secs):
     return dt.strftime('%a, %d %b %Y %H:%M:%S GMT')
 
 
+def mime_type(file_name):
+    content_type = None
+
+    if file_name.endswith(".png"):
+        content_type = "image/png"
+    elif file_name.endswith(".jpg"):
+        content_type = "image/jpg"
+    elif file_name.endswith(".vtt"):
+        content_type = "text/vtt"
+    elif file_name.endswith(".webm"):
+        content_type = "video/webm"
+    elif file_name.endswith(".mkv"):
+        content_type = "video/x-matroska"
+    elif file_name.endswith(".mp4"):
+        content_type = "video/mp4"
+    elif file_name.endswith(".opus"):
+        content_type = "audio/ogg"
+    elif file_name.endswith(".gif"):
+        content_type = "image/gif"
+    elif file_name.endswith(".js"):
+        content_type = "text/javascript"
+    elif file_name.endswith(".css"):
+        content_type = "text/css"
+    elif file_name.endswith(".html"):
+        content_type = "text/html"
+
+    return content_type
+
+
 class Handler(http.server.SimpleHTTPRequestHandler):
 
     def revalidate_client_cache(self, file_path=None):
@@ -352,20 +381,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 response_code = 200
                 send_file_path = file_path
 
-                if self.path.endswith(".png"):
-                    content_type = "image/png"
-                elif self.path.endswith(".jpg"):
-                    content_type = "image/jpg"
-                elif self.path.endswith(".vtt"):
-                    content_type = "text/vtt"
-                elif self.path.endswith(".webm"):
-                    content_type = "video/webm"
-                elif self.path.endswith(".mkv"):
-                    content_type = "video/x-matroska"
-                elif self.path.endswith(".mp4"):
-                    content_type = "video/mp4"
-                elif self.path.endswith(".opus"):
-                    content_type = "audio/ogg"
+                mime_type(file_path)
 
                 cache_control = "private, max-age=604800"
                 if self.path.startswith("/tmp/"):
@@ -395,16 +411,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     with open(file_path, "rb") as f:
                         reply = f.read()
 
-                if self.path.endswith(".png"):
-                    content_type = "image/png"
-                elif self.path.endswith(".gif"):
-                    content_type = "image/gif"
-                elif self.path.endswith(".js"):
-                    content_type = "text/javascript"
-                elif self.path.endswith(".css"):
-                    content_type = "text/css"
-                elif self.path.endswith(".html"):
-                    content_type = "text/html"
+                mime_type(file_path)
 
                 cache_control = "private, must-revalidate, max-age=0"
 
