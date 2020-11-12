@@ -16,22 +16,63 @@ function create_sources(video, streams) {
   }
 }
 
-function create_subtitles(video, subtitles) {
-  var subtitle = null, label = null
-  for (var i = 0, il = subtitles.length; i < il; i ++) {
-    subtitle = document.createElement('track')
-    subtitle.setAttribute('src', subtitles[i].src)
-    label = subtitles[i].lang
-    if (subtitles[i].forced === true) {
-      label = label + "(forced)"
+function option_to_track(option) {
+  var track = document.createElement('track')
+  track.setAttribute('src', option.value)
+  track.setAttribute("label", option.innerHTML)
+  track.setAttribute("kind", "subtitles")
+
+  return track
+}
+
+function create_subtitles(wrapper, controls, video, subtitles) {
+  if (subtitles.length > 0) {    
+    var subtitle_select = document.createElement("select")
+    controls.appendChild(subtitle_select)
+
+    var none_option = document.createElement("option")
+    none_option.value = ""
+    none_option.innerHTML = "Off"
+    subtitle_select.appendChild(none_option)
+
+    subtitle_select.addEventListener("change", function() {
+      var old_tracks = video.querySelectorAll("track")
+      for (var i = 0, il = old_tracks.length; i < il; i ++) {
+        video.removeChild(old_tracks[i])
+      }
+
+      if (subtitle_select.value) {
+        var selected_option = subtitle_select.querySelector(
+          'option[value="' + subtitle_select.value + '"]'
+        )
+        var track = option_to_track(selected_option)
+        video.appendChild(track)
+        video.textTracks[0].mode = "showing"
+      }
+    }, false)
+
+    var subtitle = null, label = null, subtitle_option = null
+    for (var i = 0, il = subtitles.length; i < il; i ++) {
+      subtitle_option = document.createElement("option")
+
+      subtitle = subtitles[i]
+
+      label = subtitle.lang + (subtitle.forced ? "(forced)" : "")
+      subtitle_option.innerHTML = label
+      // subtitle_option.setAttribute('data-lang', subtitle.lang)
+      subtitle_option.value = subtitle.src
+
+      if (subtitle.default === true) {
+        subtitle_option.setAttribute("selected", "selected")
+
+        var track = option_to_track(subtitle_option)
+        video.appendChild(track)
+        video.textTracks[0].mode = "showing"
+      }
+
+      subtitle_select.appendChild(subtitle_option)
     }
-    subtitle.setAttribute("label", label)
-    subtitle.setAttribute("kind", "subtitles")
-    subtitle.setAttribute("srclang", subtitles[i].lang)
-    if (subtitles[i].default === true) {
-      subtitle.setAttribute("default", "1")
-    }
-    video.appendChild(subtitle)
+
   }
 }
 
@@ -118,10 +159,6 @@ function create_player(streams_obj) {
   var wrapper = document.createElement('div')
   wrapper.className = "video-wrapper buffering"
 
-  wrapper.addEventListener("click", function() {
-    wrapper.requestFullscreen()
-  }, false)
-
   var loading = document.createElement('img');
   loading.setAttribute("src", "images/loading.gif")
   loading.className = "loading"
@@ -167,7 +204,7 @@ function create_player(streams_obj) {
   var BUFFER_TIME = 1000 * 10 // 10s
   setTimeout(function(){
     create_sources(v, streams_obj.streams)
-    create_subtitles(v, streams_obj.subtitles)
+    create_subtitles(wrapper, controls, v, streams_obj.subtitles)
     create_audio(wrapper, controls, v, streams_obj.audio)
   }, BUFFER_TIME)
 

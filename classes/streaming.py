@@ -30,7 +30,7 @@ def _create_subtitles(stream_lines, media_id, file_path, format=None):
                 file_name = f'{file_name}.forced'
 
             is_ass = "Subtitle: ass " in line
-
+            is_ass = False
             if is_ass:
                 file_name = f'{file_name}.ass'
             else:
