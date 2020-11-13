@@ -335,6 +335,19 @@ var create_player = (function(w) {
 
     v.addEventListener("ended", onVideoEnded, false)
 
+    v.addEventListener("progress", function() {
+      console.log('p',
+        (v.currentTime).toFixed(2), '/', (v.buffered.end(0)).toFixed(2)
+      )
+    }, false)
+
+    v.addEventListener("timeupdate", function() {
+      console.log('t',
+        (v.currentTime).toFixed(2), '/', (v.buffered.end(0)).toFixed(2)
+      )
+    }, false)
+
+
     var ENCODER_BUFFER_TIME = 1000 * 0 // TODO: check for encoding?
     create_source_x_timeout = setTimeout(function(){
       create_sources(v, streams_obj.streams)

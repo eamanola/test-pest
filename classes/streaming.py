@@ -320,32 +320,34 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
+def terminate_video_procs():
+    import time
+    import psutil
+    import multiprocessing
+
+    for proc in multiprocessing.active_children():
+        if proc.name.startswith(f'{PROCESS_NAME_PREFIX}-video_'):
+            print(f'Killing {proc}')
+
+            proc.terminate()
+
+            for child in psutil.Process(proc.pid).children(recursive=True):
+                child.terminate()
+
+            time.sleep(1)
+
+            proc.close()
+
+
 def _create_video(
     stream_lines, media_id, file_path, codec, width, height, start_time
 ):
     import multiprocessing
-    import time
-    import psutil
 
     w, h = _get_width_height(stream_lines, width, height)
     proc_name = f'{PROCESS_NAME_PREFIX}-video_{media_id}'
 
-    for proc in multiprocessing.active_children():
-        if proc.name.startswith(f'{PROCESS_NAME_PREFIX}-video_'):
-            psp = psutil.Process(proc.pid)
-            if psp.ppid() == multiprocessing.current_process().pid:
-                print(f'Killing {proc}')
-
-                children = psp.children(recursive=True)
-
-                proc.terminate()
-
-                for child in children:
-                    child.terminate()
-
-                time.sleep(1)
-
-                proc.close()
+    terminate_video_procs()
 
     transcode_process = multiprocessing.Process(
         target=_transcode,

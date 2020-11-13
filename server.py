@@ -383,10 +383,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             path = [sys.path[0]]
             if self.path.startswith(
-                ("/audio/", "/subtitles/", "/tmp/", "/fonts/")
+                ("/audio/", "/subtitles/", "/fonts/")
             ):
                 path.append("streams")
+
             path = path + self.path[1:].split("/")
+
+            if self.path.startswith("/tmp/"):
+                import tempfile
+                path = [tempfile.gettempdir()] + self.path[1:].split("/")[1:]
 
             file_path = os.sep.join(path)
 
@@ -555,56 +560,33 @@ def get_ip():
 
 hostName = get_ip()
 
-try:
-    serverPort = 8086
-    httpd = socketserver.ThreadingTCPServer((hostName, serverPort), Handler)
-except OSError:
-    print('skip', serverPort)
-    for port in range(8087, 8097):
-        serverPort = port
-        try:
-            httpd = socketserver.ThreadingTCPServer(
-                (hostName, serverPort), Handler
-            )
-            break
-        except OSError:
-            print('skip', serverPort)
+for port in range(8086, 8097):
+    serverPort = port
+    try:
+        httpd = socketserver.ThreadingTCPServer(
+            (hostName, serverPort), Handler
+        )
+        break
+    except OSError:
+        print('skip', serverPort)
 
 print(f"Server started http://{hostName}:{serverPort}")
 try:
     httpd.daemon_threads = True
     subprocess.Popen([
-        # 'firefox',
-        'chromium',
+        'firefox',
+        # 'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}'
     ])
     httpd.serve_forever()
 except KeyboardInterrupt:
+    sys.exit()
     pass
 
 finally:
     httpd.server_close()
     print("Server stopped.")
 
-    from classes.streaming import PROCESS_NAME_PREFIX
-    import multiprocessing
-    import time
-    import psutil
-
-    for proc in multiprocessing.active_children():
-        if proc.name.startswith(f'{PROCESS_NAME_PREFIX}-video_'):
-            psp = psutil.Process(proc.pid)
-            if psp.ppid() == multiprocessing.current_process().pid:
-                print(f'Killing {proc}')
-
-                children = psp.children(recursive=True)
-
-                proc.terminate()
-
-                for child in children:
-                    child.terminate()
-
-                time.sleep(1)
-
-                proc.close()
+    from classes.streaming import terminate_video_procs
+    terminate_video_procs()
