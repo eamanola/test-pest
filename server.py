@@ -587,7 +587,7 @@ finally:
     httpd.server_close()
     print("Server stopped.")
 
-    from classes.streaming import PROCESS_NAME_PREFIX, TMP_FOLDER
+    from classes.streaming import PROCESS_NAME_PREFIX
     import multiprocessing
     import time
     import psutil
@@ -608,7 +608,3 @@ finally:
                 time.sleep(1)
 
                 proc.close()
-
-    for f in os.listdir(TMP_FOLDER):
-        print(f'Removing {f}')
-        os.remove(os.path.join(TMP_FOLDER, f))

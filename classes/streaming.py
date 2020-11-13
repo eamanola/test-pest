@@ -7,7 +7,6 @@ STREAM_FOLDER = os.path.join(sys.path[0], "streams")
 SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
 AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
 FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
-TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
 PROCESS_NAME_PREFIX = "test-pest"
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d\:\d\d\:\d\d).*'
@@ -104,6 +103,7 @@ def _create_audio_file(file_path, stream_index, audio_path, tmp_path):
 def _create_audio(stream_lines, media_id, file_path):
     import multiprocessing
     import time
+    import tempfile
 
     count = 0
 
@@ -133,7 +133,7 @@ def _create_audio(stream_lines, media_id, file_path):
             audio_path = os.path.join(AUDIO_FOLDER, file_name)
 
             if not os.path.exists(audio_path):
-                tmp_path = os.path.join(TMP_FOLDER, f'audio_{file_name}')
+                tmp_path = os.path.join(tempfile.gettempdir(), f'audio_{file_name}')
                 proc_name = f'{PROCESS_NAME_PREFIX}-audio_{file_name}'
 
                 audio_process = multiprocessing.Process(
@@ -399,6 +399,8 @@ def get_streams(media, codec, width, height, start_time):
     if not os.path.exists(file_path):
         return None
 
+    import tempfile
+
     _create_stream(media, codec, width, height, start_time)
 
     media_id = media.id()
@@ -409,7 +411,7 @@ def get_streams(media, codec, width, height, start_time):
     fonts = []
 
     for file_name in [
-        f for f in os.listdir(TMP_FOLDER) if media_id in f
+        f for f in os.listdir(tempfile.gettempdir()) if media_id in f
     ]:
         if file_name.startswith("audio_"):
             audio.append(format_audio(file_name, is_tmp=True))
