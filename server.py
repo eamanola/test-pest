@@ -359,10 +359,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path.startswith("/images/posters/")
                 and self.path.endswith(".jpg")
             )
-            or self.path.startswith("/video/")
-            or self.path.startswith(
-                ("/tmp/video_", "/tmp/audio_", "/tmp/subtitle_")
-            )
+
+            or self.path.startswith("/tmp/audio_")
             or (
                 self.path.startswith("/audio/")
                 and self.path.endswith(".opus")
@@ -382,7 +380,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             path = [sys.path[0]]
             if self.path.startswith(
-                ("/video/", "/audio/", "/subtitles/", "/tmp/", "/fonts/")
+                ("/audio/", "/subtitles/", "/tmp/", "/fonts/")
             ):
                 path.append("streams")
             path = path + self.path[1:].split("/")
@@ -500,7 +498,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             try:
                 self.wfile.write(reply)
             except Exception as e:
-                print('handler.wfile.write(reply) FAIL!!!!', e)
+                print('Fail: handler.wfile.write(reply)', e)
 
     def send_file(self, file_path):
         import time
@@ -519,23 +517,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         self.wfile.write(chunk)
 
                     except ConnectionResetError as e:
-                        print('handler.send_file ConnectionResetError', e)
+                        print('send_file: ConnectionResetError', e)
 
                         break
                     except IOError as e:
-                        print('handler.send_file IOError', e)
+                        print('send_file: IOError', e)
 
                         break
                     except Exception as e:
-                        print('handler.send_file Unknow Exception', e)
+                        print('send_file Unknow Exception', e)
 
                         break
                     finally:
                         del chunk
 
-                if is_tmp:
-                    # allow transcoder to catch up
-                    time.sleep(1)
+                    if is_tmp:
+                        time.sleep(1)
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib

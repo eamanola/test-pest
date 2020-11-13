@@ -4,7 +4,6 @@ import subprocess
 import re
 
 STREAM_FOLDER = os.path.join(sys.path[0], "streams")
-VIDEO_FOLDER = os.path.join(STREAM_FOLDER, "video")
 SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
 AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
 FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
@@ -157,7 +156,7 @@ def _get_stream_info(file_path):
     return ffmpeg_info.stderr.split("\n")
 
 
-def _transcode(file_path, stream_path, tmp_path, codec, width, height):
+def _transcode(file_path, codec, width, height, media_id):
     cmd = None
 
     if codec in ("vp8", "vp9"):
@@ -264,16 +263,24 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
                 ]
 
         cmd = cmd + [
-            tmp_path
+            # tmp_path
+            '-content_type', 'video/webm',
+            '-listen', '1',
+            f'http://192.168.1.119:8099/{media_id}.webm'
         ]
 
     if cmd:
         print('Transcode:', ' '.join(cmd))
+        import time
 
+        start = time.time()
         # subprocess.Popen(cmd)
         exit_code = subprocess.call(cmd)
 
-        if exit_code != 0:
+        # assume immidiate fail is encoding error
+        end = time.time() - start
+
+        if end < 1.0 and exit_code != 0:
             print('Transcode: Fail')
             print('Trying libvorbis')
 
@@ -281,18 +288,7 @@ def _transcode(file_path, stream_path, tmp_path, codec, width, height):
 
             exit_code = subprocess.call(cmd)
 
-        if exit_code != 0:
-            print('Transcode: Fail')
-            print('Removing tmp files')
-
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
-
-        if exit_code == 0:
-            print("Transcode: Completed 0")
-
-            from shutil import copyfile
-            copyfile(tmp_path, stream_path)
+        print(f"Transcode ended: {exit_code}")
 
         return exit_code
 
@@ -325,10 +321,8 @@ def _create_video(stream_lines, media_id, file_path, codec, width, height):
     import time
     import psutil
 
-    file_name = f'{media_id}[{codec}][{width}x{height}].webm'
     w, h = _get_width_height(stream_lines, width, height)
-    stream_path = os.path.join(VIDEO_FOLDER, file_name)
-    tmp_path = os.path.join(TMP_FOLDER, f'video_{file_name}')
+    proc_name = os.path.join(TMP_FOLDER, f'video_{media_id}')
 
     for proc in multiprocessing.active_children():
         if proc.name.startswith(os.path.join(TMP_FOLDER, 'video_')):
@@ -347,50 +341,25 @@ def _create_video(stream_lines, media_id, file_path, codec, width, height):
 
                 proc.close()
 
-                if os.path.exists(proc.name):
-                    print(f'Removing {proc.name}')
-                    os.remove(proc.name)
-
     transcode_process = multiprocessing.Process(
         target=_transcode,
-        name=tmp_path,
-        args=(file_path, stream_path, tmp_path, codec, w, h))
+        name=proc_name,
+        args=(file_path, codec, w, h, media_id))
     transcode_process.daemon = True
     transcode_process.start()
-
-    time.sleep(1)
-
-    return os.path.exists(tmp_path)
 
 
 def _create_stream(media, codec, width, height):
     media_id = media.id()
-
     file_path = os.path.join(media.parent().path(), media.file_path())
-    if not os.path.exists(file_path):
-        return None
 
     stream_lines = [
         line for line in _get_stream_info(file_path) if "Stream" in line
     ]
 
-    if not _create_video(
-        stream_lines,
-        media_id,
-        file_path,
-        codec,
-        width,
-        height
-    ):
-        return None
     _create_audio(stream_lines, media_id, file_path)
     _create_subtitles(stream_lines, media_id, file_path)
-
-    return get_streams(media, codec, width, height)
-
-
-def format_stream(file_name, is_tmp=False):
-    return f'/{ "video" if is_tmp is False else "tmp" }/{file_name}'
+    _create_video(stream_lines, media_id, file_path, codec, width, height)
 
 
 def format_audio(file_name, is_tmp=False):
@@ -418,41 +387,24 @@ def format_subtitle(file_name, is_tmp=False):
 
 
 def get_streams(media, codec, width, height):
-    streams = []
-    audio = []
-    subtitles = []
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
 
-    is_portait = height > width
-    if is_portait:
-        temp = height
-        height = width
-        width = temp
-    # TODO: brackets? see after mp4
+    _create_stream(media, codec, width, height)
 
     media_id = media.id()
+
+    streams = [f'http://192.168.1.119:8099/{media_id}.webm']
+    audio = []
+    subtitles = []
+    fonts = []
 
     for file_name in [
         f for f in os.listdir(TMP_FOLDER) if media_id in f
     ]:
-        if (
-            file_name.startswith("video_")
-            and f'[{codec}]' in file_name
-            and f'[{width}x{height}]' in file_name
-        ):
-            streams.append(format_stream(file_name, is_tmp=True))
-
-        elif file_name.startswith("audio_"):
+        if file_name.startswith("audio_"):
             audio.append(format_audio(file_name, is_tmp=True))
-
-    for file_name in [f for f in os.listdir(VIDEO_FOLDER) if (
-        media_id in f
-        and f'[{codec}]' in f
-        and f'[{width}x{height}]' in f
-    )]:
-        streams.append(format_stream(file_name))
-
-    if len(streams) == 0:
-        return _create_stream(media, codec, width, height)
 
     for file_name in [
         f for f in os.listdir(AUDIO_FOLDER) if f.startswith(media_id)
@@ -464,7 +416,6 @@ def get_streams(media, codec, width, height):
     ]:
         subtitles.append(format_subtitle(file_name))
 
-    file_path = os.path.join(media.parent().path(), media.file_path())
     stream_info = _get_stream_info(file_path)
 
     for line in stream_info:
@@ -474,7 +425,6 @@ def get_streams(media, codec, width, height):
                 duration = d.group(1)
             break
 
-    fonts = []
     is_ass = False
     for s in subtitles:
         if s['src'].endswith(".ass"):
@@ -483,6 +433,7 @@ def get_streams(media, codec, width, height):
 
     if is_ass:
         re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
+
         for line in [
             line for line in stream_info if (
                 line.strip().startswith("filename")
@@ -491,10 +442,12 @@ def get_streams(media, codec, width, height):
         ]:
             filename = re_attachment_names.search(line)
             if filename:
-                fonts.append(f"/fonts/{filename.group(1)}")
+                f = filename.group(1)
+                if os.path.exists(os.path.join(FONTS_FOLDER, f)):
+                    fonts.append(f"/fonts/{f}")
 
     return {
-        'id': media.id(),
+        'id': media_id,
         'streams': streams,
         'audio': audio,
         'subtitles': subtitles,

@@ -252,7 +252,7 @@ var create_player = (function(w) {
 
   var can_play_timeout = null
   function onCanPlay(e) {
-    var BUFFER_TIME = 1000 * 10 // 10s
+    var BUFFER_TIME = 1000 * 0 // 10s
 
     can_play_timeout = setTimeout(function() {
       var wrapper = document.querySelector(".video-wrapper")
@@ -312,7 +312,7 @@ var create_player = (function(w) {
 
     v.addEventListener("ended", onVideoEnded, false)
 
-    var ENCODER_BUFFER_TIME = 1000 * 10 // TODO: check for encoding?
+    var ENCODER_BUFFER_TIME = 1000 * 0 // TODO: check for encoding?
     create_source_x_timeout = setTimeout(function(){
       create_sources(v, streams_obj.streams)
       create_subtitles(wrapper, controls, v, streams_obj.subtitles, streams_obj.fonts)
