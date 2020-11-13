@@ -13,7 +13,7 @@ R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d\:\d\d\:\d\d).*'
 
 
-def _create_subtitles(stream_lines, media_id, file_path, format=None):
+def _create_subtitles(stream_lines, media_id, file_path):
     count = 0
 
     re_sub_audio = re.compile(R_SUB_AUDIO)
