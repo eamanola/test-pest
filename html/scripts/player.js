@@ -206,6 +206,7 @@ var create_player = (function(w) {
     var audio = wrapper.querySelectorAll("audio")
 
     video.pause()
+    console.log(video.currentTime)
 
     if (can_play_timeout) {
       clearTimeout(can_play_timeout)
@@ -263,6 +264,21 @@ var create_player = (function(w) {
     }, BUFFER_TIME)
   }
 
+  function toggleFullscreen(e) {
+    var wrapper = document.querySelector(".video-wrapper")
+    var fullscreen_button = wrapper.querySelector(".fullscreen-button")
+
+    if (document.fullscreen){
+      document.exitFullscreen()
+
+      fullscreen_button.innerHTML = "Fullscreen"
+    } else {
+      wrapper.requestFullscreen()
+
+      fullscreen_button.innerHTML = "Exit Fullscreen"
+    }
+  }
+
   var create_source_x_timeout = null
   function create_player(streams_obj) {
     playing = streams_obj.id
@@ -285,17 +301,8 @@ var create_player = (function(w) {
     controls.appendChild(close_button)
 
     var fullscreen_button = document.createElement('button')
-    fullscreen_button.addEventListener("click", function() {
-      if (window.fullScreen){
-        document.exitFullscreen()
-
-        fullscreen_button.innerHTML = "Fullscreen"
-      } else {
-        wrapper.requestFullscreen()
-
-        fullscreen_button.innerHTML = "Exit Fullscreen"
-      }
-    }, false)
+    fullscreen_button.addEventListener("click", toggleFullscreen, false)
+    fullscreen_button.className = "fullscreen-button"
     fullscreen_button.innerHTML = "Fullscreen"
     controls.appendChild(fullscreen_button)
 
@@ -305,6 +312,22 @@ var create_player = (function(w) {
     v.autoplay = false
     v.preload = "auto"
     wrapper.appendChild(v)
+
+    var overlay = document.createElement('div')
+    overlay.className = "video-overlay"
+    wrapper.appendChild(overlay)
+
+    overlay.addEventListener("click", function(e) {
+      e.preventDefault()
+      e.stopPropagation()
+      if (v.paused) {
+        v.play()
+      } else {
+        v.pause()
+      }
+    }, false)
+
+    overlay.addEventListener("dblclick", toggleFullscreen, false)
 
     v.addEventListener("error", function(e) {
       console.error(e)

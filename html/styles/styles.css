@@ -256,7 +256,7 @@
   background: #000000f1;
 }
 
-.video-wrapper video {
+.video-wrapper video, .video-wrapper .video-overlay {
   position: absolute;
   left: 0px;
   top: 0px;
