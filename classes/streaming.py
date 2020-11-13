@@ -69,8 +69,9 @@ def _create_subtitles(stream_lines, media_id, file_path):
                     print('Subtitle: Fail')
                     print('TODO: Bitmap subtitles')
 
-                    os.remove(subtitle_path)
-                    print(subtitle_path, "removed")
+                    if os.path.exists(subtitle_path):
+                        os.remove(subtitle_path)
+                        print(subtitle_path, "removed")
 
     return count
 

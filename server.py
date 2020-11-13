@@ -585,27 +585,6 @@ finally:
     print("Server stopped.")
 
     from classes.streaming import TMP_FOLDER as TMP_FOLDER_PATH
-    import multiprocessing
-    import time
-    import psutil
-
-    for process in [p for p in multiprocessing.active_children() if (
-        p.name.startswith(TMP_FOLDER_PATH)
-    )]:
-        print(f'Stopping {process}')
-
-        psp = psutil.Process(process.pid)
-
-        children = psp.children(recursive=True)
-
-        process.terminate()
-
-        for child in children:
-            child.terminate()
-
-        time.sleep(1)
-
-        process.close()
 
     for f in os.listdir(TMP_FOLDER_PATH):
         print(f'Removing {f}')
