@@ -587,13 +587,13 @@ finally:
     httpd.server_close()
     print("Server stopped.")
 
-    from classes.streaming import TMP_FOLDER as TMP_FOLDER_PATH
+    from classes.streaming import PROCESS_NAME_PREFIX, TMP_FOLDER
     import multiprocessing
     import time
     import psutil
 
     for proc in multiprocessing.active_children():
-        if proc.name.startswith(os.path.join(TMP_FOLDER_PATH, 'video_')):
+        if proc.name.startswith(f'{PROCESS_NAME_PREFIX}-video_'):
             psp = psutil.Process(proc.pid)
             if psp.ppid() == multiprocessing.current_process().pid:
                 print(f'Killing {proc}')
@@ -609,6 +609,6 @@ finally:
 
                 proc.close()
 
-    for f in os.listdir(TMP_FOLDER_PATH):
+    for f in os.listdir(TMP_FOLDER):
         print(f'Removing {f}')
-        os.remove(os.path.join(TMP_FOLDER_PATH, f))
+        os.remove(os.path.join(TMP_FOLDER, f))

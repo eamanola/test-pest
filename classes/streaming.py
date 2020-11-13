@@ -8,6 +8,7 @@ SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
 AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
 FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
 TMP_FOLDER = os.path.join(STREAM_FOLDER, "tmp")
+PROCESS_NAME_PREFIX = "test-pest"
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d\:\d\d\:\d\d).*'
 
@@ -133,10 +134,11 @@ def _create_audio(stream_lines, media_id, file_path):
 
             if not os.path.exists(audio_path):
                 tmp_path = os.path.join(TMP_FOLDER, f'audio_{file_name}')
+                proc_name = f'{PROCESS_NAME_PREFIX}-audio_{file_name}'
 
                 audio_process = multiprocessing.Process(
                     target=_create_audio_file,
-                    name=tmp_path,
+                    name=proc_name,
                     args=(file_path, info.group(1), audio_path, tmp_path))
                 audio_process.daemon = True
                 audio_process.start()
@@ -326,10 +328,10 @@ def _create_video(
     import psutil
 
     w, h = _get_width_height(stream_lines, width, height)
-    proc_name = os.path.join(TMP_FOLDER, f'video_{media_id}')
+    proc_name = f'{PROCESS_NAME_PREFIX}-video_{media_id}'
 
     for proc in multiprocessing.active_children():
-        if proc.name.startswith(os.path.join(TMP_FOLDER, 'video_')):
+        if proc.name.startswith(f'{PROCESS_NAME_PREFIX}-video_'):
             psp = psutil.Process(proc.pid)
             if psp.ppid() == multiprocessing.current_process().pid:
                 print(f'Killing {proc}')
