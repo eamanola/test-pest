@@ -157,13 +157,14 @@ def _get_stream_info(file_path):
     return ffmpeg_info.stderr.split("\n")
 
 
-def _transcode(file_path, codec, width, height, media_id):
+def _transcode(file_path, codec, width, height, media_id, start_time):
     cmd = None
 
     if codec in ("vp8", "vp9"):
         cmd = [
-            'ffmpeg',
-            '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
+            'ffmpeg', '-y', '-hide_banner',
+            '-loglevel', 'warning', '-stats',
+            '-ss', start_time,
             '-i', file_path,
             '-r', '30', '-g', '90',
             '-quality', 'realtime',
@@ -171,7 +172,7 @@ def _transcode(file_path, codec, width, height, media_id):
             '-c:a', 'libopus', '-f', 'webm',
             '-speed', '10',
             '-map', '0:v:0', '-map', '0:a:0',
-            '-map', '-0:s', '-map', '-0:d', '-map', '-0:t'
+            '-sn', '-dn', '-map', '-0:t'
         ]
 
         if codec == "vp9":
@@ -317,7 +318,9 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def _create_video(stream_lines, media_id, file_path, codec, width, height):
+def _create_video(
+    stream_lines, media_id, file_path, codec, width, height, start_time
+):
     import multiprocessing
     import time
     import psutil
@@ -345,12 +348,12 @@ def _create_video(stream_lines, media_id, file_path, codec, width, height):
     transcode_process = multiprocessing.Process(
         target=_transcode,
         name=proc_name,
-        args=(file_path, codec, w, h, media_id))
-    transcode_process.daemon = True
+        args=(file_path, codec, w, h, media_id, start_time))
+    transcode_process.daemon = False
     transcode_process.start()
 
 
-def _create_stream(media, codec, width, height):
+def _create_stream(media, codec, width, height, start_time):
     media_id = media.id()
     file_path = os.path.join(media.parent().path(), media.file_path())
 
@@ -360,7 +363,9 @@ def _create_stream(media, codec, width, height):
 
     _create_audio(stream_lines, media_id, file_path)
     _create_subtitles(stream_lines, media_id, file_path)
-    _create_video(stream_lines, media_id, file_path, codec, width, height)
+    _create_video(
+        stream_lines, media_id, file_path, codec, width, height, start_time
+    )
 
 
 def format_audio(file_name, is_tmp=False):
@@ -387,12 +392,12 @@ def format_subtitle(file_name, is_tmp=False):
     }
 
 
-def get_streams(media, codec, width, height):
+def get_streams(media, codec, width, height, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
 
-    _create_stream(media, codec, width, height)
+    _create_stream(media, codec, width, height, start_time)
 
     media_id = media.id()
 

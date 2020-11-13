@@ -334,13 +334,16 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             height = int(parts[3])
             media_id = parts[4]
 
+            START_TIME = "00:00:00.0"
+
             if (media_id and codec and width and height and len(parts) == 5):
                 streams = api.get_streams(
                     db,
                     media_id,
                     codec,
                     width,
-                    height
+                    height,
+                    START_TIME
                 )
                 if streams:
                     reply = streams
@@ -571,8 +574,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 try:
     httpd.daemon_threads = True
     subprocess.Popen([
-        'firefox',
-        # 'chromium',
+        # 'firefox',
+        'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}'
     ])
@@ -585,6 +588,26 @@ finally:
     print("Server stopped.")
 
     from classes.streaming import TMP_FOLDER as TMP_FOLDER_PATH
+    import multiprocessing
+    import time
+    import psutil
+
+    for proc in multiprocessing.active_children():
+        if proc.name.startswith(os.path.join(TMP_FOLDER_PATH, 'video_')):
+            psp = psutil.Process(proc.pid)
+            if psp.ppid() == multiprocessing.current_process().pid:
+                print(f'Killing {proc}')
+
+                children = psp.children(recursive=True)
+
+                proc.terminate()
+
+                for child in children:
+                    child.terminate()
+
+                time.sleep(1)
+
+                proc.close()
 
     for f in os.listdir(TMP_FOLDER_PATH):
         print(f'Removing {f}')
