@@ -279,6 +279,18 @@ var create_player = (function(w) {
     }
   }
 
+  function format_secs(secs) {
+    var hours = Math.floor(secs/ 3600)
+    var minutes = Math.floor((secs % 3600) / 60)
+    var seconds = Math.floor(secs % 60)
+    var time = ""
+      + (hours > 0 ? (hours+':'):"")
+      + (minutes > 0 ? (minutes+':'):"0:")
+      + (seconds > 10 ? (seconds): ("0"+seconds))
+
+    return time
+  }
+
   var create_source_x_timeout = null
   function create_player(streams_obj) {
     playing = streams_obj.id
@@ -306,9 +318,37 @@ var create_player = (function(w) {
     fullscreen_button.innerHTML = "Fullscreen"
     controls.appendChild(fullscreen_button)
 
+    var play_position = document.createElement("div")
+    play_position.className = "video-position-wrapper"
+
+    var play_position_total = document.createElement("div")
+    play_position_total.className = "video-position-total"
+    play_position.appendChild(play_position_total)
+
+    var play_position_buffered = document.createElement("div")
+    play_position_buffered.className = "video-position-buffered"
+    play_position_total.appendChild(play_position_buffered)
+
+    var play_position_played = document.createElement("div")
+    play_position_played.className = "video-position-played"
+    play_position_total.appendChild(play_position_played)
+
+    var play_position_time = document.createElement("span")
+    play_position_time.innerHTML = "0:00"
+    play_position.appendChild(play_position_time)
+
+    if (streams_obj.duration) {
+      var play_position_duration = document.createElement("span")
+      play_position_duration.innerHTML = "/" + format_secs(streams_obj.duration)
+      play_position.appendChild(play_position_duration)
+    }
+
+    controls.appendChild(play_position)
+
     var v = document.createElement('video')
     v.setAttribute("width", "640")
-    v.setAttribute("controls", "1")
+    // v.setAttribute("controls", "1")
+    // v.muted = true
     v.autoplay = false
     v.preload = "auto"
     wrapper.appendChild(v)
@@ -336,15 +376,21 @@ var create_player = (function(w) {
     v.addEventListener("ended", onVideoEnded, false)
 
     v.addEventListener("progress", function() {
-      console.log('p',
-        (v.currentTime).toFixed(2), '/', (v.buffered.end(0)).toFixed(2)
-      )
+      if(duration) {
+        play_position_buffered.style.width =
+          (Math.min(v.buffered.end(0) / duration, 1) * 100) + '%'
+      }
     }, false)
 
+    var duration = streams_obj.duration
     v.addEventListener("timeupdate", function() {
-      console.log('t',
-        (v.currentTime).toFixed(2), '/', (v.buffered.end(0)).toFixed(2)
-      )
+      var time = format_secs(v.currentTime)
+      play_position_time.innerHTML = time
+
+      if(duration) {
+        play_position_played.style.width =
+          (Math.min(v.currentTime / duration, 1) * 100) + '%'
+      }
     }, false)
 
 

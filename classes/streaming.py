@@ -9,7 +9,7 @@ AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
 FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
 PROCESS_NAME_PREFIX = "test-pest"
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
-R_DURATION = r'.*Duration\:\ (\d\d\:\d\d\:\d\d).*'
+R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 
 
 def _create_subtitles(stream_lines, media_id, file_path):
@@ -268,12 +268,14 @@ def _transcode(file_path, codec, width, height, media_id, start_time):
                     '-tile-columns', '3', '-frame-parallel', '1'
                 ]
 
+
+        # https://stackoverflow.com/questions/10114224/how-to-properly-send-http-response-with-python-using-socket-library-only
         cmd = cmd + [
             # tmp_path
             '-content_type', 'video/webm',
             '-listen', '1',
             '-headers',
-            'Cache-Control: private, must-revalidate, max-age=0\r\n',
+            'Cache-Control: private, must-revalidate, max-age=0\r\n\r\n',
             f'http://192.168.1.119:8099/{media_id}.webm'
         ]
 
@@ -443,11 +445,16 @@ def get_streams(media, codec, width, height, start_time):
 
     stream_info = _get_stream_info(file_path)
 
+    duration = 0
     for line in stream_info:
         if "Duration" in line:
             d = re.compile(R_DURATION).search(line)
             if d:
-                duration = d.group(1)
+                duration = (
+                    int(d.group(1)) * 3600
+                    + int(d.group(2)) * 60
+                    + int(d.group(3))
+                )
             break
 
     is_ass = False

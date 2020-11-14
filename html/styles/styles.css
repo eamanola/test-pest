@@ -299,6 +299,36 @@
   display: none;
 }
 
+.video-position-wrapper {
+  background-color: white;
+  display: inline-block;
+}
+
+.video-position-total {
+  display: inline-block;
+  width: 150px;
+  border: 1px solid;
+  position: relative;
+  height: 1.2em;
+  vertical-align: text-top;
+}
+
+.video-position-buffered {
+  display: inline-block;
+  width: 0;
+  background: green;
+  position: absolute;
+  height: inherit;
+}
+
+.video-position-played {
+  display: inline-block;
+  width: 0;
+  background: blue;
+  position: absolute;
+  height: inherit;
+}
+
 @media screen and (max-width: 64em) {
   body {
     font-size: 1.6em;
