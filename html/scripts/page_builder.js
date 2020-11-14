@@ -117,6 +117,10 @@ function description(item) {
   return ret
 }
 
+function play(media){
+  return ['<a href="#" class="action mobile-play js-play">Play</a>'].join("")
+}
+
 function played(item) {
   return [
     '<label class="action played js-played"><input type="checkbox" ',
@@ -262,6 +266,7 @@ function media_line(media, opts) {
             in_add_to_play_list(media.id) ? '-Play' : '+Play',
           ,'</a>',
           played(media),
+          play(media),
         '</span>',
       '</span>',
       '<span class="right" ',

@@ -294,6 +294,11 @@
     Medium: 640 pixels /min-width: 40em
     Small: smaller than 640px /max-width: 39.9375em
 */
+
+.media.line .info-line .mobile-play {
+  display: none;
+}
+
 @media screen and (max-width: 64em) {
   body {
     font-size: 1.6em;
@@ -320,8 +325,8 @@
     height: 1.5em;
   }
 
-  .media .js-play {
-    opacity: 0.6;
+.media.line .info-line .mobile-play {
+    display: block;
   }
 
   .media.line .info-line,
