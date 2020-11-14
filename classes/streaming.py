@@ -336,7 +336,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def terminate_video_procs():
+def kill_video_procs():
     import time
     import psutil
     import multiprocessing
@@ -345,10 +345,10 @@ def terminate_video_procs():
         if proc.name.startswith(f'{PROCESS_NAME_PREFIX}-video_'):
             print(f'Killing {proc}')
 
-            proc.terminate()
-
             for child in psutil.Process(proc.pid).children(recursive=True):
-                child.terminate()
+                child.kill()
+
+            proc.kill()
 
             time.sleep(1)
 
@@ -363,12 +363,14 @@ def _create_video(
     w, h = _get_width_height(stream_lines, width, height)
     proc_name = f'{PROCESS_NAME_PREFIX}-video_{media_id}'
 
-    terminate_video_procs()
+    kill_video_procs()
 
     transcode_process = multiprocessing.Process(
         target=_transcode,
         name=proc_name,
         args=(file_path, codec, w, h, media_id, start_time))
+
+    # connection still might be active after transcoding
     transcode_process.daemon = False
     transcode_process.start()
 

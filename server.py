@@ -588,5 +588,5 @@ finally:
     httpd.server_close()
     print("Server stopped.")
 
-    from classes.streaming import terminate_video_procs
-    terminate_video_procs()
+    from classes.streaming import kill_video_procs
+    kill_video_procs()
