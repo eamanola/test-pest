@@ -133,7 +133,9 @@ def _create_audio(stream_lines, media_id, file_path):
             audio_path = os.path.join(AUDIO_FOLDER, file_name)
 
             if not os.path.exists(audio_path):
-                tmp_path = os.path.join(tempfile.gettempdir(), f'audio_{file_name}')
+                tmp_path = os.path.join(
+                    tempfile.gettempdir(), f'audio_{file_name}'
+                )
                 proc_name = f'{PROCESS_NAME_PREFIX}-audio_{file_name}'
 
                 audio_process = multiprocessing.Process(
@@ -270,31 +272,43 @@ def _transcode(file_path, codec, width, height, media_id, start_time):
             # tmp_path
             '-content_type', 'video/webm',
             '-listen', '1',
+            '-headers',
+            'Cache-Control: private, must-revalidate, max-age=0\r\n',
             f'http://192.168.1.119:8099/{media_id}.webm'
         ]
 
     if cmd:
         print('Transcode:', ' '.join(cmd))
-        import time
 
-        start = time.time()
         # subprocess.Popen(cmd)
-        exit_code = subprocess.call(cmd)
+        ffmpeg_info = subprocess.run(cmd, capture_output=True, text=True)
 
-        # assume immidiate fail is encoding error
-        end = time.time() - start
-
-        if end < 1.0 and exit_code != 0:
+        if (
+            ffmpeg_info.returncode == 1
+            and any(
+                (
+                    "libopus" in line
+                    and "Invalid channel layout 5.1(side) for specified mapping family -1." in line
+                ) for line in ffmpeg_info.stderr.split("\n")
+            )
+        ):
             print('Transcode: Fail')
-            print('Trying libvorbis')
 
-            cmd = ["libvorbis" if c == "libopus" else c for c in cmd]
+            # http://trac.ffmpeg.org/ticket/5718
+            # results in https://trac.ffmpeg.org/ticket/7712
+            print('Trying to map channels manually')
+            for i in range(len(cmd)):
+                if cmd[i] == 'libopus':
+                    cmd.insert(i + 1, "-af")
+                    cmd.insert(i + 2, 'aformat=channel_layouts=5.1|stereo')
+                    break
 
-            exit_code = subprocess.call(cmd)
+            print('(Re:) Transcode:', ' '.join(cmd))
+            ffmpeg_info = subprocess.run(cmd)
 
-        print(f"Transcode ended: {exit_code}")
+        print(f"Transcode ended: {ffmpeg_info.returncode}")
 
-        return exit_code
+        return ffmpeg_info.returncode
 
 
 def _get_width_height(stream_lines, screen_w, screen_h):
@@ -401,8 +415,6 @@ def get_streams(media, codec, width, height, start_time):
     if not os.path.exists(file_path):
         return None
 
-    import tempfile
-
     _create_stream(media, codec, width, height, start_time)
 
     media_id = media.id()
@@ -412,6 +424,7 @@ def get_streams(media, codec, width, height, start_time):
     subtitles = []
     fonts = []
 
+    import tempfile
     for file_name in [
         f for f in os.listdir(tempfile.gettempdir()) if media_id in f
     ]:

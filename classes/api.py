@@ -206,7 +206,7 @@ def play(db, media_ids):
         ]
 
         cmd_vlc = [
-            'vlc'  # , '--fullscreen', '--mouse-hide-timeout 3000'
+            'vlc', '--fullscreen' #, '--mouse-hide-timeout 3000'
         ] + file_paths
 
         # cmd_mpv = ['mpv', '--fullscreen', '--slang=en,eng'] + file_paths
