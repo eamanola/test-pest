@@ -323,6 +323,15 @@ var create_player = (function(w) {
 
     var play_position_total = document.createElement("div")
     play_position_total.className = "video-position-total"
+    play_position_total.addEventListener("click", function(e) {
+      var percent = (e.layerX / play_position_total.offsetWidth)
+      if (percent < 0.025) percent = 0
+
+      var new_time = percent * duration
+      if (new_time > v.buffered.end(0)) new_time = v.buffered.end(0)
+
+      v.currentTime = new_time
+    }, false)
     play_position.appendChild(play_position_total)
 
     var play_position_buffered = document.createElement("div")
