@@ -407,6 +407,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 response_code = 400
 
+        elif self.path.startswith("/subtitle/"):
+            parts = self.path[1:].split("/")
+            stream_index = parts[1]
+            media_id = parts[2].split(".")[0]
+
+            if (media_id and stream_index and len(parts) == 3):
+                subtitle_path = api.get_subtitle(
+                    db,
+                    media_id,
+                    stream_index
+                )
+                if subtitle_path:
+                    response_code = 200
+                    send_file_path = subtitle_path
+                    content_type = mime_type(subtitle_path)
+                    cache_control = "private, must-revalidate, max-age=0"
+                else:
+                    response_code = 404
+            else:
+                response_code = 400
+
         elif (
             (
                 self.path.startswith("/images/thumbnails/")
@@ -415,10 +436,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             or (
                 self.path.startswith("/images/posters/")
                 and self.path.endswith(".jpg")
-            )
-            or (
-                self.path.startswith("/subtitles/")
-                and self.path.endswith((".vtt", ".ass"))
             )
             or (
                 self.path.startswith("/fonts/")
@@ -430,14 +447,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = None
 
             path = [sys.path[0]]
-            if self.path.startswith(("/subtitles/", "/fonts/")):
+            if self.path.startswith("/fonts/"):
                 path.append("streams")
 
             path = path + self.path[1:].split("/")
-
-            if self.path.startswith("/tmp/"):
-                import tempfile
-                path = [tempfile.gettempdir()] + self.path[1:].split("/")[1:]
 
             file_path = os.sep.join(path)
 
@@ -451,8 +464,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 content_type = mime_type(file_path)
 
                 cache_control = "private, max-age=604800"
-                if self.path.startswith("/tmp/"):
-                    cache_control = "private, must-revalidate, max-age=0"
 
         elif (
             self.path in (

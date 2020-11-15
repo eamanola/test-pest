@@ -6,7 +6,6 @@ import time
 import tempfile
 
 STREAM_FOLDER = os.path.join(sys.path[0], "streams")
-SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
 FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
 PROCESS_NAME_PREFIX = "test-pest"
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
@@ -15,70 +14,6 @@ R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 
 class Static_vars(object):
     current_video_proc = None
-
-
-def _create_subtitles(stream_lines, media_id, file_path):
-    count = 0
-
-    re_sub_audio = re.compile(R_SUB_AUDIO)
-
-    for line in [s for s in stream_lines if "Subtitle" in s]:
-        info = re_sub_audio.search(line)
-        if info:
-            file_name = f'{media_id}.{info.group(2)}'
-
-            if "(default)" in line:
-                file_name = f'{file_name}.default'
-
-            if "(forced)" in line:
-                file_name = f'{file_name}.forced'
-
-            is_ass = "Subtitle: ass" in line
-
-            if is_ass:
-                file_name = f'{file_name}.ass'
-            else:
-                file_name = f'{file_name}.vtt'
-
-            subtitle_path = os.path.join(
-                SUBTITLES_FOLDER,
-                file_name
-            )
-
-            if not os.path.exists(subtitle_path):
-                if is_ass:
-                    cmd = (
-                        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
-                        '-dump_attachment:t', '',
-                        '-i', file_path
-                    )
-
-                    print(" ".join(cmd))
-
-                    subprocess.call(cmd, cwd=FONTS_FOLDER)
-
-                cmd = (
-                    'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
-                    '-i', file_path,
-                    '-map', f'0:{info.group(1)}',
-                    subtitle_path
-                )
-
-                print("Subtitle:", " ".join(cmd))
-
-                if subprocess.call(cmd) == 0:
-                    print('Subtitle: Completed 0')
-
-                    count = count + 1
-                else:
-                    print('Subtitle: Fail')
-                    print('TODO: Bitmap subtitles')
-
-                    if os.path.exists(subtitle_path):
-                        os.remove(subtitle_path)
-                        print(subtitle_path, "removed")
-
-    return count
 
 
 def _get_stream_info(file_path):
@@ -290,6 +225,23 @@ def _audio_stream(file_path, stream_index, dst_path):
     print("Audio:", " ".join(cmd))
 
     subprocess.Popen(cmd)
+    time.sleep(1)
+
+    return dst_path
+
+
+def _subtitle(file_path, stream_index, dst_path):
+    cmd = (
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+        '-i', file_path,
+        '-map', f'0:{stream_index}',
+        dst_path
+    )
+
+    print("Subtitle:", " ".join(cmd))
+
+    subprocess.Popen(cmd)
+    time.sleep(1)
 
     return dst_path
 
@@ -321,41 +273,40 @@ def get_audio_stream(media, stream_index):
     )
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    print(dst_path)
-
     return _audio_stream(file_path, stream_index, dst_path)
 
 
-def _create_stream(media, codec, width, height, start_time):
-    media_id = media.id()
+def get_subtitle(media, stream_index):
     file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
 
-    stream_lines = [
-        line for line in _get_stream_info(file_path) if "Stream" in line
-    ]
+    is_ass = False
+    stream_lines = _get_stream_info(file_path)
+    re_sub_audio = re.compile(R_SUB_AUDIO)
 
-    _create_subtitles(stream_lines, media_id, file_path)
+    for line in [line for line in stream_lines if "Subtitle" in line]:
+        info = re_sub_audio.search(line)
+        if info and info.group(1) == stream_index:
+            is_ass = "Subtitle: ass" in line
+            break
 
+    from pathlib import Path
+    dst_path = os.path.join(
+        tempfile.gettempdir(),
+        media.id(),
+        "subtitle",
+        f'{stream_index}.{"ass" if is_ass else "vtt"}'
+    )
+    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-def format_subtitle(file_name, is_tmp=False):
-    lang = file_name.split('.')[1]
-    is_default = ".default" in file_name
-    is_forced = ".forced" in file_name
-
-    return {
-        'src': f'/{ "subtitles" if is_tmp is False else "tmp" }/{file_name}',
-        'lang': lang,
-        'default': is_default,
-        'forced': is_forced
-    }
+    return _subtitle(file_path, stream_index, dst_path)
 
 
 def get_streams(media, codec, width, height, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
-
-    _create_stream(media, codec, width, height, start_time)
 
     media_id = media.id()
 
@@ -389,10 +340,25 @@ def get_streams(media, codec, width, height, start_time):
     if len(audio):
         audio.pop(0)
 
-    for file_name in [
-        f for f in os.listdir(SUBTITLES_FOLDER) if f.startswith(media_id)
-    ]:
-        subtitles.append(format_subtitle(file_name))
+    for line in [line for line in stream_lines if "Subtitle" in line]:
+        is_default = "(default)" in line
+        is_forced = "(forced)" in line
+        is_ass = "Subtitle: ass" in line
+
+        info = re_sub_audio.search(line)
+        stream_index = info.group(1) if info else None
+        lang = info.group(2) if info else None
+        src = f'/subtitle/{stream_index}/{media_id}'
+        src = src + (".ass" if is_ass else ".vtt")
+
+        subtitle = {
+            'src': src,
+            'lang': lang,
+            'default': is_default,
+            'forced': is_forced
+        }
+
+        subtitles.append(subtitle)
 
     stream_info = _get_stream_info(file_path)
 
@@ -415,6 +381,15 @@ def get_streams(media, codec, width, height, start_time):
             break
 
     if is_ass:
+        cmd = (
+            'ffmpeg', '-n', '-hide_banner', '-loglevel', 'warning',
+            '-dump_attachment:t', '',
+            '-i', file_path
+        )
+
+        print('Fonts:', " ".join(cmd))
+        subprocess.call(cmd, cwd=FONTS_FOLDER)
+
         re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
 
         for line in [
