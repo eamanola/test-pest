@@ -497,7 +497,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if send_file_path is not None:
             self.send_header("Transfer-Encoding", "chunked")
 
-
         # should be null?
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
@@ -505,57 +504,59 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # print(self.headers)
 
         if send_file_path is not None:
-            self.send_chunks(send_file_path)
+            with open(send_file_path, "rb") as f:
+                self.send_chunks(f)
         else:
             try:
                 self.wfile.write(reply)
             except Exception as e:
                 print('Fail: handler.wfile.write(reply)', e)
 
-    def send_chunks(self, file_path):
+    def send_chunks(self, bytes_stream, delay=None):
         CHUNK_SIZE = 1024 * 1024 * 1  # 1 MiB
         NEW_LINE = bytes("\r\n", "utf-8")
 
-        with open(file_path, "rb") as f:
-            while True:
-                chunk = f.read(CHUNK_SIZE)
+        while True:
+            chunk = bytes_stream.read(CHUNK_SIZE)
 
-                if not chunk:
-                    break
-                else:
-                    try:
-                        chunk_len = len(chunk)
+            if not chunk:
+                break
+            else:
+                try:
+                    chunk_len = len(chunk)
+                    post = (
+                        bytes(hex(chunk_len)[2:], "utf-8")
+                        + NEW_LINE
+                        + chunk
+                        + NEW_LINE
+                    )
+                    if chunk_len < CHUNK_SIZE:
                         post = (
-                            bytes(hex(chunk_len)[2:], "utf-8")
+                            post
+                            + bytes("0", "utf-8")
                             + NEW_LINE
-                            + chunk
                             + NEW_LINE
                         )
-                        if chunk_len < CHUNK_SIZE:
-                            post = (
-                                post
-                                + bytes("0", "utf-8")
-                                + NEW_LINE
-                                + NEW_LINE
-                            )
 
-                        self.wfile.write(post)
-                        time.sleep(1)
+                    self.wfile.write(post)
 
-                    except ConnectionResetError as e:
-                        print('send_file: ConnectionResetError', e)
+                    if delay:
+                        time.sleep(delay)
 
-                        break
-                    except IOError as e:
-                        print('send_file: IOError', e)
+                except ConnectionResetError as e:
+                    print('send_file: ConnectionResetError', e)
 
-                        break
-                    except Exception as e:
-                        print('send_file Unknow Exception', e)
+                    break
+                except IOError as e:
+                    print('send_file: IOError', e)
 
-                        break
-                    finally:
-                        del chunk
+                    break
+                except Exception as e:
+                    print('send_file Unknow Exception', e)
+
+                    break
+                finally:
+                    del chunk
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
