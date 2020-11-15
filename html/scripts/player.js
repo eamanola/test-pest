@@ -286,7 +286,7 @@ var create_player = (function(w) {
     var time = ""
       + (hours > 0 ? (hours+':'):"")
       + (minutes > 0 ? (minutes+':'):"0:")
-      + (seconds > 10 ? (seconds): ("0"+seconds))
+      + (seconds >= 10 ? (seconds): ("0"+seconds))
 
     return time
   }
@@ -386,8 +386,10 @@ var create_player = (function(w) {
 
     v.addEventListener("progress", function() {
       if(duration) {
-        play_position_buffered.style.width =
+        if (v.buffered.length) {
+          play_position_buffered.style.width =
           (Math.min(v.buffered.end(0) / duration, 1) * 100) + '%'
+        }
       }
     }, false)
 

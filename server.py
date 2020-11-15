@@ -103,6 +103,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         reply = None
         send_file_path = None
+        send_stream = None
         cache_control = None
         last_modified = None
         etag = None
@@ -354,6 +355,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             else:
                 response_code = 400
+        elif self.path.startswith("/video/"):
+            parts = self.path[1:].split("/")
+            codec = parts[1]
+            width = int(parts[2])
+            height = int(parts[3])
+            media_id = parts[4]
+
+            START_TIME = "00:00:00.0"
+
+            if (media_id and codec and width and height and len(parts) == 5):
+                stream = api.get_video_stream(
+                    db,
+                    media_id,
+                    codec,
+                    width,
+                    height,
+                    START_TIME
+                )
+                if stream:
+                    response_code = 200
+                    send_stream = stream
+                    content_type = mime_type(stream)
+                    cache_control = "private, must-revalidate, max-age=0"
+                    time.sleep(10)
+                else:
+                    response_code = 404
         elif (
             (
                 self.path.startswith("/images/thumbnails/")
@@ -464,7 +491,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         db.close()
 
-        if not send_file_path:
+        if not send_file_path and not send_stream:
             if response_code in (200, 304) and reply is None:
                 reply = OK_REPLY
             if response_code == 400:
@@ -494,7 +521,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Last-Modified", epoch_to_httptime(last_modified))
         if etag is not None:
             self.send_header("ETag", f'"{etag}"')
-        if send_file_path is not None:
+        if send_file_path is not None or send_stream is not None:
             self.send_header("Transfer-Encoding", "chunked")
 
         # should be null?
@@ -503,17 +530,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # print(self.headers)
 
-        if send_file_path is not None:
+        if send_stream is not None:
+            with open(send_stream, "rb") as f:
+                self.send_chunks(f, 1)
+
+        elif send_file_path is not None:
             with open(send_file_path, "rb") as f:
                 self.send_chunks(f)
+
         else:
             try:
                 self.wfile.write(reply)
             except Exception as e:
                 print('Fail: handler.wfile.write(reply)', e)
 
-    def send_chunks(self, bytes_stream, delay=None):
-        CHUNK_SIZE = 1024 * 1024 * 1  # 1 MiB
+    def send_chunks(
+        self, bytes_stream, delay=None, CHUNK_SIZE=1024 * 1024 * 1
+    ):
         NEW_LINE = bytes("\r\n", "utf-8")
 
         while True:
@@ -603,6 +636,3 @@ except KeyboardInterrupt:
 finally:
     httpd.server_close()
     print("Server stopped.")
-
-    from classes.streaming import kill_video_procs
-    kill_video_procs()

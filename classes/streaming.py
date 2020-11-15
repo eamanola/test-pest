@@ -2,6 +2,8 @@ import sys
 import os
 import subprocess
 import re
+import time
+import tempfile
 
 STREAM_FOLDER = os.path.join(sys.path[0], "streams")
 SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
@@ -10,6 +12,10 @@ FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
 PROCESS_NAME_PREFIX = "test-pest"
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
+
+
+class Static_vars(object):
+    current_video_proc = None
 
 
 def _create_subtitles(stream_lines, media_id, file_path):
@@ -102,8 +108,6 @@ def _create_audio_file(file_path, stream_index, audio_path, tmp_path):
 
 def _create_audio(stream_lines, media_id, file_path):
     import multiprocessing
-    import time
-    import tempfile
 
     count = 0
 
@@ -268,49 +272,65 @@ def _transcode(file_path, codec, width, height, media_id, start_time):
                     '-tile-columns', '3', '-frame-parallel', '1'
                 ]
 
-
-        # https://stackoverflow.com/questions/10114224/how-to-properly-send-http-response-with-python-using-socket-library-only
-        cmd = cmd + [
-            # tmp_path
+    # https://stackoverflow.com/questions/10114224/how-to-properly-send-http-response-with-python-using-socket-library-only
+    if False:
+        output = [
             '-content_type', 'video/webm',
             '-listen', '1',
             '-headers',
             'Cache-Control: private, must-revalidate, max-age=0\r\n\r\n',
             f'http://192.168.1.119:8099/{media_id}.webm'
         ]
+    elif True:
+        os.path.join(
+            tempfile.gettempdir(), f'ab.webm'
+        )
+        output = ["/tmp/ab.webm"]
 
     if cmd:
+        cmd = cmd + output
         print('Transcode:', ' '.join(cmd))
 
-        # subprocess.Popen(cmd)
-        ffmpeg_info = subprocess.run(cmd, capture_output=True, text=True)
+        if Static_vars.current_video_proc is not None:
+            if Static_vars.current_video_proc.poll() is None:
+                print("Closing previous video transcoding")
+                Static_vars.current_video_proc.terminate()
 
-        if (
-            ffmpeg_info.returncode == 1
-            and any(
-                (
-                    "libopus" in line
-                    and "Invalid channel layout 5.1(side) for specified mapping family -1." in line
-                ) for line in ffmpeg_info.stderr.split("\n")
-            )
-        ):
-            print('Transcode: Fail')
+        ffmpeg_proc = subprocess.Popen(
+            cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+        )
+        Static_vars.current_video_proc = ffmpeg_proc
+
+        time.sleep(1)
+
+        if ffmpeg_proc.poll() is not None and ffmpeg_proc.returncode == 1:
+            print('Transcode fail')
+
+            stderr_str = ffmpeg_proc.stderr.read().decode("utf-8")
 
             # http://trac.ffmpeg.org/ticket/5718
-            # results in https://trac.ffmpeg.org/ticket/7712
-            print('Trying to map channels manually')
-            for i in range(len(cmd)):
-                if cmd[i] == 'libopus':
-                    cmd.insert(i + 1, "-af")
-                    cmd.insert(i + 2, 'aformat=channel_layouts=5.1|stereo')
-                    break
+            if any(
+                (
+                    "libopus" in line
+                    and "Invalid channel layout 5.1(side)" in line
+                ) for line in stderr_str.split("\n")
+            ):
+                print('Trying to map channels manually')
+                for i in range(len(cmd)):
+                    if cmd[i] == 'libopus':
+                        cmd.insert(i + 1, "-af")
+                        cmd.insert(i + 2, 'aformat=channel_layouts=5.1|stereo')
+                        break
 
-            print('(Re:) Transcode:', ' '.join(cmd))
-            ffmpeg_info = subprocess.run(cmd)
+                print('(Re:) Transcode:', ' '.join(cmd))
 
-        print(f"Transcode ended: {ffmpeg_info.returncode}")
+                ffmpeg_proc = subprocess.Popen(
+                    cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+                )
+                Static_vars.current_video_proc = ffmpeg_proc
+                time.sleep(1)
 
-        return ffmpeg_info.returncode
+        return output[0]
 
 
 def _get_width_height(stream_lines, screen_w, screen_h):
@@ -336,43 +356,17 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def kill_video_procs():
-    import time
-    import psutil
-    import multiprocessing
+def get_video_stream(media, codec, width, height, start_time):
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
 
-    for proc in multiprocessing.active_children():
-        if proc.name.startswith(f'{PROCESS_NAME_PREFIX}-video_'):
-            print(f'Killing {proc}')
-
-            for child in psutil.Process(proc.pid).children(recursive=True):
-                child.kill()
-
-            proc.kill()
-
-            time.sleep(1)
-
-            proc.close()
-
-
-def _create_video(
-    stream_lines, media_id, file_path, codec, width, height, start_time
-):
-    import multiprocessing
-
+    stream_lines = [line for line in _get_stream_info(file_path) if (
+        "Stream" in line and "Video" in line
+    )]
     w, h = _get_width_height(stream_lines, width, height)
-    proc_name = f'{PROCESS_NAME_PREFIX}-video_{media_id}'
 
-    kill_video_procs()
-
-    transcode_process = multiprocessing.Process(
-        target=_transcode,
-        name=proc_name,
-        args=(file_path, codec, w, h, media_id, start_time))
-
-    # connection still might be active after transcoding
-    transcode_process.daemon = False
-    transcode_process.start()
+    return _transcode(file_path, codec, w, h, media.id(), start_time)
 
 
 def _create_stream(media, codec, width, height, start_time):
@@ -385,9 +379,6 @@ def _create_stream(media, codec, width, height, start_time):
 
     _create_audio(stream_lines, media_id, file_path)
     _create_subtitles(stream_lines, media_id, file_path)
-    _create_video(
-        stream_lines, media_id, file_path, codec, width, height, start_time
-    )
 
 
 def format_audio(file_name, is_tmp=False):
@@ -423,12 +414,11 @@ def get_streams(media, codec, width, height, start_time):
 
     media_id = media.id()
 
-    streams = [f'http://192.168.1.119:8099/{media_id}.webm']
+    streams = [f'/video/{codec}/{width}/{height}/{media_id}']
     audio = []
     subtitles = []
     fonts = []
 
-    import tempfile
     for file_name in [
         f for f in os.listdir(tempfile.gettempdir()) if media_id in f
     ]:

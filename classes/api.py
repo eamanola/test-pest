@@ -304,3 +304,17 @@ def get_streams(db, media_id, codec, width, height, start_time):
         )
 
     return streams
+
+
+def get_video_stream(db, media_id, codec, width, height, start_time):
+    stream = None
+    media = db.get_media(media_id)
+
+    if media:
+        import classes.streaming as streaming
+
+        stream = streaming.get_video_stream(
+            media, codec, width, height, start_time
+        )
+
+    return stream
