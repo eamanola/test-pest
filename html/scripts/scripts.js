@@ -1,7 +1,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-var player = localStorage.getItem("player") || "vlc"
+var player = localStorage.getItem("player") || "web"
 function onTogglePlayClick(e) {
   e.preventDefault();
   e.stopPropagation();
