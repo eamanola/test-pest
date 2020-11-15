@@ -318,3 +318,15 @@ def get_video_stream(db, media_id, codec, width, height, start_time):
         )
 
     return stream
+
+
+def get_audio_stream(db, media_id, stream_index):
+    stream = None
+    media = db.get_media(media_id)
+
+    if media:
+        import classes.streaming as streaming
+
+        stream = streaming.get_audio_stream(media, stream_index)
+
+    return stream

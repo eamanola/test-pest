@@ -7,7 +7,6 @@ import tempfile
 
 STREAM_FOLDER = os.path.join(sys.path[0], "streams")
 SUBTITLES_FOLDER = os.path.join(STREAM_FOLDER, "subtitles")
-AUDIO_FOLDER = os.path.join(STREAM_FOLDER, "audio")
 FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
 PROCESS_NAME_PREFIX = "test-pest"
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
@@ -82,80 +81,6 @@ def _create_subtitles(stream_lines, media_id, file_path):
     return count
 
 
-def _create_audio_file(file_path, stream_index, audio_path, tmp_path):
-    cmd = (
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
-        '-i', file_path,
-        '-map', f'0:{stream_index}',
-        '-c:a', 'libopus',
-        tmp_path
-    )
-
-    print("Audio:", " ".join(cmd))
-
-    if subprocess.call(cmd) == 0:
-        print('Audio: Completed 0')
-
-        from shutil import copyfile
-        copyfile(tmp_path, audio_path)
-    else:
-        print('Audio: Fail')
-
-        if os.path.exists(tmp_path):
-            os.remove(tmp_path)
-            print(tmp_path, "removed")
-
-
-def _create_audio(stream_lines, media_id, file_path):
-    import multiprocessing
-
-    count = 0
-
-    re_sub_audio = re.compile(R_SUB_AUDIO)
-
-    audio_lines = [line for line in stream_lines if "Audio" in line]
-
-    for line in audio_lines:
-        if "(default)" in line:
-            audio_lines.remove(line)
-            audio_lines.insert(0, line)
-            break
-
-    if len(audio_lines) > 0:
-        audio_lines.pop(0)
-
-    for line in audio_lines:
-        info = re_sub_audio.search(line)
-        if info:
-            file_name = f'{media_id}.{info.group(2)}'
-
-            if "(forced)" in line:
-                file_name = f'{file_name}.forced'
-
-            file_name = f'{file_name}.opus'
-
-            audio_path = os.path.join(AUDIO_FOLDER, file_name)
-
-            if not os.path.exists(audio_path):
-                tmp_path = os.path.join(
-                    tempfile.gettempdir(), f'audio_{file_name}'
-                )
-                proc_name = f'{PROCESS_NAME_PREFIX}-audio_{file_name}'
-
-                audio_process = multiprocessing.Process(
-                    target=_create_audio_file,
-                    name=proc_name,
-                    args=(file_path, info.group(1), audio_path, tmp_path))
-                audio_process.daemon = True
-                audio_process.start()
-
-                time.sleep(1)
-
-                count = count + 1
-
-    return count
-
-
 def _get_stream_info(file_path):
     cmd = ('ffmpeg', '-hide_banner', '-i', file_path)
 
@@ -165,7 +90,30 @@ def _get_stream_info(file_path):
     return ffmpeg_info.stderr.split("\n")
 
 
-def _transcode(file_path, codec, width, height, media_id, start_time):
+def _get_width_height(stream_lines, screen_w, screen_h):
+    width, height = screen_w, screen_h
+
+    is_portait = height > width
+    if is_portait:
+        width, height = height, width
+
+    for line in stream_lines:
+        # first
+        if "Video" in line:
+            video_dimensions = re.compile(r'(\d+)x(\d+)').search(line)
+            if video_dimensions:
+                if int(video_dimensions.group(1)) < width:
+                    width = int(video_dimensions.group(1))
+
+                if int(video_dimensions.group(2)) < height:
+                    height = int(video_dimensions.group(2))
+
+            break
+
+    return width, height
+
+
+def _video_stream(file_path, codec, width, height, media_id, start_time):
     cmd = None
 
     if codec in ("vp8", "vp9"):
@@ -282,10 +230,7 @@ def _transcode(file_path, codec, width, height, media_id, start_time):
             f'http://192.168.1.119:8099/{media_id}.webm'
         ]
     elif True:
-        os.path.join(
-            tempfile.gettempdir(), f'ab.webm'
-        )
-        output = ["/tmp/ab.webm"]
+        output = [os.path.join(tempfile.gettempdir(), f'ab.webm')]
 
     if cmd:
         cmd = cmd + output
@@ -333,27 +278,20 @@ def _transcode(file_path, codec, width, height, media_id, start_time):
         return output[0]
 
 
-def _get_width_height(stream_lines, screen_w, screen_h):
-    width, height = screen_w, screen_h
+def _audio_stream(file_path, stream_index, dst_path):
+    cmd = (
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+        '-i', file_path,
+        '-map', f'0:{stream_index}',
+        '-c:a', 'libopus',
+        dst_path
+    )
 
-    is_portait = height > width
-    if is_portait:
-        width, height = height, width
+    print("Audio:", " ".join(cmd))
 
-    for line in stream_lines:
-        # first
-        if "Video" in line:
-            video_dimensions = re.compile(r'(\d+)x(\d+)').search(line)
-            if video_dimensions:
-                if int(video_dimensions.group(1)) < width:
-                    width = int(video_dimensions.group(1))
+    subprocess.Popen(cmd)
 
-                if int(video_dimensions.group(2)) < height:
-                    height = int(video_dimensions.group(2))
-
-            break
-
-    return width, height
+    return dst_path
 
 
 def get_video_stream(media, codec, width, height, start_time):
@@ -366,7 +304,26 @@ def get_video_stream(media, codec, width, height, start_time):
     )]
     w, h = _get_width_height(stream_lines, width, height)
 
-    return _transcode(file_path, codec, w, h, media.id(), start_time)
+    return _video_stream(file_path, codec, w, h, media.id(), start_time)
+
+
+def get_audio_stream(media, stream_index):
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
+
+    from pathlib import Path
+    dst_path = os.path.join(
+        tempfile.gettempdir(),
+        media.id(),
+        "audio",
+        f'{stream_index}.opus'
+    )
+    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
+
+    print(dst_path)
+
+    return _audio_stream(file_path, stream_index, dst_path)
 
 
 def _create_stream(media, codec, width, height, start_time):
@@ -377,19 +334,7 @@ def _create_stream(media, codec, width, height, start_time):
         line for line in _get_stream_info(file_path) if "Stream" in line
     ]
 
-    _create_audio(stream_lines, media_id, file_path)
     _create_subtitles(stream_lines, media_id, file_path)
-
-
-def format_audio(file_name, is_tmp=False):
-    lang = file_name.split('.')[1]
-    is_forced = ".forced" in file_name
-
-    return {
-        'src': f'/{ "audio" if is_tmp is False else "tmp" }/{file_name}',
-        'lang': lang,
-        'forced': is_forced
-    }
 
 
 def format_subtitle(file_name, is_tmp=False):
@@ -419,16 +364,30 @@ def get_streams(media, codec, width, height, start_time):
     subtitles = []
     fonts = []
 
-    for file_name in [
-        f for f in os.listdir(tempfile.gettempdir()) if media_id in f
-    ]:
-        if file_name.startswith("audio_"):
-            audio.append(format_audio(file_name, is_tmp=True))
+    stream_lines = _get_stream_info(file_path)
+    re_sub_audio = re.compile(R_SUB_AUDIO)
 
-    for file_name in [
-        f for f in os.listdir(AUDIO_FOLDER) if f.startswith(media_id)
-    ]:
-        audio.append(format_audio(file_name))
+    for line in [line for line in stream_lines if "Audio" in line]:
+        is_default = "(default)" in line
+        is_forced = "(forced)" in line
+
+        info = re_sub_audio.search(line)
+        stream_index = info.group(1) if info else None
+        lang = info.group(2) if info else None
+
+        _audio = {
+            'src': f"/audio/{stream_index}/{media_id}",
+            'lang': lang,
+            'is_forced': is_forced
+        }
+
+        if is_default:
+            audio.insert(0, _audio)
+        else:
+            audio.append(_audio)
+
+    if len(audio):
+        audio.pop(0)
 
     for file_name in [
         f for f in os.listdir(SUBTITLES_FOLDER) if f.startswith(media_id)

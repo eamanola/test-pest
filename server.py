@@ -355,6 +355,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             else:
                 response_code = 400
+
         elif self.path.startswith("/video/"):
             parts = self.path[1:].split("/")
             codec = parts[1]
@@ -381,6 +382,31 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     time.sleep(10)
                 else:
                     response_code = 404
+            else:
+                response_code = 400
+
+        elif self.path.startswith("/audio/"):
+            parts = self.path[1:].split("/")
+            stream_index = parts[1]
+            media_id = parts[2]
+
+            if (media_id and stream_index and len(parts) == 3):
+                stream = api.get_audio_stream(
+                    db,
+                    media_id,
+                    stream_index
+                )
+                if stream:
+                    response_code = 200
+                    send_stream = stream
+                    content_type = mime_type(stream)
+                    cache_control = "private, must-revalidate, max-age=0"
+                    time.sleep(5)
+                else:
+                    response_code = 404
+            else:
+                response_code = 400
+
         elif (
             (
                 self.path.startswith("/images/thumbnails/")
@@ -389,12 +415,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             or (
                 self.path.startswith("/images/posters/")
                 and self.path.endswith(".jpg")
-            )
-
-            or self.path.startswith("/tmp/audio_")
-            or (
-                self.path.startswith("/audio/")
-                and self.path.endswith(".opus")
             )
             or (
                 self.path.startswith("/subtitles/")
@@ -410,9 +430,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             content_type = None
 
             path = [sys.path[0]]
-            if self.path.startswith(
-                ("/audio/", "/subtitles/", "/fonts/")
-            ):
+            if self.path.startswith(("/subtitles/", "/fonts/")):
                 path.append("streams")
 
             path = path + self.path[1:].split("/")
