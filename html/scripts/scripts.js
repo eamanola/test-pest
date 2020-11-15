@@ -1,7 +1,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 
-var player = "web"
+var player = localStorage.getItem("player") || "vlc"
 function onTogglePlayClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -15,6 +15,7 @@ function onTogglePlayClick(e) {
     new_text = "Play in Browser"
   }
 
+  localStorage.setItem("player", player)
   document.getElementById('toggle-player').innerHTML = new_text
 }
 
