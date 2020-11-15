@@ -7,6 +7,7 @@ from classes.apis.to_dict import DictContainer, DictMedia
 from classes.db import DB
 import os
 import sys
+import time
 
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
@@ -493,6 +494,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Last-Modified", epoch_to_httptime(last_modified))
         if etag is not None:
             self.send_header("ETag", f'"{etag}"')
+        if send_file_path is not None:
+            self.send_header("Transfer-Encoding", "chunked")
+
 
         # should be null?
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -501,19 +505,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # print(self.headers)
 
         if send_file_path is not None:
-            self.send_file(send_file_path)
+            self.send_chunks(send_file_path)
         else:
             try:
                 self.wfile.write(reply)
             except Exception as e:
                 print('Fail: handler.wfile.write(reply)', e)
 
-    def send_file(self, file_path):
-        import time
-
-        is_tmp = self.path.startswith("/tmp/")
-
+    def send_chunks(self, file_path):
         CHUNK_SIZE = 1024 * 1024 * 1  # 1 MiB
+        NEW_LINE = bytes("\r\n", "utf-8")
+
         with open(file_path, "rb") as f:
             while True:
                 chunk = f.read(CHUNK_SIZE)
@@ -522,7 +524,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     break
                 else:
                     try:
-                        self.wfile.write(chunk)
+                        chunk_len = len(chunk)
+                        post = (
+                            bytes(hex(chunk_len)[2:], "utf-8")
+                            + NEW_LINE
+                            + chunk
+                            + NEW_LINE
+                        )
+                        if chunk_len < CHUNK_SIZE:
+                            post = (
+                                post
+                                + bytes("0", "utf-8")
+                                + NEW_LINE
+                                + NEW_LINE
+                            )
+
+                        self.wfile.write(post)
+                        time.sleep(1)
 
                     except ConnectionResetError as e:
                         print('send_file: ConnectionResetError', e)
@@ -538,9 +556,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         break
                     finally:
                         del chunk
-
-                    if is_tmp:
-                        time.sleep(1)
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
