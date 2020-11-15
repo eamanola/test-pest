@@ -428,6 +428,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 response_code = 400
 
+        elif self.path.startswith("/fonts/"):
+            parts = self.path[1:].split("/")
+            media_id = parts[1]
+            font_name = parts[2]
+
+            if (media_id and font_name and len(parts) == 3):
+                font_path = api.get_font(
+                    db,
+                    media_id,
+                    font_name
+                )
+                if font_path:
+                    response_code = 200
+                    send_file_path = font_path
+                    content_type = mime_type(font_path)
+                    cache_control = "private, must-revalidate, max-age=0"
+                else:
+                    response_code = 404
+            else:
+                response_code = 400
+
         elif (
             (
                 self.path.startswith("/images/thumbnails/")
@@ -437,20 +458,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.path.startswith("/images/posters/")
                 and self.path.endswith(".jpg")
             )
-            or (
-                self.path.startswith("/fonts/")
-                and self.path.endswith((".otf", ".OTF", ".ttf", ".TTF"))
-            )
         ):
             response_code = 404
             reply = None
             content_type = None
 
-            path = [sys.path[0]]
-            if self.path.startswith("/fonts/"):
-                path.append("streams")
-
-            path = path + self.path[1:].split("/")
+            path = [sys.path[0]] + self.path[1:].split("/")
 
             file_path = os.sep.join(path)
 

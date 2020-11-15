@@ -246,6 +246,18 @@ def _subtitle(file_path, stream_index, dst_path):
     return dst_path
 
 
+def _dump_attachments(file_path, dst_dir):
+    cmd = (
+        'ffmpeg', '-n', '-hide_banner', '-loglevel', 'warning',
+        '-dump_attachment:t', '', '-i', file_path
+    )
+
+    print("Fonts:", " ".join(cmd))
+
+    subprocess.Popen(cmd, cwd=dst_dir)
+    time.sleep(1)
+
+
 def get_video_stream(media, codec, width, height, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
@@ -303,6 +315,40 @@ def get_subtitle(media, stream_index):
     return _subtitle(file_path, stream_index, dst_path)
 
 
+def get_font(media, font_name):
+    dst_dir = os.path.join(
+        tempfile.gettempdir(),
+        media.id(),
+        "fonts"
+    )
+
+    if not os.path.exists(os.path.join(dst_dir, font_name)):
+        if os.path.exists(os.path.join(
+            dst_dir, font_name.replace("%20", " ")
+        )):
+            font_name = font_name.replace("%20", " ")
+
+    dst_path = os.path.join(dst_dir, font_name)
+
+    if not os.path.exists(dst_path):
+        file_path = os.path.join(media.parent().path(), media.file_path())
+        if not os.path.exists(file_path):
+            return None
+
+        from pathlib import Path
+        Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
+
+        _dump_attachments(file_path, os.path.dirname(dst_path))
+
+    if not os.path.exists(os.path.join(dst_dir, font_name)):
+        if os.path.exists(os.path.join(
+            dst_dir, font_name.replace("%20", " ")
+        )):
+            font_name = font_name.replace("%20", " ")
+
+    return os.path.join(dst_dir, font_name)
+
+
 def get_streams(media, codec, width, height, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
@@ -358,12 +404,11 @@ def get_streams(media, codec, width, height, start_time):
             'forced': is_forced
         }
 
-        subtitles.append(subtitle)
-
-    stream_info = _get_stream_info(file_path)
+        if lang is not None:
+            subtitles.append(subtitle)
 
     duration = 0
-    for line in stream_info:
+    for line in stream_lines:
         if "Duration" in line:
             d = re.compile(R_DURATION).search(line)
             if d:
@@ -374,35 +419,18 @@ def get_streams(media, codec, width, height, start_time):
                 )
             break
 
-    is_ass = False
-    for s in subtitles:
-        if s['src'].endswith(".ass"):
-            is_ass = True
-            break
-
-    if is_ass:
-        cmd = (
-            'ffmpeg', '-n', '-hide_banner', '-loglevel', 'warning',
-            '-dump_attachment:t', '',
-            '-i', file_path
+    re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
+    for line in [
+        line for line in stream_lines if (
+            line.strip().startswith("filename")
+            and line.strip().endswith((".otf", ".OTF", ".ttf", ".TTF"))
         )
-
-        print('Fonts:', " ".join(cmd))
-        subprocess.call(cmd, cwd=FONTS_FOLDER)
-
-        re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
-
-        for line in [
-            line for line in stream_info if (
-                line.strip().startswith("filename")
-                and line.strip().endswith((".otf", ".OTF", ".ttf", ".TTF"))
-            )
-        ]:
-            filename = re_attachment_names.search(line)
-            if filename:
-                f = filename.group(1)
-                if os.path.exists(os.path.join(FONTS_FOLDER, f)):
-                    fonts.append(f"/fonts/{f}")
+    ]:
+        filename = re_attachment_names.search(line)
+        if filename:
+            f = filename.group(1)
+            if os.path.exists(os.path.join(FONTS_FOLDER, f)):
+                fonts.append(f"/fonts/{media_id}/{f}")
 
     return {
         'id': media_id,

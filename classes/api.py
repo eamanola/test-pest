@@ -342,3 +342,15 @@ def get_subtitle(db, media_id, stream_index):
         subtitle = streaming.get_subtitle(media, stream_index)
 
     return subtitle
+
+
+def get_font(db, media_id, font_name):
+    font = None
+    media = db.get_media(media_id)
+
+    if media:
+        import classes.streaming as streaming
+
+        font = streaming.get_font(media, font_name)
+
+    return font
