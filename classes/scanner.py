@@ -103,25 +103,26 @@ class Scanner(object):
                         current_container.media.append(media)
 
             elif is_movie:
+                _show_name = show_name if not year else f'{show_name} ({year})'
                 if is_subtitle:
                     added = False
                     for m in current_container.media:
                         if (
                             isinstance(m, Movie)
-                            and m.title() == show_name
+                            and m.title() == _show_name
                         ):
                             m.subtitles.append(file_path)
                             added = True
                             break
 
                     if not added:
-                        subtitle_cache[show_name] = file_path
+                        subtitle_cache[_show_name] = file_path
 
                     continue
 
                 media = Movie(
                     file_path,
-                    show_name if not year else f'{show_name} ({year})',
+                    _show_name,
                     False,
                     parent=current_container
                 )
@@ -133,8 +134,8 @@ class Scanner(object):
                 else:
                     current_container.media.append(media)
                 # identify(db, media, show_name, year, Ext_api.MOVIE)
-                if show_name in subtitle_cache.keys():
-                    media.subtitles.append(subtitle_cache.pop(show_name))
+                if _show_name in subtitle_cache.keys():
+                    media.subtitles.append(subtitle_cache.pop(_show_name))
 
             if media:
                 if is_media:
