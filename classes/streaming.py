@@ -345,7 +345,6 @@ def get_subtitle(media, type, index):
     )
 
     if os.path.exists(dst_path):
-        print("Subtitle: return existing")
         return dst_path
 
     from pathlib import Path
@@ -353,13 +352,10 @@ def get_subtitle(media, type, index):
 
     exit_code = _subtitle(file_path, stream_index, dst_path)
     if exit_code != 0:
-        print("Subtitle: Fail")
         if os.path.exists(dst_path):
-            print('Removing', dst_path)
             os.remove(dst_path)
 
     if os.path.exists(dst_path):
-        print("Subtitle: return existing")
         return dst_path
 
     return None
@@ -375,12 +371,10 @@ def get_font(media, font_name):
     )
 
     if os.path.exists(dst_path):
-        print('Font: return existing')
         return dst_path
 
     if "%20" in dst_path:
         if os.path.exists(dst_path.replace("%20", " ")):
-            print('Font: return existing %20')
             return dst_path.replace("%20", " ")
 
     file_path = os.path.join(media.parent().path(), media.file_path())
@@ -393,12 +387,10 @@ def get_font(media, font_name):
     exit_code = _dump_attachments(file_path, os.path.dirname(dst_path))
 
     if os.path.exists(dst_path):
-        print('Font: return new')
         return dst_path
 
     if "%20" in dst_path:
         if os.path.exists(dst_path.replace("%20", " ")):
-            print('Font: return new %20')
             return dst_path.replace("%20", " ")
 
     return None
@@ -450,12 +442,11 @@ def get_streams(media, codec, width, height, start_time):
         audio.pop(0)
 
     for line in [line for line in stream_lines if "Subtitle" in line]:
-        # Bitmap subtitles require re transcoding
-        # disable for now
-        if any([
+        requires_transcode = any([
             "Subtitle: dvd_subtitle" in line,
             "Subtitle: hdmv_pgs_subtitle" in line
-        ]):
+        ])
+        if requires_transcode:
             continue
 
         is_default = "(default)" in line
