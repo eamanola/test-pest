@@ -242,9 +242,7 @@ def _subtitle(file_path, stream_index, dst_path):
 
     print("Subtitle:", " ".join(cmd))
 
-    subprocess.call(cmd)
-
-    return dst_path
+    return subprocess.call(cmd)
 
 
 def _dump_attachments(file_path, dst_dir):
@@ -255,7 +253,7 @@ def _dump_attachments(file_path, dst_dir):
 
     print("Fonts:", " ".join(cmd))
 
-    subprocess.call(cmd, cwd=dst_dir)
+    return subprocess.call(cmd, cwd=dst_dir)
 
 
 def get_video_stream(media, codec, width, height, start_time):
@@ -342,7 +340,18 @@ def get_subtitle(media, type, index):
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    return _subtitle(file_path, stream_index, dst_path)
+    exit_code = _subtitle(file_path, stream_index, dst_path)
+    if exit_code != 0:
+        print("Subtitle: Fail")
+        if os.path.exists(dst_path):
+            print('Removing', dst_path)
+            os.remove(dst_path)
+
+    if os.path.exists(dst_path):
+        print("Subtitle: return existing")
+        return dst_path
+
+    return None
 
 
 def get_font(media, font_name):
@@ -369,7 +378,7 @@ def get_font(media, font_name):
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    _dump_attachments(file_path, os.path.dirname(dst_path))
+    exit_code = _dump_attachments(file_path, os.path.dirname(dst_path))
 
     if os.path.exists(dst_path):
         print('Font: return new')
