@@ -362,24 +362,36 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             width = int(parts[2])
             height = int(parts[3])
             media_id = parts[4]
+            transcode = len(parts) == 6 and parts[5] == "transcode"
 
             START_TIME = "00:00:00.0"
 
-            if (media_id and codec and width and height and len(parts) == 5):
+            start_time = START_TIME
+
+            if (
+                media_id
+                and codec
+                and width
+                and height
+                and len(parts) in (5, 6)):
                 stream = api.get_video_stream(
                     db,
                     media_id,
                     codec,
                     width,
                     height,
-                    START_TIME
+                    transcode,
+                    start_time
                 )
                 if stream:
                     response_code = 200
-                    send_stream = stream
                     content_type = mime_type(stream)
                     cache_control = "private, must-revalidate, max-age=0"
-                    time.sleep(10)
+
+                    if transcode:
+                        send_stream = stream
+                    else:
+                        send_file_path = stream
                 else:
                     response_code = 404
             else:
@@ -401,7 +413,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     send_stream = stream
                     content_type = mime_type(stream)
                     cache_control = "private, must-revalidate, max-age=0"
-                    time.sleep(5)
                 else:
                     response_code = 404
             else:

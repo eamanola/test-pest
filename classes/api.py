@@ -306,16 +306,31 @@ def get_streams(db, media_id, codec, width, height, start_time):
     return streams
 
 
-def get_video_stream(db, media_id, codec, width, height, start_time):
+def get_video_stream(
+    db,
+    media_id,
+    codec,
+    width,
+    height,
+    transcode,
+    start_time
+):
     stream = None
     media = db.get_media(media_id)
 
     if media:
-        import classes.streaming as streaming
+        if transcode:
+            import classes.streaming as streaming
+            import time
 
-        stream = streaming.get_video_stream(
-            media, codec, width, height, start_time
-        )
+            stream = streaming.get_video_stream(
+                media, codec, width, height, start_time
+            )
+            time.sleep(10)
+        else:
+            import os
+            file_path = os.path.join(media.parent().path(), media.file_path())
+            stream = file_path if os.path.exists(file_path) else None
 
     return stream
 
@@ -326,8 +341,10 @@ def get_audio_stream(db, media_id, stream_index):
 
     if media:
         import classes.streaming as streaming
+        import time
 
         stream = streaming.get_audio_stream(media, stream_index)
+        time.sleep(5)
 
     return stream
 

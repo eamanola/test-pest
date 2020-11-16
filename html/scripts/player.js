@@ -1,6 +1,27 @@
 var create_player = (function(w) {
   var document = w.document
 
+  function request_transcoding() {
+    var video = document.querySelector('video');
+    var sources = document.querySelectorAll('source')
+    var streams = []
+
+    for (var i = 0, il = sources.length; i < il; i++) {
+      var source = sources[i]
+      var source_src = source.getAttribute("src")
+
+      if (!/\/transcode$/.test(source_src)) {
+        streams.push(source_src + "/transcode")
+      }
+      video.removeChild(source)
+    }
+
+    if (sources.length) {
+      console.log('adding new sources')
+      create_sources(video, streams)
+    }
+  }
+
   function create_sources(video, streams) {
     var error_count = 0
     var src = null
@@ -12,6 +33,7 @@ var create_player = (function(w) {
         console.log(++error_count, e)
         if (error_count == video.querySelectorAll('source').length) {
           console.error('transcode required')
+          request_transcoding()
         }
       }, false)
 
