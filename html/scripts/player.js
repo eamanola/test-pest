@@ -338,13 +338,17 @@ var create_player = (function(w) {
       )
     } else {
       var controls = document.querySelector(".video-controls")
-      controls.style.display = ""
+      if (controls)
+        controls.style.display = ""
 
-      overlay.style.cursor = ""
+      if (overlay) {
+        overlay.style.cursor = ""
 
-      overlay.removeEventListener(
-        "mousemove", restart_hide_ui_timeout, false
-      )
+        overlay.removeEventListener(
+          "mousemove", restart_hide_ui_timeout, false
+        )
+      }
+
     }
   }
 
