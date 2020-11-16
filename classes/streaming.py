@@ -414,6 +414,14 @@ def get_streams(media, codec, width, height, start_time):
         audio.pop(0)
 
     for line in [line for line in stream_lines if "Subtitle" in line]:
+        # Bitmap subtitles require re transcoding
+        # disable for now
+        if any([
+            "Subtitle: dvd_subtitle" in line,
+            "Subtitle: hdmv_pgs_subtitle" in line
+        ]):
+            continue
+
         is_default = "(default)" in line
         is_forced = "(forced)" in line
         is_ass = "Subtitle: ass" in line
