@@ -279,6 +279,53 @@ var create_player = (function(w) {
     }
   }
 
+  var hide_ui_timeout = null
+  function restart_hide_ui_timeout(e) {
+    if (hide_ui_timeout) {
+      clearTimeout(hide_ui_timeout)
+    }
+
+    var controls = document.querySelector(".video-controls")
+    controls.style.display = ""
+
+    var overlay = document.querySelector(".video-overlay")
+    overlay.style.cursor = ""
+
+    start_hide_ui_timeout()
+  }
+
+  function start_hide_ui_timeout() {
+    var HIDE_UI_TIMEOUT = 5 * 1000
+    hide_UI_timeout = setTimeout(function() {
+      var controls = document.querySelector(".video-controls")
+      controls.style.display = "none"
+
+      var overlay = document.querySelector(".video-overlay")
+      overlay.style.cursor = "none"
+    }, HIDE_UI_TIMEOUT)
+  }
+
+  function onFullscreenChange(e) {
+    var overlay = document.querySelector(".video-overlay")
+
+    if (document.fullscreen) {
+      start_hide_ui_timeout()
+
+      overlay.addEventListener(
+        "mousemove", restart_hide_ui_timeout, false
+      )
+    } else {
+      var controls = document.querySelector(".video-controls")
+      controls.style.display = ""
+
+      overlay.style.cursor = ""
+
+      overlay.removeEventListener(
+        "mousemove", restart_hide_ui_timeout, false
+      )
+    }
+  }
+
   function format_secs(secs) {
     var hours = Math.floor(secs/ 3600)
     var minutes = Math.floor((secs % 3600) / 60)
@@ -298,11 +345,6 @@ var create_player = (function(w) {
     var wrapper = document.createElement('div')
     wrapper.className = "video-wrapper buffering"
 
-    var loading = document.createElement('img');
-    loading.setAttribute("src", "images/loading.gif")
-    loading.className = "loading"
-    wrapper.appendChild(loading)
-
     var controls = document.createElement('div')
     controls.className = "video-controls"
     wrapper.appendChild(controls)
@@ -317,6 +359,8 @@ var create_player = (function(w) {
     fullscreen_button.className = "fullscreen-button"
     fullscreen_button.innerHTML = "Fullscreen"
     controls.appendChild(fullscreen_button)
+
+    document.addEventListener("fullscreenchange", onFullscreenChange, false);
 
     var play_position = document.createElement("div")
     play_position.className = "video-position-wrapper"
@@ -361,6 +405,11 @@ var create_player = (function(w) {
     v.autoplay = false
     v.preload = "auto"
     wrapper.appendChild(v)
+
+    var loading = document.createElement('img');
+    loading.setAttribute("src", "images/loading.gif")
+    loading.className = "loading"
+    wrapper.appendChild(loading)
 
     var overlay = document.createElement('div')
     overlay.className = "video-overlay"
