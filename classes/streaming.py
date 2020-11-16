@@ -180,8 +180,7 @@ def _video_stream(file_path, codec, width, height, dst_path, start_time):
             cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
         )
         Static_vars.current_video_proc = ffmpeg_proc
-
-        time.sleep(1)
+        time.sleep(0.5)
 
         if ffmpeg_proc.poll() is not None and ffmpeg_proc.returncode == 1:
             print('Transcode fail')
@@ -208,7 +207,7 @@ def _video_stream(file_path, codec, width, height, dst_path, start_time):
                     cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
                 )
                 Static_vars.current_video_proc = ffmpeg_proc
-                time.sleep(1)
+                time.sleep(0.5)
 
         return dst_path
 
@@ -225,7 +224,7 @@ def _audio_stream(file_path, stream_index, dst_path):
     print("Audio:", " ".join(cmd))
 
     subprocess.Popen(cmd)
-    time.sleep(1)
+    time.sleep(0.5)
 
     return dst_path
 
@@ -243,8 +242,7 @@ def _subtitle(file_path, stream_index, dst_path):
 
     print("Subtitle:", " ".join(cmd))
 
-    subprocess.Popen(cmd)
-    time.sleep(1)
+    subprocess.call(cmd)
 
     return dst_path
 
@@ -257,8 +255,7 @@ def _dump_attachments(file_path, dst_dir):
 
     print("Fonts:", " ".join(cmd))
 
-    subprocess.Popen(cmd, cwd=dst_dir)
-    time.sleep(1)
+    subprocess.call(cmd, cwd=dst_dir)
 
 
 def get_video_stream(media, codec, width, height, start_time):
