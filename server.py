@@ -409,13 +409,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path.startswith("/subtitle/"):
             parts = self.path[1:].split("/")
-            stream_index = parts[1]
-            media_id = parts[2].split(".")[0]
+            type = parts[1]
+            stream_index = parts[2]
+            media_id = parts[3].split(".")[0]
 
-            if (media_id and stream_index and len(parts) == 3):
+            if media_id and type and stream_index and len(parts) == 4:
                 subtitle_path = api.get_subtitle(
                     db,
                     media_id,
+                    type,
                     stream_index
                 )
                 if subtitle_path:

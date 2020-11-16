@@ -231,12 +231,15 @@ def _audio_stream(file_path, stream_index, dst_path):
 
 
 def _subtitle(file_path, stream_index, dst_path):
-    cmd = (
+    cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
-        '-i', file_path,
-        '-map', f'0:{stream_index}',
-        dst_path
-    )
+        '-i', file_path
+    ]
+
+    if stream_index is not None:
+        cmd = cmd + ['-map', f'0:{stream_index}']
+
+    cmd.append(dst_path)
 
     print("Subtitle:", " ".join(cmd))
 
@@ -296,27 +299,43 @@ def get_audio_stream(media, stream_index):
     return _audio_stream(file_path, stream_index, dst_path)
 
 
-def get_subtitle(media, stream_index):
-    file_path = os.path.join(media.parent().path(), media.file_path())
-    if not os.path.exists(file_path):
+def get_subtitle(media, type, index):
+    file_path = None
+
+    if type == "internal":
+        file_path = os.path.join(media.parent().path(), media.file_path())
+    elif type == "external":
+        file_path = os.path.join(
+            media.parent().path(), media.subtitles[int(index)]
+        )
+
+    if file_path is None or not os.path.exists(file_path):
         return None
 
     is_ass = False
-    stream_lines = _get_stream_info(file_path)
-    re_sub_audio = re.compile(R_SUB_AUDIO)
 
-    for line in [line for line in stream_lines if "Subtitle" in line]:
-        info = re_sub_audio.search(line)
-        if info and info.group(1) == stream_index:
-            is_ass = "Subtitle: ass" in line
-            break
+    if type == "internal":
+        stream_lines = _get_stream_info(file_path)
+        re_sub_audio = re.compile(R_SUB_AUDIO)
+
+        for line in [line for line in stream_lines if "Subtitle" in line]:
+            info = re_sub_audio.search(line)
+            if info and info.group(1) == index:
+                is_ass = "Subtitle: ass" in line
+                break
+
+        stream_index = index
+
+    elif type == "external":
+        is_ass = file_path.endswith(".ass")
+        stream_index = None
 
     from pathlib import Path
     dst_path = os.path.join(
         tempfile.gettempdir(),
         media.id(),
         "subtitle",
-        f'{stream_index}.{"ass" if is_ass else "vtt"}'
+        f'{type}-{index}.{"ass" if is_ass else "vtt"}'
     )
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
@@ -402,7 +421,7 @@ def get_streams(media, codec, width, height, start_time):
         info = re_sub_audio.search(line)
         stream_index = info.group(1) if info else None
         lang = info.group(2) if info else "Unknown"
-        src = f'/subtitle/{stream_index}/{media_id}'
+        src = f'/subtitle/internal/{stream_index}/{media_id}'
         src = src + (".ass" if is_ass else ".vtt")
 
         subtitle = {
@@ -412,8 +431,19 @@ def get_streams(media, codec, width, height, start_time):
             'forced': is_forced
         }
 
-        if lang is not None:
+        if stream_index:
             subtitles.append(subtitle)
+
+    for i in range(len(media.subtitles)):
+        src = f'/subtitle/external/{i}/{media_id}'
+        is_ass = media.subtitles[i].endswith(".ass")
+        src = src + (".ass" if is_ass else ".vtt")
+        subtitles.append({
+            'src': src,
+            'lang': "External",
+            'default': False,
+            'forced': False
+        })
 
     duration = 0
     for line in stream_lines:
