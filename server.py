@@ -424,7 +424,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_code = 200
                     send_file_path = subtitle_path
                     content_type = mime_type(subtitle_path)
-                    cache_control = "private, must-revalidate, max-age=0"
+                    cache_control = "private, max-age=604800"
                 else:
                     response_code = 404
             else:
@@ -445,7 +445,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_code = 200
                     send_file_path = font_path
                     content_type = mime_type(font_path)
-                    cache_control = "private, must-revalidate, max-age=0"
+                    cache_control = "private, max-age=604800"
                 else:
                     response_code = 404
             else:

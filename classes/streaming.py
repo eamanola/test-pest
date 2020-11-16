@@ -309,6 +309,7 @@ def get_subtitle(media, type, index):
     if file_path is None or not os.path.exists(file_path):
         return None
 
+    stream_index = None
     is_ass = False
 
     if type == "internal":
@@ -327,50 +328,59 @@ def get_subtitle(media, type, index):
         is_ass = file_path.endswith(".ass")
         stream_index = None
 
-    from pathlib import Path
     dst_path = os.path.join(
         tempfile.gettempdir(),
         media.id(),
         "subtitle",
         f'{type}-{index}.{"ass" if is_ass else "vtt"}'
     )
+
+    if os.path.exists(dst_path):
+        print("Subtitle: return existing")
+        return dst_path
+
+    from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
     return _subtitle(file_path, stream_index, dst_path)
 
 
 def get_font(media, font_name):
-    dst_dir = os.path.join(
+    dst_path = os.path.join(
         tempfile.gettempdir(),
         media.id(),
-        "fonts"
+        "fonts",
+        font_name
     )
 
-    if not os.path.exists(os.path.join(dst_dir, font_name)):
-        if os.path.exists(os.path.join(
-            dst_dir, font_name.replace("%20", " ")
-        )):
-            font_name = font_name.replace("%20", " ")
+    if os.path.exists(dst_path):
+        print('Font: return existing')
+        return dst_path
 
-    dst_path = os.path.join(dst_dir, font_name)
+    if "%20" in dst_path:
+        if os.path.exists(dst_path.replace("%20", " ")):
+            print('Font: return existing %20')
+            return dst_path.replace("%20", " ")
 
-    if not os.path.exists(dst_path):
-        file_path = os.path.join(media.parent().path(), media.file_path())
-        if not os.path.exists(file_path):
-            return None
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
 
-        from pathlib import Path
-        Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
+    from pathlib import Path
+    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-        _dump_attachments(file_path, os.path.dirname(dst_path))
+    _dump_attachments(file_path, os.path.dirname(dst_path))
 
-    if not os.path.exists(os.path.join(dst_dir, font_name)):
-        if os.path.exists(os.path.join(
-            dst_dir, font_name.replace("%20", " ")
-        )):
-            font_name = font_name.replace("%20", " ")
+    if os.path.exists(dst_path):
+        print('Font: return new')
+        return dst_path
 
-    return os.path.join(dst_dir, font_name)
+    if "%20" in dst_path:
+        if os.path.exists(dst_path.replace("%20", " ")):
+            print('Font: return new %20')
+            return dst_path.replace("%20", " ")
+
+    return None
 
 
 def get_streams(media, codec, width, height, start_time):
