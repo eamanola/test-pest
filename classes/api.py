@@ -326,7 +326,7 @@ def get_video_stream(
                 media, codec, width, height, start_time
             )
 
-            if not streaming.FFMEG_STREAM:
+            if not streaming.FFMPEG_STREAM:
                 import time
                 time.sleep(10)
         else:

@@ -8,7 +8,7 @@ import tempfile
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 TMP_DIR = "test-pest"
-FFMEG_STREAM = True
+FFMPEG_STREAM = True
 
 
 class Static_vars(object):
@@ -156,31 +156,16 @@ def _video_stream(
                     '-tile-columns', '3', '-frame-parallel', '1'
                 ]
 
-    # https://stackoverflow.com/questions/10114224/how-to-properly-send-http-response-with-python-using-socket-library-only
-    if FFMEG_STREAM:
-        output = [
-            '-content_type', 'video/webm',
-            '-listen', '1',
-            '-headers',
-            'Cache-Control: private, must-revalidate, max-age=0\r\n\r\n',
-            '-reconnect_streamed', '1',
-            f'http://192.168.1.119:8099/{dst_path}'
-        ]
-    else:
-        output = [dst_path]
-
     if cmd:
-        cmd = cmd + output
-        print('Transcode:', ' '.join(cmd))
+        cmd.append(dst_path)
 
+        print('Transcode:', ' '.join(cmd))
         if Static_vars.current_video_proc is not None:
             if Static_vars.current_video_proc.poll() is None:
                 print("Closing previous video transcoding")
                 Static_vars.current_video_proc.terminate()
 
-        ffmpeg_proc = subprocess.Popen(
-            cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-        )
+        ffmpeg_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
         Static_vars.current_video_proc = ffmpeg_proc
         time.sleep(0.5)
 
@@ -204,14 +189,34 @@ def _video_stream(
                         break
 
                 print('(Re:) Transcode:', ' '.join(cmd))
-
                 ffmpeg_proc = subprocess.Popen(
                     cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
                 )
                 Static_vars.current_video_proc = ffmpeg_proc
                 time.sleep(0.5)
 
-        return dst_path
+        if FFMPEG_STREAM:
+            ffmpeg_proc.terminate()
+
+            stream_path = "/".join(dst_path.split(os.sep)[2:])
+
+            cmd = cmd[:-1] + [
+                '-content_type', 'video/webm',
+                '-listen', '1',
+                '-headers',
+                'Cache-Control: private, must-revalidate, max-age=0',
+                '-reconnect_streamed', '1',
+                f'http://192.168.1.119:8099/{stream_path}'
+            ]
+
+            print('starting stream', ' '.join(cmd))
+            ffmpeg_proc = subprocess.Popen(
+                cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
+            )
+            Static_vars.current_video_proc = ffmpeg_proc
+            time.sleep(0.5)
+
+    return dst_path
 
 
 def _audio_stream(file_path, stream_index, dst_path):
@@ -275,11 +280,8 @@ def get_video_stream(media, codec, width, height, start_time):
         "video.webm"
     )
 
-    if FFMEG_STREAM:
-        dst_path = "/".join(dst_path.split(os.sep)[2:])
-    else:
-        from pathlib import Path
-        Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
+    from pathlib import Path
+    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
     return _video_stream(
         file_path, codec, w, h, media.id(), dst_path, start_time
@@ -403,7 +405,7 @@ def get_streams(media, codec, width, height, start_time):
 
     media_id = media.id()
 
-    if FFMEG_STREAM:
+    if FFMPEG_STREAM:
         streams = [
             f'http://192.168.1.119:8099/{TMP_DIR}/{media_id}/video.webm'
         ]
