@@ -801,7 +801,7 @@ window.addEventListener("popstate", function(e) {
   updatePage(e.state)
 }, false);
 
-
+var stream_codec = null;
 (function inits(){
   var play_button = document.getElementById('play-button')
   play_button.addEventListener('click', onPlayClick, false)
@@ -838,9 +838,12 @@ window.addEventListener("popstate", function(e) {
       stream_codec = "vp9"
     else if (MediaSource.isTypeSupported('video/webm; codecs="vp8, vorbis"'))
       stream_codec = "vp8"
+    else if (MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"'))
+      // Too slow for live encoding, preprocessing required
+      stream_codec = null  // "av1"
   }
 
-  if (stream_codec == null) {
+  if (stream_codec === null) {
     document.getElementById("toggle-player").display = 'none'
   } else {
     if (player === "vlc") {
