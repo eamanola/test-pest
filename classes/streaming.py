@@ -5,11 +5,9 @@ import re
 import time
 import tempfile
 
-STREAM_FOLDER = os.path.join(sys.path[0], "streams")
-FONTS_FOLDER = os.path.join(STREAM_FOLDER, "fonts")
-PROCESS_NAME_PREFIX = "test-pest"
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
+TMP_DIR = "test-pest"
 
 
 class Static_vars(object):
@@ -269,6 +267,7 @@ def get_video_stream(media, codec, width, height, start_time):
     from pathlib import Path
     dst_path = os.path.join(
         tempfile.gettempdir(),
+        TMP_DIR,
         media.id(),
         "video.webm"
     )
@@ -285,6 +284,7 @@ def get_audio_stream(media, stream_index):
     from pathlib import Path
     dst_path = os.path.join(
         tempfile.gettempdir(),
+        TMP_DIR,
         media.id(),
         "audio",
         f'{stream_index}.opus'
@@ -328,6 +328,7 @@ def get_subtitle(media, type, index):
 
     dst_path = os.path.join(
         tempfile.gettempdir(),
+        TMP_DIR,
         media.id(),
         "subtitle",
         f'{type}-{index}.{"ass" if is_ass else "vtt"}'
@@ -357,6 +358,7 @@ def get_subtitle(media, type, index):
 def get_font(media, font_name):
     dst_path = os.path.join(
         tempfile.gettempdir(),
+        TMP_DIR,
         media.id(),
         "fonts",
         font_name
@@ -490,9 +492,7 @@ def get_streams(media, codec, width, height, start_time):
     ]:
         filename = re_attachment_names.search(line)
         if filename:
-            f = filename.group(1)
-            if os.path.exists(os.path.join(FONTS_FOLDER, f)):
-                fonts.append(f"/fonts/{media_id}/{f}")
+            fonts.append(f"/fonts/{media_id}/{filename.group(1)}")
 
     return {
         'id': media_id,
