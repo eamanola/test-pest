@@ -152,12 +152,12 @@ var create_player = (function(w) {
   }
 
   function create_audio(wrapper, controls, video, audio_obj) {
-    var audio_select = null, audio_option = null
+    var audio_select = null, audio_option = null, current_audio = null
     if (audio_obj.length > 0) {
       audio_select = document.createElement('select')
       controls.appendChild(audio_select)
 
-      var current_audio = null
+      current_audio = null
       video.addEventListener("play", function(){
         if (current_audio !== null) {
           setTimeout(function(){
@@ -181,16 +181,25 @@ var create_player = (function(w) {
       }, false)
 
       audio_select.addEventListener("change", function() {
-        if (current_audio !== null) current_audio.pause()
+        var current_volume = null
+        if (current_audio !== null) {
+          current_audio.pause()
+          current_volume = current_audio.volume
+        }
+        else {
+          current_volume = video.volume
+        }
         if (this.value == "") {
           current_audio = null
           video.muted = false
+          video.volume = current_volume
         } else {
           var audio_el = wrapper.querySelector(
             'audio[data-lang="' + this.value + '"]'
           )
           current_audio = audio_el
           video.muted = true
+          current_audio.volume = current_volume
 
           if (!video.paused) {
             current_audio.play()
@@ -220,6 +229,16 @@ var create_player = (function(w) {
       audio_option.setAttribute("value", audio_obj[i].lang)
       audio_select.appendChild(audio_option);
     }
+
+    var overlay = wrapper.querySelector(".video-overlay")
+    overlay.addEventListener("wheel", function(e) {
+      var el = current_audio || video
+      var new_volume = el.volume - (e.deltaY / 3 * 0.05)
+      if (new_volume < 0) new_volume = 0
+      else if (new_volume > 1)  new_volume = 1
+
+      el.volume = new_volume
+    }, false)
   }
 
   function close_player() {
@@ -348,7 +367,6 @@ var create_player = (function(w) {
           "mousemove", restart_hide_ui_timeout, false
         )
       }
-
     }
   }
 
