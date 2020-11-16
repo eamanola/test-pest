@@ -8,6 +8,7 @@ import tempfile
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 TMP_DIR = "test-pest"
+FFMEG_STREAM = True
 
 
 class Static_vars(object):
@@ -46,7 +47,9 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def _video_stream(file_path, codec, width, height, dst_path, start_time):
+def _video_stream(
+    file_path, codec, width, height, media_id, dst_path, start_time
+):
     cmd = None
 
     if codec in ("vp8", "vp9"):
@@ -154,15 +157,16 @@ def _video_stream(file_path, codec, width, height, dst_path, start_time):
                 ]
 
     # https://stackoverflow.com/questions/10114224/how-to-properly-send-http-response-with-python-using-socket-library-only
-    if False:
+    if FFMEG_STREAM:
         output = [
             '-content_type', 'video/webm',
             '-listen', '1',
             '-headers',
             'Cache-Control: private, must-revalidate, max-age=0\r\n\r\n',
-            f'http://192.168.1.119:8099/{media_id}.webm'
+            '-reconnect_streamed', '1',
+            f'http://192.168.1.119:8099/{dst_path}'
         ]
-    elif True:
+    else:
         output = [dst_path]
 
     if cmd:
@@ -264,16 +268,22 @@ def get_video_stream(media, codec, width, height, start_time):
     )]
     w, h = _get_width_height(stream_lines, width, height)
 
-    from pathlib import Path
     dst_path = os.path.join(
         tempfile.gettempdir(),
         TMP_DIR,
         media.id(),
         "video.webm"
     )
-    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    return _video_stream(file_path, codec, w, h, dst_path, start_time)
+    if FFMEG_STREAM:
+        dst_path = "/".join(dst_path.split(os.sep)[2:])
+    else:
+        from pathlib import Path
+        Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
+
+    return _video_stream(
+        file_path, codec, w, h, media.id(), dst_path, start_time
+    )
 
 
 def get_audio_stream(media, stream_index):
@@ -401,7 +411,14 @@ def get_streams(media, codec, width, height, start_time):
 
     media_id = media.id()
 
-    streams = [f'/video/{codec}/{width}/{height}/{media_id}']
+    if FFMEG_STREAM:
+        streams = [
+            f'http://192.168.1.119:8099/{TMP_DIR}/{media_id}/video.webm'
+        ]
+        get_video_stream(media, codec, width, height, start_time)
+    else:
+        streams = [f'/video/{codec}/{width}/{height}/{media_id}']
+
     audio = []
     subtitles = []
     fonts = []
@@ -423,10 +440,11 @@ def get_streams(media, codec, width, height, start_time):
             'is_forced': is_forced
         }
 
-        if is_default:
-            audio.insert(0, _audio)
-        else:
-            audio.append(_audio)
+        if stream_index:
+            if is_default:
+                audio.insert(0, _audio)
+            else:
+                audio.append(_audio)
 
     if len(audio):
         audio.pop(0)

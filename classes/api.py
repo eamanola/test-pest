@@ -206,7 +206,7 @@ def play(db, media_ids):
         ]
 
         cmd_vlc = [
-            'vlc', '--fullscreen' #, '--mouse-hide-timeout 3000'
+            'vlc', '--fullscreen'  # , '--mouse-hide-timeout 3000'
         ] + file_paths
 
         # cmd_mpv = ['mpv', '--fullscreen', '--slang=en,eng'] + file_paths
@@ -321,12 +321,14 @@ def get_video_stream(
     if media:
         if transcode:
             import classes.streaming as streaming
-            import time
 
             stream = streaming.get_video_stream(
                 media, codec, width, height, start_time
             )
-            time.sleep(10)
+
+            if not streaming.FFMEG_STREAM:
+                import time
+                time.sleep(10)
         else:
             import os
             file_path = os.path.join(media.parent().path(), media.file_path())
@@ -341,9 +343,10 @@ def get_audio_stream(db, media_id, stream_index):
 
     if media:
         import classes.streaming as streaming
-        import time
 
         stream = streaming.get_audio_stream(media, stream_index)
+
+        import time
         time.sleep(5)
 
     return stream
