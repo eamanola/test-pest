@@ -32,7 +32,7 @@ var create_player = (function(w) {
       src.addEventListener("error", function(e) {
         console.log(++error_count, e)
         if (error_count == video.querySelectorAll('source').length) {
-          console.error('transcode required')
+          console.log('transcode required')
           request_transcoding()
         }
       }, false)
@@ -248,6 +248,18 @@ var create_player = (function(w) {
 
     video.pause()
     console.log(video.currentTime)
+    if (duration) {
+      if (video.currentTime / duration > 0.9) {
+        console.log('video marked played')
+        var els = document.querySelectorAll(
+          '[data-id="' + playing + '"] .js-played input'
+        )
+        for (var i = 0, il = els.length; i < il; i++) {
+          els[i].checked = true
+          window.onPlayedChange( { target: els[i] } )
+        }
+      }
+    }
 
     if (can_play_timeout) {
       clearTimeout(can_play_timeout)
@@ -287,17 +299,8 @@ var create_player = (function(w) {
     document.body.removeChild(wrapper)
   }
 
-  var playing = null
   function onVideoEnded(e) {
     close_player()
-
-    var els = document.querySelectorAll(
-      '[data-id=' + playing + '] .js-played input'
-    )
-    for (var i = 0, il = els.length; i < il; i++) {
-      //els[i].checked = true
-      //w.onPlayedChange( { target: els[i] } )
-    }
   }
 
   var can_play_timeout = null
@@ -359,10 +362,12 @@ var create_player = (function(w) {
     var HIDE_UI_TIMEOUT = 5 * 1000
     hide_UI_timeout = setTimeout(function() {
       var controls = document.querySelector(".video-controls")
-      controls.style.display = "none"
+      if (controls)
+        controls.style.display = "none"
 
       var overlay = document.querySelector(".video-overlay")
-      overlay.style.cursor = "none"
+      if (overlay)
+        overlay.style.cursor = "none"
     }, HIDE_UI_TIMEOUT)
   }
 
@@ -406,9 +411,12 @@ var create_player = (function(w) {
     return time
   }
 
+  var playing = null
+  var duration = 0
   var create_source_x_timeout = null
   function create_player(streams_obj) {
     playing = streams_obj.id
+    duration = streams_obj.duration
 
     var wrapper = document.createElement('div')
     wrapper.className = "video-wrapper buffering"
@@ -510,7 +518,6 @@ var create_player = (function(w) {
       }
     }, false)
 
-    var duration = streams_obj.duration
     v.addEventListener("timeupdate", function() {
       var time = format_secs(v.currentTime)
       play_position_time.innerHTML = time
