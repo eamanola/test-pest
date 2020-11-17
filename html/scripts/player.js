@@ -264,6 +264,8 @@ var create_player = (function(w) {
 
     for (var i = 0, il = audio.length; i < il; i++) {
       audio[i].pause()
+      audio[i].src = "foo"
+      audio[i].load()
     }
 
     if (ass_renderer != null) {
@@ -274,6 +276,12 @@ var create_player = (function(w) {
       }
       ass_renderer = null
     }
+
+    var sources = video.querySelectorAll("source")
+    for (var i = 0, il = sources.length; i < il; i++) {
+      video.removeChild(sources[i])
+    }
+    video.load()
 
     playing = null
     document.body.removeChild(wrapper)
