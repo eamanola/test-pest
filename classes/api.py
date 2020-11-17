@@ -316,14 +316,13 @@ def get_video_stream(
     start_time
 ):
     stream = None
-    proc = None
     media = db.get_media(media_id)
 
     if media:
         if transcode:
             import classes.streaming as streaming
 
-            stream, proc = streaming.get_video_stream(
+            stream = streaming.get_video_stream(
                 media, codec, width, height, start_time
             )
         else:
@@ -331,20 +330,19 @@ def get_video_stream(
             file_path = os.path.join(media.parent().path(), media.file_path())
             stream = file_path if os.path.exists(file_path) else None
 
-    return stream, proc
+    return stream
 
 
 def get_audio_stream(db, media_id, stream_index):
     stream = None
-    proc = None
     media = db.get_media(media_id)
 
     if media:
         import classes.streaming as streaming
 
-        stream, proc = streaming.get_audio_stream(media, stream_index)
+        stream = streaming.get_audio_stream(media, stream_index)
 
-    return stream, proc
+    return stream
 
 
 def get_subtitle(db, media_id, type, stream_index):

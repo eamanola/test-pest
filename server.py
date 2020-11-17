@@ -105,7 +105,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         reply = None
         send_file_path = None
-        transcode_proc = None
         cache_control = None
         last_modified = None
         etag = None
@@ -377,7 +376,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 and height
                 and len(parts) in (5, 6)
             ):
-                stream, proc = api.get_video_stream(
+                stream = api.get_video_stream(
                     db,
                     media_id,
                     codec,
@@ -392,7 +391,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     cache_control = "private, must-revalidate, max-age=0"
 
                     send_file_path = stream
-                    transcode_proc = proc
                 else:
                     response_code = 404
             else:
@@ -404,7 +402,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             media_id = parts[2]
 
             if (media_id and stream_index and len(parts) == 3):
-                stream, proc = api.get_audio_stream(
+                stream = api.get_audio_stream(
                     db,
                     media_id,
                     stream_index
@@ -415,7 +413,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     cache_control = "private, must-revalidate, max-age=0"
 
                     send_file_path = stream
-                    transcode_proc = proc
                 else:
                     response_code = 404
             else:
@@ -577,19 +574,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # print(self.headers)
 
         if send_file_path is not None:
-            if os.path.exists(send_file_path):
-                with open(send_file_path, "rb") as f:
-                    self.send_chunks(f, proc=transcode_proc)
+            self.send_chunks(send_file_path)
 
-            if transcode_proc is not None:
-                if transcode_proc.poll() is None:
-                    print('Stopping transcoder')
-                    transcode_proc.terminate()
-                    time.sleep(1)
+            if self.path.startswith(("/video/", "/audio/")):
+                from classes.streaming import sending_ended
+                sending_ended(send_file_path)
 
-                print(f'Removing tmp file {send_file_path}')
-                if os.path.exists(send_file_path):
-                    os.remove(send_file_path)
         else:
             try:
                 self.wfile.write(reply)
@@ -597,56 +587,56 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 print('Fail: handler.wfile.write(reply)', e)
 
     def send_chunks(
-        self, bytes_stream, proc=None, delay=None, CHUNK_SIZE=1024 * 1024 * 1
+        self, file_path, delay=None, CHUNK_SIZE=1024 * 1024 * 1
     ):
         NEW_LINE = bytes("\r\n", "utf-8")
 
-        while True:
-            chunk = bytes_stream.read(CHUNK_SIZE)
+        with open(file_path, "rb") as f:
+            while True:
+                chunk = f.read(CHUNK_SIZE)
 
-            if not chunk:
-                break
-            else:
-                try:
-                    chunk_len = len(chunk)
-                    post = (
-                        bytes(hex(chunk_len)[2:], "utf-8")
-                        + NEW_LINE
-                        + chunk
-                        + NEW_LINE
-                    )
-                    if chunk_len < CHUNK_SIZE:
-                        if (
-                            proc is not None
-                            and proc.poll() is None
-                        ):
-                            print('.', end='')
-                            bytes_stream.seek(-chunk_len, 1)
-                            time.sleep(1)
-                            continue
-
+                if not chunk:
+                    break
+                else:
+                    try:
+                        chunk_len = len(chunk)
                         post = (
-                            post
-                            + bytes("0", "utf-8")
+                            bytes(hex(chunk_len)[2:], "utf-8")
                             + NEW_LINE
+                            + chunk
                             + NEW_LINE
                         )
+                        if chunk_len < CHUNK_SIZE:
+                            if self.path.startswith(("/video/", "/audio/")):
+                                from classes.streaming import is_trancoding
+                                if is_trancoding(file_path):
+                                    print('.', end='')
+                                    f.seek(-chunk_len, 1)
+                                    time.sleep(1)
+                                    continue
 
-                    self.wfile.write(post)
+                            post = (
+                                post
+                                + bytes("0", "utf-8")
+                                + NEW_LINE
+                                + NEW_LINE
+                            )
 
-                    if delay:
-                        time.sleep(delay)
+                        self.wfile.write(post)
 
-                except (
-                    ConnectionResetError,
-                    IOError,
-                    Exception
-                ) as e:
-                    print('send_file:', e)
+                        if delay:
+                            time.sleep(delay)
 
-                    break
-                finally:
-                    del chunk
+                    except (
+                        ConnectionResetError,
+                        IOError,
+                        Exception
+                    ) as e:
+                        print('send_file:', e)
+
+                        break
+                    finally:
+                        del chunk
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib

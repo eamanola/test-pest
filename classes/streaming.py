@@ -12,8 +12,29 @@ FFMPEG_STREAM = False
 
 
 class Static_vars(object):
-    video_proc = None
+    transcodes = {}
     counter = 0
+
+
+def is_trancoding(dst_path):
+    if dst_path in Static_vars.transcodes.keys():
+        proc = Static_vars.transcodes[dst_path]
+        return proc is not None and proc.poll() is None
+
+    return False
+
+
+def sending_ended(dst_path):
+    if dst_path in Static_vars.transcodes.keys():
+        proc = Static_vars.transcodes[dst_path]
+
+        print('Stopping', proc, dst_path)
+        if proc is not None and proc.poll() is None:
+            proc.terminate()
+
+        if os.path.exists(dst_path):
+            print('Removing', dst_path)
+            os.remove(dst_path)
 
 
 def _get_stream_info(file_path):
@@ -49,7 +70,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
 
 
 def _video_stream(
-    file_path, codec, width, height, media_id, dst_path, start_time
+    file_path, codec, width, height, dst_path, start_time
 ):
     cmd = None
 
@@ -160,7 +181,7 @@ def _video_stream(
         cmd.append(dst_path)
 
     if cmd:
-        print('Transcode:', ' '.join(cmd))
+        print('Default Trancode:')
 
         video_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
         time.sleep(0.5)
@@ -175,19 +196,18 @@ def _video_stream(
                 "libopus" in line
                 and "Invalid channel layout 5.1(side)" in line
             ) for line in stderr_str.split("\n")):
-                print('Trying to map channels manually')
+                print('Mapping channels manually')
+
                 for i in range(len(cmd)):
                     if cmd[i] == 'libopus':
                         cmd.insert(i + 1, "-af")
                         cmd.insert(i + 2, 'aformat=channel_layouts=5.1|stereo')
                         break
-
-                print('(Re:) Transcode:', ' '.join(cmd))
-                video_proc = subprocess.Popen(cmd)
-                time.sleep(0.5)
+        else:
+            video_proc.terminate()
 
         if FFMPEG_STREAM:
-            video_proc.terminate()
+            print('Direct stream')
 
             stream_path = "/".join(dst_path.split(os.sep)[2:])
 
@@ -200,12 +220,7 @@ def _video_stream(
                 f'http://192.168.1.119:8099/{stream_path}'
             ]
 
-            print('starting stream', ' '.join(cmd))
-
-            video_proc = subprocess.Popen(cmd)
-            time.sleep(0.5)
-
-    return video_proc
+        return subprocess.Popen(cmd)
 
 
 def _audio_stream(file_path, stream_index, dst_path):
@@ -218,10 +233,7 @@ def _audio_stream(file_path, stream_index, dst_path):
     )
 
     # print("Audio:", " ".join(cmd))
-    audio_proc = subprocess.Popen(cmd)
-    time.sleep(0.5)
-
-    return audio_proc
+    return subprocess.Popen(cmd)
 
 
 def _subtitle(file_path, stream_index, dst_path):
@@ -272,9 +284,12 @@ def get_video_stream(media, codec, width, height, start_time):
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    return dst_path, _video_stream(
-        file_path, codec, w, h, media.id(), dst_path, start_time
+    Static_vars.transcodes[dst_path] = _video_stream(
+        file_path, codec, w, h, dst_path, start_time
     )
+    time.sleep(0.5)
+
+    return dst_path
 
 
 def get_audio_stream(media, stream_index):
@@ -282,7 +297,6 @@ def get_audio_stream(media, stream_index):
     if not os.path.exists(file_path):
         return None
 
-    from pathlib import Path
     dst_path = os.path.join(
         tempfile.gettempdir(),
         TMP_DIR,
@@ -293,9 +307,15 @@ def get_audio_stream(media, stream_index):
 
     Static_vars.counter = Static_vars.counter + 1
 
+    from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    return dst_path, _audio_stream(file_path, stream_index, dst_path)
+    Static_vars.transcodes[dst_path] = _audio_stream(
+        file_path, stream_index, dst_path
+    )
+    time.sleep(0.5)
+
+    return dst_path
 
 
 def get_subtitle(media, type, index):
