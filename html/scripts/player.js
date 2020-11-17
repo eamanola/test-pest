@@ -19,6 +19,7 @@ var create_player = (function(w) {
     if (sources.length) {
       console.log('adding new sources')
       create_sources(video, streams)
+      video.load()
     }
   }
 
@@ -325,6 +326,27 @@ var create_player = (function(w) {
 
       var video = wrapper.querySelector("video")
       video.play()
+
+      setTimeout(function() {
+        if (video.videoHeight === 0) {
+          var chrome_transcode = document.createElement("div")
+          chrome_transcode.className = "chrome-transcode"
+          wrapper.appendChild(chrome_transcode)
+
+          var chrome_transcode_msg = document.createElement("span")
+          chrome_transcode_msg.innerHTML = "Hearing sound, but no video on Chrome?"
+          chrome_transcode.appendChild(chrome_transcode_msg)
+
+          var chrome_transcode_btn = document.createElement("button")
+          chrome_transcode_btn.innerHTML = "Click here"
+          chrome_transcode_btn.addEventListener('click', function() {
+              wrapper.removeChild(chrome_transcode)
+              wrapper.className = "video-wrapper buffering"
+              request_transcoding()
+          }, false)
+          chrome_transcode.appendChild(chrome_transcode_btn)
+        }
+      }, 1000)
     }, BUFFER_TIME)
   }
 
