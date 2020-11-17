@@ -325,10 +325,6 @@ def get_video_stream(
             stream = streaming.get_video_stream(
                 media, codec, width, height, start_time
             )
-
-            if not streaming.FFMPEG_STREAM:
-                import time
-                time.sleep(10)
         else:
             import os
             file_path = os.path.join(media.parent().path(), media.file_path())
@@ -345,9 +341,6 @@ def get_audio_stream(db, media_id, stream_index):
         import classes.streaming as streaming
 
         stream = streaming.get_audio_stream(media, stream_index)
-
-        import time
-        time.sleep(5)
 
     return stream
 

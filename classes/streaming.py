@@ -8,7 +8,7 @@ import tempfile
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 TMP_DIR = "test-pest"
-FFMPEG_STREAM = True
+FFMPEG_STREAM = False
 
 
 class Static_vars(object):
@@ -168,8 +168,8 @@ def _video_stream(
             Static_vars.video_proc.terminate()
 
         Static_vars.video_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
-        time.sleep(0.5)
 
+        time.sleep(0.5)
         if (
             Static_vars.video_proc.poll() is not None
             and Static_vars.video_proc.returncode == 1
@@ -192,7 +192,6 @@ def _video_stream(
 
                 print('(Re:) Transcode:', ' '.join(cmd))
                 Static_vars.video_proc = subprocess.Popen(cmd)
-                time.sleep(0.5)
 
         if FFMPEG_STREAM:
             Static_vars.video_proc.terminate()
@@ -210,7 +209,6 @@ def _video_stream(
 
             print('starting stream', ' '.join(cmd))
             Static_vars.video_proc = subprocess.Popen(cmd)
-            time.sleep(0.5)
 
     return dst_path
 
@@ -227,7 +225,6 @@ def _audio_stream(file_path, stream_index, dst_path):
     print("Audio:", " ".join(cmd))
 
     subprocess.Popen(cmd)
-    time.sleep(0.5)
 
     return dst_path
 

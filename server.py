@@ -587,7 +587,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         if send_stream is not None:
             with open(send_stream, "rb") as f:
-                self.send_chunks(f, 1)
+                self.send_chunks(f, 0.5, CHUNK_SIZE=1024 * 1024 * 1)
 
         elif send_file_path is not None:
             with open(send_file_path, "rb") as f:
@@ -619,6 +619,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         + NEW_LINE
                     )
                     if chunk_len < CHUNK_SIZE:
+                        if self.path.startswith("/video"):
+                            from classes.streaming import Static_vars
+                            if (
+                                Static_vars.video_proc is not None
+                                and Static_vars.video_proc.poll() is None
+                            ):
+                                print('Transcoding ongoing')
+                                bytes_stream.seek(-chunk_len, 1)
+                                time.sleep(1)
+                                continue
+
                         post = (
                             post
                             + bytes("0", "utf-8")
