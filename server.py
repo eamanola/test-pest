@@ -693,3 +693,8 @@ except KeyboardInterrupt:
 finally:
     httpd.server_close()
     print("Server stopped.")
+
+    import tempfile
+    from classes.streaming import TMP_DIR
+    import shutil
+    shutil.rmtree(os.path.join(tempfile.gettempdir(), TMP_DIR))
