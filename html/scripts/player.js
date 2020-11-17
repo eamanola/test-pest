@@ -294,7 +294,7 @@ var create_player = (function(w) {
 
   var can_play_timeout = null
   function onCanPlay(e) {
-    var BUFFER_TIME = 1000 * 2 // 10s
+    var BUFFER_TIME = 1000 * 5 // 10s
 
     can_play_timeout = setTimeout(function() {
       var wrapper = document.querySelector(".video-wrapper")

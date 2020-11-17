@@ -210,7 +210,7 @@ def _video_stream(
             print('starting stream', ' '.join(cmd))
             Static_vars.video_proc = subprocess.Popen(cmd)
 
-    return dst_path
+    return Static_vars.video_proc
 
 
 def _audio_stream(file_path, stream_index, dst_path):
@@ -224,9 +224,7 @@ def _audio_stream(file_path, stream_index, dst_path):
 
     print("Audio:", " ".join(cmd))
 
-    subprocess.Popen(cmd)
-
-    return dst_path
+    return subprocess.Popen(cmd)
 
 
 def _subtitle(file_path, stream_index, dst_path):
@@ -276,7 +274,7 @@ def get_video_stream(media, codec, width, height, start_time):
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    return _video_stream(
+    return dst_path, _video_stream(
         file_path, codec, w, h, media.id(), dst_path, start_time
     )
 
@@ -296,7 +294,7 @@ def get_audio_stream(media, stream_index):
     )
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
-    return _audio_stream(file_path, stream_index, dst_path)
+    return dst_path, _audio_stream(file_path, stream_index, dst_path)
 
 
 def get_subtitle(media, type, index):

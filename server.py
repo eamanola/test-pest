@@ -55,6 +55,8 @@ def mime_type(file_name):
         content_type = "application/vnd.ms-opentype"
     elif file_name.endswith((".ttf", ".TTF")):
         content_type = "application/x-truetype-font"
+    else:
+        content_type = "application/octet-stream"
 
     return content_type
 
@@ -103,7 +105,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         reply = None
         send_file_path = None
-        send_stream = None
+        transcode_proc = None
         cache_control = None
         last_modified = None
         etag = None
@@ -373,8 +375,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 and codec
                 and width
                 and height
-                and len(parts) in (5, 6)):
-                stream = api.get_video_stream(
+                and len(parts) in (5, 6)
+            ):
+                stream, proc = api.get_video_stream(
                     db,
                     media_id,
                     codec,
@@ -388,10 +391,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     content_type = mime_type(stream)
                     cache_control = "private, must-revalidate, max-age=0"
 
-                    if transcode:
-                        send_stream = stream
-                    else:
-                        send_file_path = stream
+                    send_file_path = stream
+                    transcode_proc = proc
                 else:
                     response_code = 404
             else:
@@ -403,16 +404,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             media_id = parts[2]
 
             if (media_id and stream_index and len(parts) == 3):
-                stream = api.get_audio_stream(
+                stream, proc = api.get_audio_stream(
                     db,
                     media_id,
                     stream_index
                 )
                 if stream:
                     response_code = 200
-                    send_stream = stream
                     content_type = mime_type(stream)
                     cache_control = "private, must-revalidate, max-age=0"
+
+                    send_file_path = stream
+                    transcode_proc = proc
                 else:
                     response_code = 404
             else:
@@ -447,11 +450,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             font_name = parts[2]
 
             if (media_id and font_name and len(parts) == 3):
-                font_path = api.get_font(
-                    db,
-                    media_id,
-                    font_name
-                )
+                font_path = api.get_font(db, media_id, font_name)
+
                 if font_path:
                     response_code = 200
                     send_file_path = font_path
@@ -473,15 +473,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             )
         ):
             response_code = 404
-            reply = None
             content_type = None
 
             path = [sys.path[0]] + self.path[1:].split("/")
 
             file_path = os.sep.join(path)
-
-            if not os.path.exists(file_path):
-                file_path = file_path.replace("%20", " ")
 
             if os.path.exists(file_path):
                 response_code = 200
@@ -511,8 +507,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "/scripts/octopus-ass/subtitles-octopus.js"
             )
         ):
-            response_code = 404
-
             file_path = os.path.join(
                 sys.path[0],
                 "html",
@@ -524,29 +518,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if response_code is None:
                 if os.path.exists(file_path):
                     response_code = 200
-                    with open(file_path, "rb") as f:
-                        reply = f.read()
+                    send_file_path = file_path
 
-                content_type = mime_type(file_path)
+                    content_type = mime_type(file_path)
 
-                if content_type is None:
-                    content_type = "application/octet-stream"
+                    cache_control = "private, must-revalidate, max-age=0"
 
-                cache_control = "private, must-revalidate, max-age=0"
+                    if content_type.startswith("image"):
+                        cache_control = "private, max-age=604800"
 
-                if content_type.startswith("image"):
-                    cache_control = "private, max-age=604800"
+                    last_modified = os.path.getmtime(file_path)
 
-                last_modified = os.path.getmtime(file_path)
-
-                send_file_path = file_path
+                else:
+                    response_code = 404
         else:
             print('ignore', f'"{self.path}"')
             response_code = 400
 
         db.close()
 
-        if not send_file_path and not send_stream:
+        if not send_file_path:
             if response_code in (200, 304) and reply is None:
                 reply = OK_REPLY
             if response_code == 400:
@@ -576,7 +567,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header("Last-Modified", epoch_to_httptime(last_modified))
         if etag is not None:
             self.send_header("ETag", f'"{etag}"')
-        if send_file_path is not None or send_stream is not None:
+        if send_file_path is not None:
             self.send_header("Transfer-Encoding", "chunked")
 
         # should be null?
@@ -585,14 +576,20 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # print(self.headers)
 
-        if send_stream is not None:
-            with open(send_stream, "rb") as f:
-                self.send_chunks(f, 0.5, CHUNK_SIZE=1024 * 1024 * 1)
+        if send_file_path is not None:
+            if os.path.exists(send_file_path):
+                with open(send_file_path, "rb") as f:
+                    self.send_chunks(f, proc=transcode_proc)
 
-        elif send_file_path is not None:
-            with open(send_file_path, "rb") as f:
-                self.send_chunks(f)
+            if transcode_proc is not None:
+                if transcode_proc.poll() is None:
+                    print('Stopping transcoder')
+                    transcode_proc.terminate()
+                    time.sleep(1)
 
+                print(f'Removing tmp file {send_file_path}')
+                if os.path.exists(send_file_path):
+                    os.remove(send_file_path)
         else:
             try:
                 self.wfile.write(reply)
@@ -600,7 +597,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 print('Fail: handler.wfile.write(reply)', e)
 
     def send_chunks(
-        self, bytes_stream, delay=None, CHUNK_SIZE=1024 * 1024 * 1
+        self, bytes_stream, proc=None, delay=None, CHUNK_SIZE=1024 * 1024 * 1
     ):
         NEW_LINE = bytes("\r\n", "utf-8")
 
@@ -619,16 +616,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         + NEW_LINE
                     )
                     if chunk_len < CHUNK_SIZE:
-                        if self.path.startswith("/video"):
-                            from classes.streaming import Static_vars
-                            if (
-                                Static_vars.video_proc is not None
-                                and Static_vars.video_proc.poll() is None
-                            ):
-                                print('Transcoding ongoing')
-                                bytes_stream.seek(-chunk_len, 1)
-                                time.sleep(1)
-                                continue
+                        if (
+                            proc is not None
+                            and proc.poll() is None
+                        ):
+                            print('.', end='')
+                            bytes_stream.seek(-chunk_len, 1)
+                            time.sleep(1)
+                            continue
 
                         post = (
                             post
@@ -642,16 +637,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     if delay:
                         time.sleep(delay)
 
-                except ConnectionResetError as e:
-                    print('send_file: ConnectionResetError', e)
-
-                    break
-                except IOError as e:
-                    print('send_file: IOError', e)
-
-                    break
-                except Exception as e:
-                    print('send_file Unknow Exception', e)
+                except (
+                    ConnectionResetError,
+                    IOError,
+                    Exception
+                ) as e:
+                    print('send_file:', e)
 
                     break
                 finally:
