@@ -13,6 +13,7 @@ FFMPEG_STREAM = False
 
 class Static_vars(object):
     video_proc = None
+    counter = 0
 
 
 def _get_stream_info(file_path):
@@ -156,27 +157,18 @@ def _video_stream(
                     '-tile-columns', '3', '-frame-parallel', '1'
                 ]
 
-    if cmd:
         cmd.append(dst_path)
 
+    if cmd:
         print('Transcode:', ' '.join(cmd))
-        if (
-            Static_vars.video_proc is not None
-            and Static_vars.video_proc.poll() is None
-        ):
-            print("Closing previous video transcoding")
-            Static_vars.video_proc.terminate()
 
-        Static_vars.video_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
-
+        video_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
         time.sleep(0.5)
-        if (
-            Static_vars.video_proc.poll() is not None
-            and Static_vars.video_proc.returncode == 1
-        ):
+
+        if video_proc.poll() is not None and video_proc.returncode == 1:
             print('Transcode fail')
 
-            stderr_str = Static_vars.video_proc.stderr.read().decode("utf-8")
+            stderr_str = video_proc.stderr.read().decode("utf-8")
 
             # http://trac.ffmpeg.org/ticket/5718
             if any((
@@ -191,10 +183,11 @@ def _video_stream(
                         break
 
                 print('(Re:) Transcode:', ' '.join(cmd))
-                Static_vars.video_proc = subprocess.Popen(cmd)
+                video_proc = subprocess.Popen(cmd)
+                time.sleep(0.5)
 
         if FFMPEG_STREAM:
-            Static_vars.video_proc.terminate()
+            video_proc.terminate()
 
             stream_path = "/".join(dst_path.split(os.sep)[2:])
 
@@ -208,9 +201,11 @@ def _video_stream(
             ]
 
             print('starting stream', ' '.join(cmd))
-            Static_vars.video_proc = subprocess.Popen(cmd)
 
-    return Static_vars.video_proc
+            video_proc = subprocess.Popen(cmd)
+            time.sleep(0.5)
+
+    return video_proc
 
 
 def _audio_stream(file_path, stream_index, dst_path):
@@ -222,9 +217,11 @@ def _audio_stream(file_path, stream_index, dst_path):
         dst_path
     )
 
-    print("Audio:", " ".join(cmd))
+    # print("Audio:", " ".join(cmd))
+    audio_proc = subprocess.Popen(cmd)
+    time.sleep(0.5)
 
-    return subprocess.Popen(cmd)
+    return audio_proc
 
 
 def _subtitle(file_path, stream_index, dst_path):
@@ -238,7 +235,7 @@ def _subtitle(file_path, stream_index, dst_path):
 
     cmd.append(dst_path)
 
-    print("Subtitle:", " ".join(cmd))
+    # print("Subtitle:", " ".join(cmd))
 
     return subprocess.call(cmd)
 
@@ -249,7 +246,7 @@ def _dump_attachments(file_path, dst_dir):
         '-dump_attachment:t', '', '-i', file_path
     )
 
-    print("Fonts:", " ".join(cmd))
+    # print("Fonts:", " ".join(cmd))
 
     return subprocess.call(cmd, cwd=dst_dir)
 
@@ -268,8 +265,9 @@ def get_video_stream(media, codec, width, height, start_time):
         tempfile.gettempdir(),
         TMP_DIR,
         media.id(),
-        "video.webm"
+        f"video-{Static_vars.counter}.webm"
     )
+    Static_vars.counter = Static_vars.counter + 1
 
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
@@ -290,8 +288,11 @@ def get_audio_stream(media, stream_index):
         TMP_DIR,
         media.id(),
         "audio",
-        f'{stream_index}.opus'
+        f'{stream_index}-{Static_vars.counter}.opus'
     )
+
+    Static_vars.counter = Static_vars.counter + 1
+
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
 
     return dst_path, _audio_stream(file_path, stream_index, dst_path)
