@@ -382,10 +382,14 @@ var create_player = (function(w) {
     var hours = Math.floor(secs/ 3600)
     var minutes = Math.floor((secs % 3600) / 60)
     var seconds = Math.floor(secs % 60)
+
     var time = ""
-      + (hours > 0 ? (hours+':'):"")
-      + (minutes > 0 ? (minutes+':'):"0:")
-      + (seconds >= 10 ? (seconds): ("0"+seconds))
+    if (hours > 0) {
+      time += hours + ":"
+    }
+
+    time += (hours > 0 ? (minutes < 10 ? "0" : "") : "") + minutes + ":"
+    time += (seconds < 10 ? "0" : "") + seconds
 
     return time
   }
@@ -505,18 +509,15 @@ var create_player = (function(w) {
       }
     }, false)
 
-
-    var ENCODER_BUFFER_TIME = 1000 * 0 // TODO: check for encoding?
-    create_source_x_timeout = setTimeout(function(){
-      create_sources(v, streams_obj.streams)
-      create_subtitles(wrapper, controls, v, streams_obj.subtitles, streams_obj.fonts)
-      create_audio(wrapper, controls, v, streams_obj.audio)
-    }, ENCODER_BUFFER_TIME)
+    create_sources(v, streams_obj.streams)
+    create_subtitles(
+      wrapper, controls, v, streams_obj.subtitles, streams_obj.fonts
+    )
+    create_audio(wrapper, controls, v, streams_obj.audio)
 
     v.addEventListener("canplay", onCanPlay, false)
 
     document.body.prepend(wrapper)
-    wrapper.scrollIntoView({ behavior: "smooth" })
   }
 
   return create_player
