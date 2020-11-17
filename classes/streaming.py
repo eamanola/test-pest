@@ -12,7 +12,7 @@ FFMPEG_STREAM = True
 
 
 class Static_vars(object):
-    current_video_proc = None
+    video_proc = None
 
 
 def _get_stream_info(file_path):
@@ -160,27 +160,29 @@ def _video_stream(
         cmd.append(dst_path)
 
         print('Transcode:', ' '.join(cmd))
-        if Static_vars.current_video_proc is not None:
-            if Static_vars.current_video_proc.poll() is None:
-                print("Closing previous video transcoding")
-                Static_vars.current_video_proc.terminate()
+        if (
+            Static_vars.video_proc is not None
+            and Static_vars.video_proc.poll() is None
+        ):
+            print("Closing previous video transcoding")
+            Static_vars.video_proc.terminate()
 
-        ffmpeg_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
-        Static_vars.current_video_proc = ffmpeg_proc
+        Static_vars.video_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
         time.sleep(0.5)
 
-        if ffmpeg_proc.poll() is not None and ffmpeg_proc.returncode == 1:
+        if (
+            Static_vars.video_proc.poll() is not None
+            and Static_vars.video_proc.returncode == 1
+        ):
             print('Transcode fail')
 
-            stderr_str = ffmpeg_proc.stderr.read().decode("utf-8")
+            stderr_str = Static_vars.video_proc.stderr.read().decode("utf-8")
 
             # http://trac.ffmpeg.org/ticket/5718
-            if any(
-                (
-                    "libopus" in line
-                    and "Invalid channel layout 5.1(side)" in line
-                ) for line in stderr_str.split("\n")
-            ):
+            if any((
+                "libopus" in line
+                and "Invalid channel layout 5.1(side)" in line
+            ) for line in stderr_str.split("\n")):
                 print('Trying to map channels manually')
                 for i in range(len(cmd)):
                     if cmd[i] == 'libopus':
@@ -189,14 +191,11 @@ def _video_stream(
                         break
 
                 print('(Re:) Transcode:', ' '.join(cmd))
-                ffmpeg_proc = subprocess.Popen(
-                    cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-                )
-                Static_vars.current_video_proc = ffmpeg_proc
+                Static_vars.video_proc = subprocess.Popen(cmd)
                 time.sleep(0.5)
 
         if FFMPEG_STREAM:
-            ffmpeg_proc.terminate()
+            Static_vars.video_proc.terminate()
 
             stream_path = "/".join(dst_path.split(os.sep)[2:])
 
@@ -210,10 +209,7 @@ def _video_stream(
             ]
 
             print('starting stream', ' '.join(cmd))
-            ffmpeg_proc = subprocess.Popen(
-                cmd, stderr=subprocess.PIPE, stdout=subprocess.PIPE
-            )
-            Static_vars.current_video_proc = ffmpeg_proc
+            Static_vars.video_proc = subprocess.Popen(cmd)
             time.sleep(0.5)
 
     return dst_path
