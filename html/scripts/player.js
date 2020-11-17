@@ -304,6 +304,18 @@ var create_player = (function(w) {
   function onCanPlay(e) {
     var BUFFER_TIME = 1000 * 5 // 10s
 
+    /*
+    setTimeout(function() {
+      var COUNT_DOWN_LENGHT = 1000 * 3
+      var loadin_img = document.querySelector('.loading')
+
+      if (loadin_img) {
+        loadin_img.src = "/images/count-down.gif"
+        loadin_img.style.width = "initial"
+      }
+    }, BUFFER_TIME - COUNT_DOWN_LENGHT)
+    */
+
     can_play_timeout = setTimeout(function() {
       var wrapper = document.querySelector(".video-wrapper")
       wrapper.className = "video-wrapper"

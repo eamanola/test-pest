@@ -486,8 +486,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         elif (
             self.path in (
-                "/images/play-icon.png",
+                "/images/count-down.gif",
                 "/images/loading.gif",
+                "/images/play-icon.png",
                 "/scripts/page_builder.js",
                 "/scripts/player.js",
                 "/scripts/scripts.js",
