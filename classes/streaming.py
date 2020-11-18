@@ -74,6 +74,25 @@ def _video_stream(
 ):
     cmd = None
 
+    transcodes = Static_vars.transcodes
+    for key in [k for k in transcodes.keys() if "video" in k]:
+        if transcodes[key] is not None and transcodes[key].poll() is None:
+            print('close previous video proc')
+            transcodes[key].terminate()
+            time.sleep(1)
+
+    if len(os.sched_getaffinity(0)) != 8:
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print(os.sched_getaffinity(0))
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+
+    max_threads = int(len(os.sched_getaffinity(0)) / 2)
+    max_threads = max_threads if max_threads > 0 else 1
+
     if codec in ("vp8", "vp9"):
         cmd = [
             'ffmpeg', '-y', '-hide_banner',
@@ -99,7 +118,8 @@ def _video_stream(
                 '-vf',
                 'scale=w=426:h=240:force_original_aspect_ratio=decrease',
                 # '-speed', '8',
-                '-threads', '2', '-b:v', '365k'
+                '-threads', str(2 if 2 <= max_threads else max_threads),
+                '-b:v', '365k'
             ]
             if codec == "vp9":
                 cmd = cmd + [
@@ -111,7 +131,8 @@ def _video_stream(
                 '-vf',
                 'scale=w=640:h=360:force_original_aspect_ratio=decrease',
                 # '-speed', '7',
-                '-threads', '4', '-b:v', '730k'
+                '-threads', str(4 if 4 <= max_threads else max_threads),
+                '-b:v', '730k'
             ]
             if codec == "vp9":
                 cmd = cmd + [
@@ -123,7 +144,8 @@ def _video_stream(
                 '-vf',
                 'scale=w=854:h=480:force_original_aspect_ratio=decrease',
                 # '-speed', '6',
-                '-threads', '4', '-b:v', '1800k'
+                '-threads', str(4 if 4 <= max_threads else max_threads),
+                '-b:v', '1800k'
             ]
             if codec == "vp9":
                 cmd = cmd + [
@@ -134,8 +156,9 @@ def _video_stream(
             cmd = cmd + [
                 '-vf',
                 'scale=w=1280:h=720:force_original_aspect_ratio=decrease',
-                # '-speed', '5', -threads 8
-                '-threads', '4', '-b:v', '3000k'
+                # '-speed', '5',
+                '-threads', str(8 if 8 <= max_threads else max_threads),
+                '-b:v', '3000k'
             ]
             if codec == "vp9":
                 cmd = cmd + [
@@ -146,8 +169,9 @@ def _video_stream(
             cmd = cmd + [
                 '-vf',
                 'scale=w=1920:h=1080:force_original_aspect_ratio=decrease',
-                # '-speed', '5', -threads 8
-                '-threads', '4', '-b:v', '4500k'
+                # '-speed', '5',
+                '-threads', str(8 if 8 <= max_threads else max_threads),
+                '-b:v', '4500k'
             ]
             if codec == "vp9":
                 cmd = cmd + [
@@ -158,8 +182,9 @@ def _video_stream(
             cmd = cmd + [
                 '-vf',
                 'scale=w=2560:h=1440:force_original_aspect_ratio=decrease',
-                # '-speed', '5', -threads 16
-                '-threads', '4', '-b:v', '6000k'
+                # '-speed', '5',
+                '-threads', str(16 if 16 <= max_threads else max_threads),
+                '-b:v', '6000k'
             ]
             if codec == "vp9":
                 cmd = cmd + [
@@ -170,8 +195,9 @@ def _video_stream(
             cmd = cmd + [
                 '-vf',
                 'scale=w=3840:h=2160:force_original_aspect_ratio=decrease',
-                # '-speed', '5', -threads 16
-                '-threads', '4', '-b:v', '7800k'
+                # '-speed', '5',
+                '-threads', str(16 if 16 <= max_threads else max_threads),
+                '-b:v', '7800k'
             ]
             if codec == "vp9":
                 cmd = cmd + [
@@ -219,6 +245,8 @@ def _video_stream(
                 '-reconnect_streamed', '1',
                 f'http://192.168.1.119:8099/{stream_path}'
             ]
+
+        print(' '.join(cmd))
 
         return subprocess.Popen(cmd)
 
