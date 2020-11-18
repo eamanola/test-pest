@@ -13,6 +13,7 @@ FFMPEG_STREAM = False
 
 class Static_vars(object):
     transcodes = {}
+    terminates = []
 
 
 def is_trancoding(dst_path):
@@ -24,16 +25,25 @@ def is_trancoding(dst_path):
 
 
 def sending_ended(dst_path):
-    if dst_path in Static_vars.transcodes.keys():
-        proc = Static_vars.transcodes[dst_path]
+    Static_vars.terminates.append(dst_path)
+    time.sleep(20)
 
-        print('Stopping', proc, dst_path)
-        if proc is not None and proc.poll() is None:
-            proc.terminate()
+    if dst_path in Static_vars.terminates:
+        Static_vars.terminates.remove(dst_path)
 
-        if os.path.exists(dst_path):
-            print('Removing', dst_path)
-            os.remove(dst_path)
+        if dst_path in Static_vars.transcodes.keys():
+            proc = Static_vars.transcodes[dst_path]
+
+            print('Stopping', proc, dst_path)
+            if proc is not None and proc.poll() is None:
+                proc.terminate()
+
+            if os.path.exists(dst_path):
+                print('Removing', dst_path)
+                os.remove(dst_path)
+
+    else:
+        print("Stream resumed")
 
 
 def _get_stream_info(file_path):
@@ -72,13 +82,6 @@ def _video_stream(
     file_path, codec, width, height, dst_path, start_time
 ):
     cmd = None
-
-    transcodes = Static_vars.transcodes
-    for key in [k for k in transcodes.keys() if "video" in k]:
-        if transcodes[key] is not None and transcodes[key].poll() is None:
-            print('close previous video proc')
-            transcodes[key].terminate()
-            time.sleep(1)
 
     if len(os.sched_getaffinity(0)) != 8:
         print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
@@ -291,21 +294,33 @@ def _dump_attachments(file_path, dst_dir):
 
 
 def get_video_stream(media, codec, width, height, start_time):
-    file_path = os.path.join(media.parent().path(), media.file_path())
-    if not os.path.exists(file_path):
-        return None
-
-    stream_lines = [line for line in _get_stream_info(file_path) if (
-        "Stream" in line and "Video" in line
-    )]
-    w, h = _get_width_height(stream_lines, width, height)
-
     dst_path = os.path.join(
         tempfile.gettempdir(),
         TMP_DIR,
         media.id(),
         f"video.webm"
     )
+
+    if dst_path in Static_vars.terminates:
+        print('Stream exists, using old')
+        Static_vars.terminates.remove(dst_path)
+        return dst_path
+
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
+
+    transcodes = Static_vars.transcodes
+    for key in [k for k in transcodes.keys() if "video" in k]:
+        if transcodes[key] is not None and transcodes[key].poll() is None:
+            print('Closing previous video proc')
+            transcodes[key].terminate()
+            time.sleep(1)
+
+    stream_lines = [line for line in _get_stream_info(file_path) if (
+        "Stream" in line and "Video" in line
+    )]
+    w, h = _get_width_height(stream_lines, width, height)
 
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
