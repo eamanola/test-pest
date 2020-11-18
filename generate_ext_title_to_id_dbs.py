@@ -1,7 +1,7 @@
 from classes.db import DB
 from classes.ext_apis.anidb import AniDB
 from classes.ext_apis.imdb import IMDB
-
+import sys
 
 def parse_file(file_path, parser):
     results = []
@@ -33,7 +33,7 @@ def parse_file(file_path, parser):
 
 # ext_api = AniDB
 # ext_api = IMDB()
-def generate_table(ext_api):
+def generate_table(ext_api, database=None):
     if ext_api:
         parser = ext_api.get_title_to_id_file_parser()
         table = ext_api.TITLE_TO_ID_TABLE
@@ -42,9 +42,18 @@ def generate_table(ext_api):
     if parser and table:
         results = parse_file(file_path, parser)
         db = DB.get_instance()
-        db.connect()
+        if database is not None:
+            db.connect(database=database)
+        else:
+            db.connect()
+
         db.populate_title_to_ext_id_table(table, results)
         db.print_table(table)
         db.close()
 
-generate_table(AniDB)
+
+database = sys.argv[1] if len(sys.argv) == 2 else None
+
+generate_table(AniDB, database=database)
+
+sys.exit(0)
