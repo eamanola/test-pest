@@ -330,6 +330,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             else:
                 response_code = 400
 
+        elif self.path.startswith("/addmedialibrary/"):
+            print(self.path)
+
+            media_library_param = self.path.replace("/addmedialibrary/", "")
+            if media_library_param:
+                from urllib.parse import unquote
+                media_library_path = unquote(media_library_param)
+
+                if api.add_media_library(db, media_library_path):
+                    response_code = 200
+                else:
+                    response_code = 404
+            else:
+                response_code = 400
+
         elif self.path.startswith("/streams/"):
             parts = self.path[1:].split("/")
             codec = parts[1]
@@ -688,4 +703,6 @@ finally:
     import tempfile
     from classes.streaming import TMP_DIR
     import shutil
-    shutil.rmtree(os.path.join(tempfile.gettempdir(), TMP_DIR))
+    temp_dir = os.path.join(tempfile.gettempdir(), TMP_DIR)
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)

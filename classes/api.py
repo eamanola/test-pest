@@ -65,9 +65,19 @@ def get_media(db, media_id):
 
 
 def get_media_libraries(db):
+    import sqlite3
+
     cur = db.conn.cursor()
     sql = 'select id from containers where type="MediaLibrary"'
-    cur.execute(sql)
+
+    try:
+        cur.execute(sql)
+    except sqlite3.OperationalError:
+        print('gen base tables')
+        db.create_media_table()
+        db.create_containers_table()
+        cur.execute(sql)
+
     return [result[0] for result in cur.fetchall()]
 
 
@@ -84,7 +94,12 @@ def play_next_list(db):
     return play_next_list
 
 
-def scan(db, container_id):
+def scan(
+    db,
+    container_id,
+    update_identifiables=False,
+    overwrite_media_states=False
+):
     from classes.scanner import Scanner
 
     scanned = None
@@ -127,12 +142,12 @@ def scan(db, container_id):
 
             db.update_containers(
                 containers,
-                update_identifiables=False
+                update_identifiables=update_identifiables
             )
             db.update_media(
                 media,
-                update_identifiables=False,
-                overwrite_media_states=False
+                update_identifiables=update_identifiables,
+                overwrite_media_states=overwrite_media_states
             )
 
             scanned = result.id()
@@ -367,3 +382,77 @@ def get_font(db, media_id, font_name):
         font = streaming.get_font(media, font_name)
 
     return font
+
+
+def add_media_library(db, media_library_path):
+    import os
+    import sqlite3
+
+    success = False
+
+    if os.path.exists(media_library_path):
+        if os.path.isfile(media_library_path):
+            path = os.path.dirname(media_library_path)
+        else:
+            path = media_library_path
+
+        if not path.endswith(os.path.sep):
+            path = path + os.path.sep
+
+        media_library = MediaLibrary(path)
+
+        try:
+            existing = db.get_container(media_library.id())
+        except sqlite3.OperationalError:
+            print('gen base tables')
+            db.create_media_table()
+            db.create_containers_table()
+
+        if existing is None:
+            db.update_containers([media_library])
+
+        scanned = scan(db, media_library.id(), update_identifiables=True)
+        if scanned is not None:
+            media_library = db.get_container(media_library.id())
+
+            try:
+                test_movie = Movie("/foo", "bar", False)
+                _identify(db, test_movie, None)
+                print('exists')
+            except sqlite3.OperationalError:
+                print('generateext_title_to_id table')
+                if (os.system(
+                    'python3 generate_ext_title_to_id_dbs.py tester.db'
+                ) != 0):
+                    raise Exception("couldnt create identify db")
+                else:
+                    print('generated')
+
+            updated_containers = []
+            for c in media_library.containers:
+                if isinstance(c, Identifiable):
+                    con = db.get_container(c.id())
+                    anidb_id = _identify(db, con, AniDB.TV_SHOW)
+                    if anidb_id:
+                        con.ext_ids()[AniDB.KEY] = anidb_id
+                        _get_info(db, con)
+                        updated_containers.append(con)
+
+            if len(updated_containers):
+                db.update_containers(updated_containers)
+
+            updated_media = []
+            for m in media_library.media:
+                if isinstance(m, Identifiable):
+                    anidb_id = _identify(db, m, AniDB.MOVIE)
+                    if anidb_id:
+                        m.ext_ids()[AniDB.KEY] = anidb_id
+                        _get_info(db, m)
+                        updated_media.append(m)
+
+            if len(updated_media):
+                db.update_media(updated_media)
+
+        success = True
+
+    return success

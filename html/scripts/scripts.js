@@ -1,3 +1,40 @@
+function onAddMediaLibraryError(responseText) {
+  var response = JSON.parse(responseText)
+
+  if (response.code == 404) {
+    alert('directory not found')
+  }
+
+  var path = document.getElementById('add-media-library-path')
+  path.disabled = false
+}
+
+function onMediaLibraryAdded(responseText) {
+  console.log(responseText)
+
+  var path = document.getElementById('add-media-library-path')
+  path.disabled = false
+
+  updatePage()
+}
+
+function onAddMediaLibraryClick(e) {
+  var button = document.getElementById('add-media-library')
+  var path = document.getElementById('add-media-library-path')
+
+  if (path.value) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    path.disabled = true
+
+    ajax([
+      base_url,
+      "/addmedialibrary",
+      '/' + encodeURIComponent(path.value)
+    ].join(""), onMediaLibraryAdded, onAddMediaLibraryError)
+  }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -820,15 +857,20 @@ var stream_codec = null;
   refresh_play_next_list_button
     .addEventListener('click', onRefreshPlayNextListClick, false)
 
-    var toggle_grid_button =
-      document.getElementById('toggle-grid')
-    toggle_grid_button
-      .addEventListener('click', onToggleGridClick, false)
+  var toggle_grid_button =
+    document.getElementById('toggle-grid')
+  toggle_grid_button
+    .addEventListener('click', onToggleGridClick, false)
 
-    var toggle_player_button =
-      document.getElementById('toggle-player')
-    toggle_player_button
-      .addEventListener('click', onTogglePlayClick, false)
+  var toggle_player_button =
+    document.getElementById('toggle-player')
+  toggle_player_button
+    .addEventListener('click', onTogglePlayClick, false)
+
+  var add_media_library_button =
+    document.getElementById('add-media-library')
+  add_media_library_button
+    .addEventListener('click', onAddMediaLibraryClick, false)
 
   home()
   create_add_to_play_list()
