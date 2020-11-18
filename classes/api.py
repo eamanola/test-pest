@@ -315,6 +315,9 @@ def get_streams(db, media_id, codec, width, height, start_time):
             media, codec, width, height, start_time
         )
 
+        if streams:
+            WatchingList.started_play(db, [media])
+
     return streams
 
 
