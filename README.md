@@ -32,7 +32,5 @@ System requirements
 Developed on linux, with FF and chrome
 - other platforms should work, but not tested
 
-Setup
-run python3 server.py in root dir
-open browser in printed address, and expect crash poks
+Setup: run python3 server.py in root dir, and open printed address in browser. Expect crash poks
 
