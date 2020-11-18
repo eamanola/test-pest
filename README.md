@@ -13,10 +13,7 @@ Features
 - Keeps track of shows being watched, next episode, seen episodes/shows and suggests the day's anime menu
 
 Road map
-- test on win / mac
-- resume playback in next
 - UI / UX design
-- reach beta
 - new api clients (android/ios/webos/etc..)
 - 3rd party server ngix etc...
 - big boy db maria, postgres, etc.. integration
