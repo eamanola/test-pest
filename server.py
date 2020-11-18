@@ -12,6 +12,7 @@ import time
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
 OK_REPLY = {'code': 200, 'message': 'Ok'}
+DEV = False
 
 
 def epoch_to_httptime(secs):
@@ -108,8 +109,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         cache_control = None
         last_modified = None
         etag = None
-
-        DEV = True
 
         db = DB.get_instance()
         if DEV:
@@ -677,15 +676,13 @@ def get_ip():
 
 hostName = get_ip()
 
-for port in range(8086, 8097):
-    serverPort = port
-    try:
-        httpd = socketserver.ThreadingTCPServer(
-            (hostName, serverPort), Handler
-        )
-        break
-    except OSError:
-        print('skip', serverPort)
+if DEV:
+    serverPort = 8087
+else:
+    serverPort = 8086
+
+socketserver.ThreadingTCPServer.allow_reuse_address = True
+httpd = socketserver.ThreadingTCPServer((hostName, serverPort), Handler)
 
 print(f"Server started http://{hostName}:{serverPort}")
 try:
@@ -698,7 +695,6 @@ try:
     ])
     httpd.serve_forever()
 except KeyboardInterrupt:
-    sys.exit()
     pass
 
 finally:
@@ -711,3 +707,5 @@ finally:
     temp_dir = os.path.join(tempfile.gettempdir(), TMP_DIR)
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
+
+sys.exit(0)
