@@ -14,6 +14,7 @@ Features
 
 Road map
 - test on win / mac
+- resume playback in next
 - UI / UX design
 - reach beta
 - new api clients (android/ios/webos/etc..)
