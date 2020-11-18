@@ -109,8 +109,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         last_modified = None
         etag = None
 
+        DEV = True
+
         db = DB.get_instance()
-        db.connect()
+        if DEV:
+            db.connect('tester.db')
+        else:
+            db.connect()
 
         if self.path in ("/", ""):
             self.path = "/index.html"

@@ -268,15 +268,12 @@ def _get_info(db, identifiable):
         isinstance(identifiable, Identifiable) and
         AniDB.KEY in identifiable.ext_ids()
     ):
-        meta_getter = AniDB.get_meta_getter(
-            identifiable.ext_ids()[AniDB.KEY]
-        )
+        meta = AniDB.get_meta_getter().get(identifiable.ext_ids()[AniDB.KEY])
 
-        meta = meta_getter.get()
+        if meta:
+            db.update_meta([meta])
 
-        db.update_meta([meta])
-
-        info_updated = True
+            info_updated = True
 
     return info_updated
 

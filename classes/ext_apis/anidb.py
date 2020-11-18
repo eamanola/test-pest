@@ -25,28 +25,67 @@ class AniDB(Ext_api):
         return AniDB.title_to_id_file_parser
 
     @staticmethod
-    def get_meta_getter(anidb_id):
-        return AniDB_Meta_Getter(anidb_id)
+    def get_meta_getter():
+        return AniDB_Meta_Getter
 
 
 class AniDB_Meta_Getter(Ext_Meta_Getter):
-    IMAGE_PREFIX = AniDB.KEY
-    META_ID_PREFIX = AniDB.KEY
+    IMAGE_PREFIX = META_ID_PREFIX = AniDB.KEY
 
     def __init__(self, anidb_id):
         super(AniDB_Meta_Getter, self).__init__(anidb_id)
-        self._api_host = "api.anidb.net:9001"
-        self._api_path = ''.join([
-            "/httpapi",
-            "?request=anime",
-            "&client=testpest",
-            "&clientver=1",
-            "&protover=1",
-            f"&aid={anidb_id}"
-            ])
-        self._meta_id = f"{AniDB_Meta_Getter.META_ID_PREFIX}:::{anidb_id}"
 
-    def parse(self, data):
+    def get(anidb_id):
+        TEST = False
+        import os
+        import sys
+        META_FOLDER = os.path.join(sys.path[0], "meta")
+
+        gzip = os.path.join(
+            META_FOLDER, f'{AniDB_Meta_Getter.META_ID_PREFIX}_{anidb_id}.gz'
+        )
+        if os.path.exists(gzip):
+            print('meta from file')
+            with open(gzip, "rb") as f:
+                meta = AniDB_Meta_Getter.parse(f.read())
+
+        else:
+            print('meta from server')
+            if TEST:
+                with open("data.gz", "rb") as f:
+                    data = f.read()
+            else:
+                import http.client
+                conn = http.client.HTTPConnection("api.anidb.net:9001")
+                conn.request("GET", ''.join([
+                    "/httpapi",
+                    "?request=anime",
+                    "&client=testpest",
+                    "&clientver=1",
+                    "&protover=1",
+                    f"&aid={anidb_id}"
+                ]))
+                response = conn.getresponse()
+                data = response.read()
+                conn.close()
+
+                import time
+                time.sleep(3)  # avoid bann from anidb
+
+            try:
+                meta = AniDB_Meta_Getter.parse(data)
+
+                from pathlib import Path
+                Path(gzip).parent.mkdir(parents=True, exist_ok=True)
+
+                with open(gzip, "wb") as f:
+                    f.write(data)
+            except Exception:
+                meta = None
+
+        return meta
+
+    def parse(data):
         import gzip
         import xml.etree.ElementTree
         from classes.meta import Meta, Episode_Meta
@@ -54,6 +93,8 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
 
         uncompressed = gzip.decompress(data)
         root = xml.etree.ElementTree.fromstring(uncompressed)
+
+        anidb_id = root.attrib['id']
 
         title = root.findall('./titles/title[@type="main"]')[0].text
 
@@ -97,7 +138,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
             description = ""
 
         return Meta(
-            self._meta_id,
+            f"{AniDB_Meta_Getter.META_ID_PREFIX}:::{anidb_id}",
             title,
             rating,
             image_name,

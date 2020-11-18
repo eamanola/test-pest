@@ -3,6 +3,7 @@ from classes.ext_apis.anidb import AniDB
 from classes.ext_apis.imdb import IMDB
 import sys
 
+
 def parse_file(file_path, parser):
     results = []
 
@@ -48,7 +49,7 @@ def generate_table(ext_api, database=None):
             db.connect()
 
         db.populate_title_to_ext_id_table(table, results)
-        db.print_table(table)
+        # db.print_table(table)
         db.close()
 
 
