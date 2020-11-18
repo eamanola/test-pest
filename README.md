@@ -17,6 +17,9 @@ Road map
 - UI / UX design
 - reach beta
 - new api clients (android/ios/webos/etc..)
+- 3rd party server ngix etc...
+- big boy db maria, postgres, etc.. integration
+- new meta sources imdb, tvdb, etc...
 
 Need
 - co devs
@@ -28,3 +31,8 @@ System requirements
 
 Developed on linux, with FF and chrome
 - other platforms should work, but not tested
+
+Setup
+run python3 server.py in root dir
+open browser in printed address, and expect crash poks
+
