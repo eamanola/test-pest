@@ -13,6 +13,7 @@ Features
 - Keeps track of shows being watched, next episode, seen episodes/shows and suggests the day's anime menu
 
 Road map
+- test on win / mac
 - UI / UX design
 - reach beta
 - new api clients (android/ios/webos/etc..)
@@ -20,3 +21,10 @@ Road map
 Need
 - co devs
 - alpha testers
+
+System requirements
+- Python3
+- FFMpeg
+
+Developed on linux, with FF and chrome
+- other platforms should work, but not tested
