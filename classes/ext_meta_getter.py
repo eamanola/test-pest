@@ -16,8 +16,8 @@ class Ext_Meta_Getter(object):
             import os
             import sys
 
-            f = open(os.path.join(sys.path[0], "data.gz"), "rb")
-            data = f.read()
+            with open(os.path.join(sys.path[0], "data.gz"), "rb") as f:
+                data = f.read()
 
         else:
             conn = http.client.HTTPConnection(self._api_host)
@@ -25,6 +25,9 @@ class Ext_Meta_Getter(object):
             response = conn.getresponse()
             data = response.read()
             conn.close()
+
+            import time
+            time.sleep(3)  # avoid getting banned
 
         return self.parse(data)
 
