@@ -13,7 +13,6 @@ FFMPEG_STREAM = False
 
 class Static_vars(object):
     transcodes = {}
-    counter = 0
 
 
 def is_trancoding(dst_path):
@@ -305,9 +304,8 @@ def get_video_stream(media, codec, width, height, start_time):
         tempfile.gettempdir(),
         TMP_DIR,
         media.id(),
-        f"video-{Static_vars.counter}.webm"
+        f"video.webm"
     )
-    Static_vars.counter = Static_vars.counter + 1
 
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
@@ -330,10 +328,8 @@ def get_audio_stream(media, stream_index):
         TMP_DIR,
         media.id(),
         "audio",
-        f'{stream_index}-{Static_vars.counter}.opus'
+        f'{stream_index}.opus'
     )
-
-    Static_vars.counter = Static_vars.counter + 1
 
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
