@@ -594,11 +594,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # print(self.headers)
 
         if send_file_path is not None:
-            self.send_chunks(send_file_path)
+            ret = self.send_chunks(send_file_path)
 
             if self.path.startswith(("/video/", "/audio/")):
                 from classes.streaming import sending_ended
-                sending_ended(send_file_path)
+                sending_ended(send_file_path, ret == 0)
 
         else:
             try:
@@ -606,10 +606,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 print('Fail: handler.wfile.write(reply)', e)
 
-    def send_chunks(
-        self, file_path, delay=None, CHUNK_SIZE=1024 * 1024 * 1
-    ):
+    def send_chunks(self, file_path):
+        ret = 0
         NEW_LINE = bytes("\r\n", "utf-8")
+        CHUNK_SIZE = 1024 * 1024 * 1
 
         with open(file_path, "rb") as f:
             while True:
@@ -630,7 +630,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             if self.path.startswith(("/video/", "/audio/")):
                                 from classes.streaming import is_trancoding
                                 if is_trancoding(file_path):
-                                    print('.', end='')
+                                    print('.')
                                     f.seek(-chunk_len, 1)
                                     time.sleep(1)
                                     continue
@@ -642,10 +642,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 + NEW_LINE
                             )
 
+                        print('-')
                         self.wfile.write(post)
-
-                        if delay:
-                            time.sleep(delay)
 
                     except (
                         ConnectionResetError,
@@ -653,10 +651,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         Exception
                     ) as e:
                         print('send_file:', e)
-
+                        ret = 1
                         break
                     finally:
                         del chunk
+        return ret
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib

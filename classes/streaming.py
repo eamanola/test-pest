@@ -24,7 +24,9 @@ def is_trancoding(dst_path):
     return False
 
 
-def sending_ended(dst_path):
+def sending_ended(dst_path, success):
+    if success:
+        print(dst_path, 'sent successfully')
     Static_vars.terminates.append(dst_path)
     time.sleep(20)
 
