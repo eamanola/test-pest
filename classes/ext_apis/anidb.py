@@ -39,12 +39,17 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         TEST = False
         import os
         import sys
+        import time
         META_FOLDER = os.path.join(sys.path[0], "meta")
 
         gzip = os.path.join(
             META_FOLDER, f'{AniDB_Meta_Getter.META_ID_PREFIX}_{anidb_id}.gz'
         )
-        if os.path.exists(gzip):
+
+        if (
+            os.path.exists(gzip)
+            and time.time() - int(os.path.getmtime(gzip)) < 24 * 60 * 60
+        ):
             print('meta from file')
             with open(gzip, "rb") as f:
                 meta = AniDB_Meta_Getter.parse(f.read())
@@ -69,7 +74,6 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
                 data = response.read()
                 conn.close()
 
-                import time
                 time.sleep(3)  # avoid bann from anidb
 
             try:
