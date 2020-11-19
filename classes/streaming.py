@@ -8,41 +8,7 @@ import tempfile
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 TMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")
-CACHE_DIR = os.path.join(TMP_DIR, "cache")
 FFMPEG_STREAM = False
-
-
-class Static_vars(object):
-    transcodes = {}
-
-
-def is_trancoding(dst_path):
-    if dst_path in Static_vars.transcodes.keys():
-        proc = Static_vars.transcodes[dst_path]
-        return proc is not None and proc.poll() is None
-
-    return False
-
-
-def sending_ended(dst_path, success):
-    if dst_path in Static_vars.transcodes.keys():
-        proc = Static_vars.transcodes[dst_path]
-
-        if proc is not None and proc.poll() is None:
-            print('Stopping', proc, dst_path)
-            proc.terminate()
-
-        if os.path.exists(dst_path):
-            if success:
-                if not os.path.exists(CACHE_DIR):
-                    os.makedirs(CACHE_DIR, exist_ok=True)
-
-                import shutil
-                print('Move to cache', dst_path)
-                shutil.move(dst_path, CACHE_DIR)
-            else:
-                print('Removing', dst_path)
-                os.remove(dst_path)
 
 
 def _get_stream_info(file_path):
@@ -77,19 +43,8 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def _video_stream(
-    file_path, codec, width, height, dst_path, start_time
-):
+def _video_stream(file_path, codec, width, height, start_time):
     cmd = None
-
-    if len(os.sched_getaffinity(0)) != 8:
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print(os.sched_getaffinity(0))
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
     max_threads = int(len(os.sched_getaffinity(0)) / 2)
     max_threads = max_threads if max_threads > 0 else 1
@@ -205,18 +160,18 @@ def _video_stream(
                     '-tile-columns', '3', '-frame-parallel', '1'
                 ]
 
-        cmd.append(dst_path)
+        cmd.append('pipe:1')
 
     if cmd:
         print('Default Trancode:')
 
-        video_proc = subprocess.Popen(cmd, stderr=subprocess.PIPE)
+        cmd_test = subprocess.Popen(cmd, stderr=subprocess.PIPE)
         time.sleep(0.5)
 
-        if video_proc.poll() is not None and video_proc.returncode == 1:
+        if cmd_test.poll() is not None and cmd_test.returncode == 1:
             print('Transcode fail')
 
-            stderr_str = video_proc.stderr.read().decode("utf-8")
+            stderr_str = cmd_test.stderr.read().decode("utf-8")
 
             # http://trac.ffmpeg.org/ticket/5718
             if any((
@@ -231,12 +186,10 @@ def _video_stream(
                         cmd.insert(i + 2, 'aformat=channel_layouts=5.1|stereo')
                         break
         else:
-            video_proc.terminate()
+            cmd_test.terminate()
 
         if FFMPEG_STREAM:
             print('Direct stream')
-
-            stream_path = os.path.basename(dst_path)
 
             cmd = cmd[:-1] + [
                 '-content_type', 'video/webm',
@@ -244,25 +197,21 @@ def _video_stream(
                 '-headers',
                 'Cache-Control: private, must-revalidate, max-age=0',
                 '-reconnect_streamed', '1',
-                f'http://192.168.1.119:8099/{stream_path}'
+                f'http://192.168.1.119:8099/video.webm'
             ]
 
-        print(' '.join(cmd))
-
-        return subprocess.Popen(cmd)
+        return cmd
 
 
-def _audio_stream(file_path, stream_index, dst_path):
+def _audio_stream(file_path, stream_index):
     cmd = (
         'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
         '-i', file_path,
         '-map', f'0:{stream_index}',
-        '-c:a', 'libopus',
-        dst_path
+        '-c:a', 'libopus', '-f', 'opus', 'pipe:1'
     )
 
-    # print("Audio:", " ".join(cmd))
-    return subprocess.Popen(cmd)
+    return cmd
 
 
 def _subtitle(file_path, stream_index, dst_path):
@@ -276,8 +225,6 @@ def _subtitle(file_path, stream_index, dst_path):
 
     cmd.append(dst_path)
 
-    # print("Subtitle:", " ".join(cmd))
-
     return subprocess.call(cmd)
 
 
@@ -287,69 +234,32 @@ def _dump_attachments(file_path, dst_dir):
         '-dump_attachment:t', '', '-i', file_path
     )
 
-    # print("Fonts:", " ".join(cmd))
-
     return subprocess.call(cmd, cwd=dst_dir)
 
 
 def get_video_stream(media, codec, width, height, start_time):
-    file_name = f"{media.id()}-video[{codec}][{width}x{height}].webm"
-
-    if os.path.exists(os.path.join(CACHE_DIR, file_name)):
-        print('From cache', file_name)
-        return os.path.join(CACHE_DIR, file_name)
-
-    dst_path = os.path.join(TMP_DIR, file_name)
-
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
-
-    transcodes = Static_vars.transcodes
-    for key in [k for k in transcodes.keys() if "video" in k]:
-        if transcodes[key] is not None and transcodes[key].poll() is None:
-            print('Closing previous video proc')
-            transcodes[key].terminate()
-            time.sleep(1)
 
     stream_lines = [line for line in _get_stream_info(file_path) if (
         "Stream" in line and "Video" in line
     )]
     w, h = _get_width_height(stream_lines, width, height)
 
-    from pathlib import Path
-    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
+    ffmpeg_cmd = _video_stream(file_path, codec, w, h, start_time)
 
-    Static_vars.transcodes[dst_path] = _video_stream(
-        file_path, codec, w, h, dst_path, start_time
-    )
-    time.sleep(0.5)
-
-    return dst_path
+    return ffmpeg_cmd
 
 
 def get_audio_stream(media, stream_index):
-    file_name = f"{media.id()}-audio-{stream_index}.opus"
-
-    if os.path.exists(os.path.join(CACHE_DIR, file_name)):
-        print('From cache', file_name)
-        return os.path.join(CACHE_DIR, file_name)
-
-    dst_path = os.path.join(TMP_DIR, file_name)
-
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
 
-    from pathlib import Path
-    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
+    ffmpeg_cmd = _audio_stream(file_path, stream_index)
 
-    Static_vars.transcodes[dst_path] = _audio_stream(
-        file_path, stream_index, dst_path
-    )
-    time.sleep(0.5)
-
-    return dst_path
+    return ffmpeg_cmd
 
 
 def get_subtitle(media, type, index):
@@ -450,12 +360,7 @@ def get_streams(media, codec, width, height, start_time):
     media_id = media.id()
 
     if FFMPEG_STREAM:
-        streams = [
-            ''.join([
-                "http://192.168.1.119:8099/",
-                f"{media.id()}-video[{codec}][{width}x{height}].webm"
-            ])
-        ]
+        streams = ["http://192.168.1.119:8099/video.webm"]
         get_video_stream(media, codec, width, height, start_time)
     else:
         streams = [f'/video/{codec}/{width}/{height}/{media_id}']

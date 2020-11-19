@@ -109,6 +109,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         cache_control = None
         last_modified = None
         etag = None
+        stream_cmd = None
 
         db = DB.get_instance()
         db.connect()
@@ -403,10 +404,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 )
                 if stream:
                     response_code = 200
-                    content_type = mime_type(stream)
                     cache_control = "private, must-revalidate, max-age=0"
-
-                    send_file_path = stream
+                    if transcode:
+                        content_type = "video/webm"
+                        stream_cmd = stream
+                    else:
+                        content_type = mime_type(stream)
+                        send_file_path = stream
                 else:
                     response_code = 404
             else:
@@ -418,17 +422,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             media_id = parts[2]
 
             if (media_id and stream_index and len(parts) == 3):
-                stream = api.get_audio_stream(
+                cmd = api.get_audio_stream(
                     db,
                     media_id,
                     stream_index
                 )
-                if stream:
+                if cmd:
                     response_code = 200
-                    content_type = mime_type(stream)
+                    content_type = "audio/opus"
                     cache_control = "private, must-revalidate, max-age=0"
 
-                    send_file_path = stream
+                    stream_cmd = cmd
                 else:
                     response_code = 404
             else:
@@ -551,7 +555,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         db.close()
 
-        if not send_file_path:
+        if not send_file_path and not stream_cmd:
             if response_code in (200, 304) and reply is None:
                 reply = OK_REPLY
             if response_code == 400:
@@ -590,21 +594,22 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # print(self.headers)
 
-        if send_file_path is not None:
-            ret = self.send_chunks(send_file_path)
+        try:
+            if stream_cmd:
+                print('cmd:', ' '.join(stream_cmd))
+                proc = subprocess.Popen(stream_cmd, stdout=self.wfile)
+                proc.wait()
 
-            if self.path.startswith(("/video/", "/audio/")):
-                from classes.streaming import sending_ended
-                sending_ended(send_file_path, ret == 0)
+            elif send_file_path:
+                ret = self.send_chunks(send_file_path)
 
-        else:
-            try:
+            else:
                 self.wfile.write(reply)
-            except Exception as e:
-                print('Fail: handler.wfile.write(reply)', e)
+
+        except (ConnectionResetError, IOError, Exception) as e:
+            print('Send error:', e)
 
     def send_chunks(self, file_path):
-        ret = 0
         NEW_LINE = bytes("\r\n", "utf-8")
         CHUNK_SIZE = 1024 * 1024 * 1
 
@@ -624,14 +629,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             + NEW_LINE
                         )
                         if chunk_len < CHUNK_SIZE:
-                            if self.path.startswith(("/video/", "/audio/")):
-                                from classes.streaming import is_trancoding
-                                if is_trancoding(file_path):
-                                    print('.', end="")
-                                    f.seek(-chunk_len, 1)
-                                    time.sleep(1)
-                                    continue
-
                             post = (
                                 post
                                 + bytes("0", "utf-8")
@@ -639,20 +636,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 + NEW_LINE
                             )
 
-                        print('-', end="")
                         self.wfile.write(post)
 
-                    except (
-                        ConnectionResetError,
-                        IOError,
-                        Exception
-                    ) as e:
+                    except (ConnectionResetError, IOError, Exception) as e:
                         print('send_file:', e)
-                        ret = 1
                         break
                     finally:
                         del chunk
-        return ret
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
