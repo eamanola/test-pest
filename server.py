@@ -700,11 +700,9 @@ finally:
     httpd.server_close()
     print("Server stopped.")
 
-    import tempfile
     from classes.streaming import TMP_DIR
     import shutil
-    temp_dir = os.path.join(tempfile.gettempdir(), TMP_DIR)
-    if os.path.exists(temp_dir):
-        shutil.rmtree(temp_dir)
+    if os.path.exists(TMP_DIR):
+        shutil.rmtree(TMP_DIR)
 
 sys.exit(0)

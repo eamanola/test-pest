@@ -7,7 +7,7 @@ import tempfile
 
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
-TMP_DIR = "test-pest"
+TMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")
 FFMPEG_STREAM = False
 
 
@@ -239,7 +239,7 @@ def _video_stream(
         if FFMPEG_STREAM:
             print('Direct stream')
 
-            stream_path = "/".join(dst_path.split(os.sep)[2:])
+            stream_path = os.path.basename(dst_path)
 
             cmd = cmd[:-1] + [
                 '-content_type', 'video/webm',
@@ -296,12 +296,9 @@ def _dump_attachments(file_path, dst_dir):
 
 
 def get_video_stream(media, codec, width, height, start_time):
-    dst_path = os.path.join(
-        tempfile.gettempdir(),
-        TMP_DIR,
-        media.id(),
-        f"video.webm"
-    )
+    file_name = f"{media.id()}-video[{codec}][{width}x{height}].webm"
+
+    dst_path = os.path.join(TMP_DIR, file_name)
 
     if dst_path in Static_vars.terminates:
         print('Stream exists, using old')
@@ -336,17 +333,13 @@ def get_video_stream(media, codec, width, height, start_time):
 
 
 def get_audio_stream(media, stream_index):
+    file_name = f"{media.id()}-audio-{stream_index}.opus"
+
+    dst_path = os.path.join(TMP_DIR, file_name)
+
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
-
-    dst_path = os.path.join(
-        tempfile.gettempdir(),
-        TMP_DIR,
-        media.id(),
-        "audio",
-        f'{stream_index}.opus'
-    )
 
     from pathlib import Path
     Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
@@ -392,7 +385,6 @@ def get_subtitle(media, type, index):
         stream_index = None
 
     dst_path = os.path.join(
-        tempfile.gettempdir(),
         TMP_DIR,
         media.id(),
         "subtitle",
@@ -418,7 +410,6 @@ def get_subtitle(media, type, index):
 
 def get_font(media, font_name):
     dst_path = os.path.join(
-        tempfile.gettempdir(),
         TMP_DIR,
         media.id(),
         "fonts",
@@ -460,7 +451,10 @@ def get_streams(media, codec, width, height, start_time):
 
     if FFMPEG_STREAM:
         streams = [
-            f'http://192.168.1.119:8099/{TMP_DIR}/{media_id}/video.webm'
+            ''.join([
+                "http://192.168.1.119:8099/",
+                f"{media.id()}-video[{codec}][{width}x{height}].webm"
+            ])
         ]
         get_video_stream(media, codec, width, height, start_time)
     else:
