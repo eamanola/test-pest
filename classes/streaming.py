@@ -8,13 +8,12 @@ import tempfile
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 TMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")
-CACHE_DIR = os.path.join(tempfile.gettempdir(), "test-pest-cache")
+CACHE_DIR = os.path.join(TMP_DIR, "cache")
 FFMPEG_STREAM = False
 
 
 class Static_vars(object):
     transcodes = {}
-    terminates = []
 
 
 def is_trancoding(dst_path):
@@ -26,33 +25,24 @@ def is_trancoding(dst_path):
 
 
 def sending_ended(dst_path, success):
-    Static_vars.terminates.append(dst_path)
-    time.sleep(20)
+    if dst_path in Static_vars.transcodes.keys():
+        proc = Static_vars.transcodes[dst_path]
 
-    if dst_path in Static_vars.terminates:
-        Static_vars.terminates.remove(dst_path)
-
-        if dst_path in Static_vars.transcodes.keys():
-            proc = Static_vars.transcodes[dst_path]
-
+        if proc is not None and proc.poll() is None:
             print('Stopping', proc, dst_path)
-            if proc is not None and proc.poll() is None:
-                proc.terminate()
+            proc.terminate()
 
-            if os.path.exists(dst_path):
-                if success:
-                    if not os.path.exists(CACHE_DIR):
-                        os.makedirs(CACHE_DIR, exist_ok=True)
+        if os.path.exists(dst_path):
+            if success:
+                if not os.path.exists(CACHE_DIR):
+                    os.makedirs(CACHE_DIR, exist_ok=True)
 
-                    import shutil
-                    print('Move to cache', dst_path)
-                    shutil.move(dst_path, CACHE_DIR)
-                else:
-                    print('Removing', dst_path)
-                    os.remove(dst_path)
-
-    else:
-        print("Stream resumed")
+                import shutil
+                print('Move to cache', dst_path)
+                shutil.move(dst_path, CACHE_DIR)
+            else:
+                print('Removing', dst_path)
+                os.remove(dst_path)
 
 
 def _get_stream_info(file_path):
@@ -310,11 +300,6 @@ def get_video_stream(media, codec, width, height, start_time):
         return os.path.join(CACHE_DIR, file_name)
 
     dst_path = os.path.join(TMP_DIR, file_name)
-
-    if dst_path in Static_vars.terminates:
-        print('Stream exists, using old')
-        Static_vars.terminates.remove(dst_path)
-        return dst_path
 
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):

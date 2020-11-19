@@ -111,10 +111,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         etag = None
 
         db = DB.get_instance()
-        if DEV:
-            db.connect('tester.db')
-        else:
-            db.connect()
+        db.connect()
 
         if self.path in ("/", ""):
             self.path = "/index.html"
@@ -630,7 +627,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                             if self.path.startswith(("/video/", "/audio/")):
                                 from classes.streaming import is_trancoding
                                 if is_trancoding(file_path):
-                                    print('.')
+                                    print('.', end="")
                                     f.seek(-chunk_len, 1)
                                     time.sleep(1)
                                     continue
@@ -642,7 +639,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                                 + NEW_LINE
                             )
 
-                        print('-')
+                        print('-', end="")
                         self.wfile.write(post)
 
                     except (
