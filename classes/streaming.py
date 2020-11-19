@@ -8,6 +8,7 @@ import tempfile
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 TMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")
+CACHE_DIR = os.path.join(tempfile.gettempdir(), "test-pest-cache")
 FFMPEG_STREAM = False
 
 
@@ -25,8 +26,6 @@ def is_trancoding(dst_path):
 
 
 def sending_ended(dst_path, success):
-    if success:
-        print(dst_path, 'sent successfully')
     Static_vars.terminates.append(dst_path)
     time.sleep(20)
 
@@ -41,8 +40,16 @@ def sending_ended(dst_path, success):
                 proc.terminate()
 
             if os.path.exists(dst_path):
-                print('Removing', dst_path)
-                os.remove(dst_path)
+                if success:
+                    if not os.path.exists(CACHE_DIR):
+                        os.makedirs(CACHE_DIR, exist_ok=True)
+
+                    import shutil
+                    print('Move to cache', dst_path)
+                    shutil.move(dst_path, CACHE_DIR)
+                else:
+                    print('Removing', dst_path)
+                    os.remove(dst_path)
 
     else:
         print("Stream resumed")
@@ -298,6 +305,10 @@ def _dump_attachments(file_path, dst_dir):
 def get_video_stream(media, codec, width, height, start_time):
     file_name = f"{media.id()}-video[{codec}][{width}x{height}].webm"
 
+    if os.path.exists(os.path.join(CACHE_DIR, file_name)):
+        print('From cache', file_name)
+        return os.path.join(CACHE_DIR, file_name)
+
     dst_path = os.path.join(TMP_DIR, file_name)
 
     if dst_path in Static_vars.terminates:
@@ -334,6 +345,10 @@ def get_video_stream(media, codec, width, height, start_time):
 
 def get_audio_stream(media, stream_index):
     file_name = f"{media.id()}-audio-{stream_index}.opus"
+
+    if os.path.exists(os.path.join(CACHE_DIR, file_name)):
+        print('From cache', file_name)
+        return os.path.join(CACHE_DIR, file_name)
 
     dst_path = os.path.join(TMP_DIR, file_name)
 
