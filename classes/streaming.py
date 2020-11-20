@@ -376,7 +376,9 @@ def get_streams(media, codec, width, height, start_time):
         streams = ["http://192.168.1.119:8099/video.webm"]
         get_video_stream(media, codec, width, height, start_time, None)
     else:
-        streams = [f'/video/{codec}/{width}/{height}/{start_time}/{media_id}']
+        streams = [
+            f'/video/{codec}/{width}/{height}/{media_id}?start={start_time}'
+        ]
 
     audio = []
     subtitles = []
@@ -394,7 +396,7 @@ def get_streams(media, codec, width, height, start_time):
         lang = info.group(2) if info else None
 
         _audio = {
-            'src': f"/audio/{stream_index}/{start_time}/{media_id}",
+            'src': f"/audio/{stream_index}/{media_id}?start={start_time}",
             'lang': lang,
             'is_forced': is_forced
         }
@@ -414,8 +416,8 @@ def get_streams(media, codec, width, height, start_time):
             "Subtitle: hdmv_pgs_subtitle" in line
         ])
         if requires_transcode:
-            continue
-            # pass
+            # continue
+            pass
 
         is_default = "(default)" in line
         is_forced = "(forced)" in line

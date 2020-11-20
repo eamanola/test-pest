@@ -352,7 +352,7 @@ var create_player = (function() {
           }
         }
 
-        var hardcoded_sub = /\/transcode\/\d+$/.test(video.currentSrc)
+        var hardcoded_sub = /si=\d+$/.test(video.currentSrc)
         if (hardcoded_sub) {
           var new_sub_needs_hard_code = /\.tra$/.test(subtitle_select.value)
           if (!new_sub_needs_hard_code) {
@@ -576,18 +576,32 @@ var create_player = (function() {
       var streams = []
       var source = source_src = null
 
-      var transcode_req = "/transcode"
-        + ((typeof subtitle_index === "number" && subtitle_index >= 0) ?
-          ("/" + subtitle_index) : "")
-      var reg = new RegExp(transcode_req + "$")
-
       for (var i = 0, il = sources.length; i < il; i++) {
         source = sources[i]
         source_src = source.getAttribute("src")
 
-        if (!reg.test(source_src)) {
-          source_src = source_src.replace(/\/transcode(?:\/\d+)?$/, "")
-          streams.push(source_src + transcode_req)
+        var parts = source_src.split("?")
+        var query = parts.length === 2 ? parts[1]:null
+
+        var q_transcode = null
+        var q_subtitle_index = null
+        var q_start = null
+
+        if (query) {
+          for (var j = 0, jl = query.length; j < jl; j++) {
+            if (query[j].startsWith("transcode="))
+              q_transcode = query[j].split("=")[1]
+            else if (query[j].startsWith("si="))
+              q_subtitle_index = query[j].split("=")[1]
+          }
+        }
+
+        if (
+          q_transcode !== "1" || ("" + subtitle_index) !== q_subtitle_index
+        ) {
+          new_src = parts[0] + "?transcode=1&start=" + Math.floor(this.current_time())
+            + (subtitle_index !== undefined ? ("&si=" + subtitle_index) : "")
+          streams.push(new_src)
         }
         video.removeChild(source)
       }

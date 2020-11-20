@@ -347,14 +347,21 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/streams/"):
-            parts = self.path[1:].split("/")
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+
+            parts = parsed.path[1:].split("/")
             codec = parts[1]
             width = int(parts[2])
             height = int(parts[3])
-            start_time = int(parts[4])
-            media_id = parts[5]
+            media_id = parts[4]
 
-            if (media_id and codec and width and height and len(parts) == 6):
+            params = urllib.parse.parse_qs(parsed.query)
+            start_time = (
+                int(params['start'][0]) if "start" in params.keys() else 0
+            )
+
+            if (media_id and codec and width and height and len(parts) == 5):
                 streams = api.get_streams(
                     db,
                     media_id,
@@ -373,22 +380,28 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/video/"):
-            parts = self.path[1:].split("/")
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+
+            parts = parsed.path[1:].split("/")
             codec = parts[1]
             width = int(parts[2])
             height = int(parts[3])
-            start_time = int(parts[4])
-            media_id = parts[5]
-            transcode = len(parts) >= 7 and parts[6] == "transcode"
-            subtitle_index = (parts[7]) if len(parts) >= 8 else None
+            media_id = parts[4]
 
-            if (
-                media_id
-                and codec
-                and width
-                and height
-                and len(parts) in (6, 7, 8)
-            ):
+            params = urllib.parse.parse_qs(parsed.query)
+            transcode = (
+                "transcode" in params.keys()
+                and params['transcode'][0] == '1'
+            )
+            start_time = (
+                int(params['start'][0]) if "start" in params.keys() else 0
+            )
+            subtitle_index = (
+                int(params['si'][0]) if "si" in params.keys() else None
+            )
+
+            if (media_id and codec and width and height and len(parts) == 5):
                 stream = api.get_video_stream(
                     db,
                     media_id,
@@ -414,12 +427,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/audio/"):
-            parts = self.path[1:].split("/")
-            stream_index = parts[1]
-            start_time = parts[2]
-            media_id = parts[3]
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
 
-            if (media_id and stream_index and len(parts) == 4):
+            parts = parsed.path[1:].split("/")
+            stream_index = parts[1]
+            media_id = parts[2]
+
+            params = urllib.parse.parse_qs(parsed.query)
+            start_time = (
+                int(params['start'][0]) if "start" in params.keys() else 0
+            )
+
+            if (media_id and stream_index and len(parts) == 3):
                 cmd = api.get_audio_stream(
                     db,
                     media_id,

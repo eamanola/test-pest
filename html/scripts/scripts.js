@@ -318,8 +318,7 @@ function onPlaySingleClick(e) {
         stream_codec,
         screen.width,
         screen.height,
-        start_time,
-        data_id].join('/'), onStreamsReceived)
+        data_id].join('/') + "?start=" + start_time, onStreamsReceived)
     }
   }
 
