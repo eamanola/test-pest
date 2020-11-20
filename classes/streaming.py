@@ -415,6 +415,7 @@ def get_streams(media, codec, width, height, start_time):
         ])
         if requires_transcode:
             continue
+            # pass
 
         is_default = "(default)" in line
         is_forced = "(forced)" in line

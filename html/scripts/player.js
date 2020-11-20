@@ -25,12 +25,15 @@ var create_player = (function() {
     wrapper.appendChild(this.create_overlay())
     var controls = this.create_controls()
 
+    this.create_sources(streams_obj.streams)
+
     if (streams_obj.audio.length > 0) {
       this.create_audio(streams_obj.audio)
       controls.appendChild(this.create_audio_select(streams_obj.audio))
       this.sync_audio()
     }
 
+    // create after sources, in case default subtitle requires re-transcoding
     if (streams_obj.subtitles.length > 0) {
       this.fonts = streams_obj.fonts
       controls.appendChild(this.create_subtitle_select(streams_obj.subtitles))
@@ -40,8 +43,6 @@ var create_player = (function() {
     controls.appendChild(this.create_fullscreen_btn())
     controls.appendChild(this.create_play_position())
     wrapper.appendChild(controls)
-
-    this.create_sources(streams_obj.streams)
 
     document.addEventListener(
       "fullscreenchange",
@@ -348,6 +349,15 @@ var create_player = (function() {
             this.ass_renderer.freeTrack()
           } catch (e) {
             console.log('ass render', e)
+          }
+        }
+
+        var hardcoded_sub = /\/transcode\/\d+$/.test(video.currentSrc)
+        if (hardcoded_sub) {
+          var new_sub_needs_hard_code = /\.tra$/.test(subtitle_select.value)
+          if (!new_sub_needs_hard_code) {
+              // remove old hard code
+              this.request_transcoding()
           }
         }
 
