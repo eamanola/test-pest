@@ -379,21 +379,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             height = int(parts[3])
             start_time = int(parts[4])
             media_id = parts[5]
-            transcode = len(parts) == 7 and parts[6] == "transcode"
-            print(
-                media_id,
-                codec,
-                width,
-                height,
-                transcode,
-                start_time
-            )
+            transcode = len(parts) >= 7 and parts[6] == "transcode"
+            subtitle_index = (parts[7]) if len(parts) >= 8 else None
+
             if (
                 media_id
                 and codec
                 and width
                 and height
-                and len(parts) in (6, 7)
+                and len(parts) in (6, 7, 8)
             ):
                 stream = api.get_video_stream(
                     db,
@@ -402,7 +396,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     width,
                     height,
                     transcode,
-                    start_time
+                    start_time,
+                    subtitle_index
                 )
                 if stream:
                     response_code = 200
@@ -447,8 +442,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             type = parts[1]
             stream_index = parts[2]
             media_id = parts[3].split(".")[0]
+            is_bitmap = parts[3].split(".")[1] == "tra"
 
-            if media_id and type and stream_index and len(parts) == 4:
+            if (
+                media_id
+                and type
+                and stream_index
+                and len(parts) == 4
+                and not is_bitmap
+            ):
                 subtitle_path = api.get_subtitle(
                     db,
                     media_id,

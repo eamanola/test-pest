@@ -362,7 +362,9 @@ var create_player = (function() {
       var subtitle = null, label = null, subtitle_option = null
       for (var i = 0, il = subtitles.length; i < il; i ++) {
         subtitle = subtitles[i]
-        label = subtitle.lang + (subtitle.forced ? "(forced)" : "")
+        label = subtitle.lang
+          + (subtitle.forced ? " (forced)" : "")
+          + (subtitle.requires_transcode ? " (T)" : "")
 
         subtitle_option = document.createElement("option")
         subtitle_option.innerHTML = label
@@ -445,9 +447,7 @@ var create_player = (function() {
       }.bind(this), false)
     },
     set_subtitle: function(src) {
-      var is_ass = /\.ass$/.test(src)
-
-      if (is_ass) {
+      if (/\.ass$/.test(src)) {
         try {
           if (this.ass_renderer === null) {
             this.ass_renderer = new SubtitlesOctopus({
@@ -463,6 +463,14 @@ var create_player = (function() {
         } catch (e) {
           console.log('ass render', e)
         }
+      } else if (/\.tra$/.test(src)) {
+        var parts = src.split("/")
+        var stream_index = undefined
+        if (parts.length > 4) {
+          var index = parseInt(parts[3])
+          stream_index = index > 0 ? index : undefined
+        }
+        this.request_transcoding(stream_index)
       } else {
         var track = document.createElement('track')
         track.setAttribute('src', src)
@@ -552,23 +560,29 @@ var create_player = (function() {
 
       document.body.removeChild(this.wrapper)
     },
-    request_transcoding: function() {
+    request_transcoding: function(subtitle_index) {
       var video = this.video()
       var sources = video.querySelectorAll('source')
       var streams = []
-
       var source = source_src = null
+
+      var transcode_req = "/transcode"
+        + ((typeof subtitle_index === "number" && subtitle_index >= 0) ?
+          ("/" + subtitle_index) : "")
+      var reg = new RegExp(transcode_req + "$")
+
       for (var i = 0, il = sources.length; i < il; i++) {
         source = sources[i]
         source_src = source.getAttribute("src")
 
-        if (!/\/transcode$/.test(source_src)) {
-          streams.push(source_src + "/transcode")
+        if (!reg.test(source_src)) {
+          source_src = source_src.replace(/\/transcode(?:\/\d+)?$/, "")
+          streams.push(source_src + transcode_req)
         }
         video.removeChild(source)
       }
 
-      if (sources.length) {
+      if (streams.length) {
         console.log('adding new sources')
         this.create_sources(streams)
         video.load()

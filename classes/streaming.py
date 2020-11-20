@@ -43,7 +43,8 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def _video_stream(file_path, codec, width, height, start_time):
+def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
+    print(subtitle_index)
     cmd = None
 
     max_threads = int(len(os.sched_getaffinity(0)) / 2)
@@ -60,14 +61,21 @@ def _video_stream(file_path, codec, width, height, start_time):
             '-qmin', '4', '-qmax', '48',
             '-c:a', 'libopus', '-f', 'webm',
             '-speed', '10',
-            '-map', '0:v:0', '-map', '0:a:0',
-            '-sn', '-dn', '-map', '-0:t'
+            '-map', '0:a:0', '-sn', '-dn', '-map', '-0:t'
         ]
 
         if codec == "vp9":
             cmd = cmd + ['-c:v', 'vp9', '-row-mt', '1']
         elif codec == "vp8":
             cmd = cmd + ['-c:v', 'libvpx']
+
+        if subtitle_index is None:
+            cmd = cmd + ['-map', '0:v:0']
+        else:
+            cmd = cmd + [
+                '-filter_complex',
+                f'[0:v:0][0:{subtitle_index}]overlay[v]', '-map', '[v]'
+            ]
 
         if width <= 426 and height <= 240:
             cmd = cmd + [
@@ -162,6 +170,9 @@ def _video_stream(file_path, codec, width, height, start_time):
 
         cmd.append('pipe:1')
 
+        if subtitle_index is not None:
+            cmd = [c for c in cmd if c != "-vf" and not c.startswith("scale")]
+
     if cmd:
         print('Default Trancode:')
 
@@ -237,7 +248,7 @@ def _dump_attachments(file_path, dst_dir):
     return subprocess.call(cmd, cwd=dst_dir)
 
 
-def get_video_stream(media, codec, width, height, start_time):
+def get_video_stream(media, codec, width, height, start_time, subtitle_index):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
@@ -247,7 +258,9 @@ def get_video_stream(media, codec, width, height, start_time):
     )]
     w, h = _get_width_height(stream_lines, width, height)
 
-    ffmpeg_cmd = _video_stream(file_path, codec, w, h, start_time)
+    ffmpeg_cmd = _video_stream(
+        file_path, codec, w, h, start_time, subtitle_index
+    )
 
     return ffmpeg_cmd
 
@@ -361,7 +374,7 @@ def get_streams(media, codec, width, height, start_time):
 
     if FFMPEG_STREAM:
         streams = ["http://192.168.1.119:8099/video.webm"]
-        get_video_stream(media, codec, width, height, start_time)
+        get_video_stream(media, codec, width, height, start_time, None)
     else:
         streams = [f'/video/{codec}/{width}/{height}/{start_time}/{media_id}']
 
@@ -411,13 +424,20 @@ def get_streams(media, codec, width, height, start_time):
         stream_index = info.group(1) if info else None
         lang = info.group(2) if info else "Unknown"
         src = f'/subtitle/internal/{stream_index}/{media_id}'
-        src = src + (".ass" if is_ass else ".vtt")
+
+        if is_ass:
+            src = f"{src}.ass"
+        elif requires_transcode:
+            src = f"{src}.tra"
+        else:
+            src = f"{src}.vtt"
 
         subtitle = {
             'src': src,
             'lang': lang,
             'default': is_default,
-            'forced': is_forced
+            'forced': is_forced,
+            'requires_transcode': requires_transcode
         }
 
         if stream_index:
