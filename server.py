@@ -12,7 +12,6 @@ import time
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
 OK_REPLY = {'code': 200, 'message': 'Ok'}
-DEV = False
 
 
 def epoch_to_httptime(secs):
@@ -41,7 +40,7 @@ def mime_type(file_name):
     elif file_name.endswith(".mp4"):
         content_type = "video/mp4"
     elif file_name.endswith(".opus"):
-        content_type = "audio/ogg"
+        content_type = "audio/opus"
     elif file_name.endswith(".gif"):
         content_type = "image/gif"
     elif file_name.endswith(".js"):
@@ -129,12 +128,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                         api.get_container(db, media_library_id)
                     )
 
-                    # temp
-                    for media_library in media_libraries:
-                        if media_library.title() == "/data/viihde/anime/":
-                            break
-                    media_libraries.remove(media_library)
-                    media_libraries.insert(0, media_library)
+                # temp
+                for media_library in media_libraries:
+                    if media_library.title() == "/data/viihde/anime/":
+                        break
+                media_libraries.remove(media_library)
+                media_libraries.insert(0, media_library)
 
                 play_next = api.play_next_list(db)
 
@@ -352,18 +351,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             codec = parts[1]
             width = int(parts[2])
             height = int(parts[3])
-            media_id = parts[4]
+            start_time = int(parts[4])
+            media_id = parts[5]
 
-            START_TIME = "00:00:00.0"
-
-            if (media_id and codec and width and height and len(parts) == 5):
+            if (media_id and codec and width and height and len(parts) == 6):
                 streams = api.get_streams(
                     db,
                     media_id,
                     codec,
                     width,
                     height,
-                    START_TIME
+                    start_time
                 )
                 if streams:
                     reply = streams
@@ -379,19 +377,23 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             codec = parts[1]
             width = int(parts[2])
             height = int(parts[3])
-            media_id = parts[4]
-            transcode = len(parts) == 6 and parts[5] == "transcode"
-
-            START_TIME = "00:00:00.0"
-
-            start_time = START_TIME
-
+            start_time = int(parts[4])
+            media_id = parts[5]
+            transcode = len(parts) == 7 and parts[6] == "transcode"
+            print(
+                media_id,
+                codec,
+                width,
+                height,
+                transcode,
+                start_time
+            )
             if (
                 media_id
                 and codec
                 and width
                 and height
-                and len(parts) in (5, 6)
+                and len(parts) in (6, 7)
             ):
                 stream = api.get_video_stream(
                     db,
@@ -406,7 +408,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     response_code = 200
                     cache_control = "private, must-revalidate, max-age=0"
                     if transcode:
-                        content_type = "video/webm"
+                        content_type = mime_type(".webm")
                         stream_cmd = stream
                     else:
                         content_type = mime_type(stream)
@@ -419,17 +421,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif self.path.startswith("/audio/"):
             parts = self.path[1:].split("/")
             stream_index = parts[1]
-            media_id = parts[2]
+            start_time = parts[2]
+            media_id = parts[3]
 
-            if (media_id and stream_index and len(parts) == 3):
+            if (media_id and stream_index and len(parts) == 4):
                 cmd = api.get_audio_stream(
                     db,
                     media_id,
-                    stream_index
+                    stream_index,
+                    start_time
                 )
                 if cmd:
                     response_code = 200
-                    content_type = "audio/opus"
+                    content_type = mime_type(".opus")
                     cache_control = "private, must-revalidate, max-age=0"
 
                     stream_cmd = cmd
@@ -662,10 +666,8 @@ def get_ip():
 
 hostName = get_ip()
 
-if DEV:
-    serverPort = 8087
-else:
-    serverPort = 8086
+serverPort = 8086
+# serverPort = 8087
 
 socketserver.ThreadingTCPServer.allow_reuse_address = True
 httpd = socketserver.ThreadingTCPServer((hostName, serverPort), Handler)

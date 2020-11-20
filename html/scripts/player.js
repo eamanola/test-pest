@@ -15,6 +15,7 @@ var create_player = (function() {
   var Player = function(streams_obj) {
     this.media_id = streams_obj.id
     this.duration = streams_obj.duration
+    this.start_time = streams_obj.start_time
 
     var wrapper = this.wrapper = this.create_wrapper()
     this.set_state("buffering")
@@ -57,9 +58,10 @@ var create_player = (function() {
     wrapper : null,
     current_audio: null,
     ass_renderer: null,
-    BUFFER_TIME: 1000 * 5,
+    BUFFER_TIME: 1000 * 0,
     fullscreen_hide_ui_timeout: null,
     FULLSCREEN_HIDE_UI_TIMEOUT: 5 * 1000,
+    start_time: 0,
     create_wrapper: function() {
       var wrapper = document.createElement('div')
       wrapper.className = "video-wrapper"
@@ -73,6 +75,9 @@ var create_player = (function() {
         this.wrapper.className =
           this.wrapper.className.replace(" buffering", "")
 
+    },
+    current_time: function() {
+      return this.video().currentTime + this.start_time
     },
     video: function() {
       return this.wrapper.querySelector("video")
@@ -112,21 +117,21 @@ var create_player = (function() {
         if(duration) {
           if (this.buffered.length) {
             player.play_position_buffered().style.width =
-              this.buffered.end(0) / duration * 100 + '%'
+              (player.start_time + this.buffered.end(0)) / duration * 100 + '%'
           }
         }
       }, false)
 
       video.addEventListener("timeupdate", function() {
-        var time = format_secs(this.currentTime)
-        player.play_position_time().innerHTML = time
+        var time = format_secs(this.current_time())
+        this.play_position_time().innerHTML = time
 
-        var duration = player.duration
+        var duration = this.duration
         if(duration) {
-          player.play_position_played().style.width =
-            this.currentTime / duration * 100 + '%'
+          this.play_position_played().style.width =
+            this.current_time() / duration * 100 + '%'
         }
-      }, false)
+      }.bind(this), false)
 
       video.addEventListener("canplay", function(e) {
         this.BUFFER_TIME
@@ -227,21 +232,22 @@ var create_player = (function() {
     create_play_position_total: function() {
       var play_position_total = document.createElement("div")
       play_position_total.className = "video-position-total"
-      play_position_total.addEventListener("click", function(e) {
-        var video = this.video()
-        var duration = this.duration
+      if (this.start_time === 0) { //TODO: later
+        play_position_total.addEventListener("click", function(e) {
+          var video = this.video()
+          var duration = this.duration
 
-        var percent = (e.layerX / play_position_total.offsetWidth)
-        if (percent < 0.025) percent = 0
+          var percent = (e.layerX / play_position_total.offsetWidth)
+          if (percent < 0.025) percent = 0
 
-        var new_time = percent * duration
-        var buffered_end = video.buffered.end(0)
-        if (new_time > buffered_end)
-          new_time = buffered_end
+          var new_time = percent * duration
+          var buffered_end = video.buffered.end(0)
+          if (new_time > buffered_end)
+            new_time = buffered_end
 
-        video.currentTime = new_time
-      }.bind(this), false)
-
+          video.currentTime = new_time
+        }.bind(this), false)
+      }
       play_position_total.appendChild(this.create_play_position_buffered())
       play_position_total.appendChild(this.create_play_position_played())
 
@@ -251,18 +257,28 @@ var create_player = (function() {
       var play_position_buffered = document.createElement("div")
       play_position_buffered.className = "video-position-buffered"
 
+      if(this.duration) {
+        play_position_buffered.style.width =
+            this.start_time / this.duration * 100 + '%'
+      }
+
       return play_position_buffered
     },
     create_play_position_played: function() {
       var play_position_played = document.createElement("div")
       play_position_played.className = "video-position-played"
 
+      if(this.duration) {
+        play_position_played.style.width =
+          this.start_time / this.duration * 100 + '%'
+      }
+
       return play_position_played
     },
     create_play_position_time: function() {
       var play_position_time = document.createElement("span")
       play_position_time.className = "video-position-time"
-      play_position_time.innerHTML = "0:00"
+      play_position_time.innerHTML = format_secs(this.start_time)
 
       return play_position_time
     },
@@ -492,13 +508,11 @@ var create_player = (function() {
     close: function() {
       var video = this.wrapper.querySelector("video")
       video.pause()
-      console.log(video.currentTime)
 
       var duration = this.duration
       if (duration) {
-        if (video.currentTime / duration > 0.9) {
-          console.log('video marked played')
-
+        var watched = this.current_time() / duration
+        if (watched > 0.9) {
           var els = document.querySelectorAll(
             '[data-id="' + this.media_id + '"] .js-played input'
           )
@@ -506,6 +520,11 @@ var create_player = (function() {
             els[i].checked = true
             window.onPlayedChange( { target: els[i] } )
           }
+        } else if (watched > 0.05) {
+          var resume_str = localStorage.getItem('resume')
+          var resume = JSON.parse(resume_str) || {}
+          resume[this.media_id] = Math.floor(this.current_time())
+          localStorage.setItem('resume', JSON.stringify(resume))
         }
       }
 

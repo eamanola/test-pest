@@ -53,7 +53,7 @@ def _video_stream(file_path, codec, width, height, start_time):
         cmd = [
             'ffmpeg', '-y', '-hide_banner',
             '-loglevel', 'warning', '-stats',
-            '-ss', start_time,
+            '-ss', str(start_time),
             '-i', file_path,
             '-r', '30', '-g', '90',
             '-quality', 'realtime',
@@ -203,10 +203,10 @@ def _video_stream(file_path, codec, width, height, start_time):
         return cmd
 
 
-def _audio_stream(file_path, stream_index):
+def _audio_stream(file_path, stream_index, start_time):
     cmd = (
         'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
-        '-i', file_path,
+        '-i', file_path, '-ss', str(start_time),
         '-map', f'0:{stream_index}',
         '-c:a', 'libopus', '-f', 'opus', 'pipe:1'
     )
@@ -252,12 +252,12 @@ def get_video_stream(media, codec, width, height, start_time):
     return ffmpeg_cmd
 
 
-def get_audio_stream(media, stream_index):
+def get_audio_stream(media, stream_index, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
 
-    ffmpeg_cmd = _audio_stream(file_path, stream_index)
+    ffmpeg_cmd = _audio_stream(file_path, stream_index, start_time)
 
     return ffmpeg_cmd
 
@@ -363,7 +363,7 @@ def get_streams(media, codec, width, height, start_time):
         streams = ["http://192.168.1.119:8099/video.webm"]
         get_video_stream(media, codec, width, height, start_time)
     else:
-        streams = [f'/video/{codec}/{width}/{height}/{media_id}']
+        streams = [f'/video/{codec}/{width}/{height}/{start_time}/{media_id}']
 
     audio = []
     subtitles = []
@@ -381,7 +381,7 @@ def get_streams(media, codec, width, height, start_time):
         lang = info.group(2) if info else None
 
         _audio = {
-            'src': f"/audio/{stream_index}/{media_id}",
+            'src': f"/audio/{stream_index}/{start_time}/{media_id}",
             'lang': lang,
             'is_forced': is_forced
         }
@@ -463,5 +463,6 @@ def get_streams(media, codec, width, height, start_time):
         'audio': audio,
         'subtitles': subtitles,
         'duration': duration,
-        'fonts': fonts
+        'fonts': fonts,
+        'start_time': start_time
     }

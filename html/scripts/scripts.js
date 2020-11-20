@@ -231,6 +231,11 @@ function onGetInfoClick(e) {
 function onPlayedSaved(responseText) {
   var item = JSON.parse(responseText)
 
+  var resume_str = localStorage.getItem('resume')
+  var resume = JSON.parse(resume_str) || {}
+  delete resume[item.data_id]
+  localStorage.setItem('resume', JSON.stringify(resume))
+
   // no actions required for media items
   if (item.unplayed_count !== undefined) {
     var el = null, els = document.querySelectorAll(
@@ -301,12 +306,19 @@ function onPlaySingleClick(e) {
     if (player === "vlc")
       ajax(base_url + '/play/' + data_id, onPlayConfirmed)
     else if (player === "web") {
+      var resume_str = localStorage.getItem('resume')
+      var resume = JSON.parse(resume_str) || {}
+      var start_time = 0
+      if (resume[data_id] && typeof(resume[data_id]) === "number")
+        start_time = resume[data_id]
+
       ajax(
         [base_url,
         'streams',
         stream_codec,
         screen.width,
         screen.height,
+        start_time,
         data_id].join('/'), onStreamsReceived)
     }
   }
