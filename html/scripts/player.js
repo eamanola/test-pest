@@ -464,6 +464,7 @@ var create_player = (function() {
               video: this.video(),
               subUrl: src,
               fonts: this.fonts,
+              timeOffset: this.start_time,
               workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js',
               legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js'
             })
@@ -557,7 +558,7 @@ var create_player = (function() {
       var audio = this.wrapper.querySelectorAll("audio")
       for (var i = 0, il = audio.length; i < il; i++) {
         audio[i].pause()
-        audio[i].src = "fail-load"
+        audio[i].removeAttribute("src")
         audio[i].load()
       }
 
