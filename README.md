@@ -4,24 +4,19 @@ Media Server, with anidb meta fetching integration
 A little experiment with python
 
 Features
-- Scan for video files in specified directories
+- List video files in specified directories over http
 - Attempt at minimal renaming
 - Fetch art work/meta (limited to anidb)
-- List files, and control playback over http (in browser or mobile)
-- Play on server machine in selected media player (vlc) [playback can be started from mobile, or other machine]
-- Play locally in browser [limited, experimental] (tested on FF and chrome)
-- Keeps track of shows being watched, next episode, seen episodes/shows and suggests the day's anime menu
+- Play on server machine in selected media player (vlc) [playback can be started over http]
+- Play locally in browser (tested on FF and chrome)
+- Keeps track of shows being watched, next episodes, etc..
 
 Road map
 - UI / UX design
-- new api clients (android/ios/webos/etc..)
+- new clients (android/ios/webos/etc..)
 - 3rd party server ngix etc...
 - big boy db maria, postgres, etc.. integration
 - new meta sources imdb, tvdb, etc...
-
-Need
-- co devs
-- alpha testers
 
 System requirements
 - Python3
