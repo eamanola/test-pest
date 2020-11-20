@@ -515,11 +515,19 @@ var create_player = (function() {
       var chrome_transcode_btn = document.createElement("button")
       chrome_transcode_btn.innerHTML = "Click here"
       chrome_transcode_btn.addEventListener('click', function() {
-          this.wrapper.removeChild(chrome_transcode)
-          this.set_state("buffering")
-          this.request_transcoding()
+        this.wrapper.removeChild(chrome_transcode)
+        this.set_state("buffering")
+        this.request_transcoding()
       }.bind(this), false)
       chrome_transcode.appendChild(chrome_transcode_btn)
+
+      var chrome_transcode_cancel_btn = document.createElement("button")
+      chrome_transcode_cancel_btn.innerHTML = "Cancel"
+      chrome_transcode_cancel_btn.addEventListener("click", function() {
+        this.wrapper.removeChild(chrome_transcode)
+      }.bind(this), false)
+      chrome_transcode.appendChild(chrome_transcode_cancel_btn)
+
 
       this.wrapper.appendChild(chrome_transcode)
     },
