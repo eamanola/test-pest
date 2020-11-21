@@ -486,10 +486,21 @@ var create_player = (function() {
         var track = document.createElement('track')
         track.setAttribute('src', src)
         track.setAttribute("kind", "subtitles")
+        if (this.start_time) {
+          var offset = this.start_time
+          track.addEventListener("load", function(e) {
+            var cues = e.target.track.cues
+            for (var i = 0, il = cues.length; i < il; i++) {
+              cues[i].startTime -= offset
+              cues[i].endTime -= offset
+            }
+          }, false)
+        }
 
         var video = this.video()
         video.appendChild(track)
         video.textTracks[0].mode = "showing"
+
       }
     },
     toggleFullscreen: function(e) {
