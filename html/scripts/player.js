@@ -74,7 +74,7 @@ var create_player = (function() {
         this.wrapper.className += " buffering"
       else if (state == "playing")
         this.wrapper.className =
-          this.wrapper.className.replace(" buffering", "")
+          this.wrapper.className.replace(/\sbuffering/g, "")
 
     },
     current_time: function() {
@@ -372,7 +372,7 @@ var create_player = (function() {
       var subtitle = null, label = null, subtitle_option = null
       for (var i = 0, il = subtitles.length; i < il; i ++) {
         subtitle = subtitles[i]
-        label = subtitle.lang
+        label = (subtitle.lang || "Unknown")
           + (subtitle.forced ? " (forced)" : "")
           + (subtitle.requires_transcode ? " (T)" : "")
 
@@ -476,12 +476,10 @@ var create_player = (function() {
         }
       } else if (/\.tra$/.test(src)) {
         var parts = src.split("/")
-        var stream_index = undefined
         if (parts.length > 4) {
-          var index = parseInt(parts[3])
-          stream_index = index > 0 ? index : undefined
+          var stream_index = parts[3]
+          this.request_transcoding(stream_index)
         }
-        this.request_transcoding(stream_index)
       } else {
         var track = document.createElement('track')
         track.setAttribute('src', src)
@@ -500,7 +498,6 @@ var create_player = (function() {
         var video = this.video()
         video.appendChild(track)
         video.textTracks[0].mode = "showing"
-
       }
     },
     toggleFullscreen: function(e) {
@@ -528,7 +525,6 @@ var create_player = (function() {
       chrome_transcode_btn.innerHTML = "Click here"
       chrome_transcode_btn.addEventListener('click', function() {
         this.wrapper.removeChild(chrome_transcode)
-        this.set_state("buffering")
         this.request_transcoding()
       }.bind(this), false)
       chrome_transcode.appendChild(chrome_transcode_btn)
@@ -591,6 +587,13 @@ var create_player = (function() {
       document.body.removeChild(this.wrapper)
     },
     request_transcoding: function(subtitle_index) {
+      this.set_state("buffering")
+      if (this.current_audio !== null)
+        this.current_audio.pause()
+
+      if (subtitle_index === undefined)
+        subtitle_index = null
+
       var video = this.video()
       var sources = video.querySelectorAll('source')
       var streams = []
@@ -599,28 +602,19 @@ var create_player = (function() {
       for (var i = 0, il = sources.length; i < il; i++) {
         source = sources[i]
         source_src = source.getAttribute("src")
-
-        var parts = source_src.split("?")
-        var query = parts.length === 2 ? parts[1]:null
-
-        var q_transcode = null
-        var q_subtitle_index = null
-        var q_start = null
-
-        if (query) {
-          for (var j = 0, jl = query.length; j < jl; j++) {
-            if (query[j].startsWith("transcode="))
-              q_transcode = query[j].split("=")[1]
-            else if (query[j].startsWith("si="))
-              q_subtitle_index = query[j].split("=")[1]
-          }
-        }
+        var params = get_params(source_src)
 
         if (
-          q_transcode !== "1" || ("" + subtitle_index) !== q_subtitle_index
+          params == null
+          || (
+            params.get("transcode") !== "1"
+            || subtitle_index !== params.get("si")
+          )
         ) {
-          new_src = parts[0] + "?transcode=1&start=" + Math.floor(this.current_time())
-            + (subtitle_index !== undefined ? ("&si=" + subtitle_index) : "")
+          new_src = source_src.split("?")[0]
+            + "?transcode=1&start="
+            + Math.floor(this.current_time())
+            + (subtitle_index !== null ? ("&si=" + subtitle_index) : "")
           streams.push(new_src)
         }
         video.removeChild(source)
@@ -692,5 +686,6 @@ var create_player = (function() {
 
   return function (streams_obj) {
     new Player(streams_obj)
+    console.error('player created')
   }
 })()

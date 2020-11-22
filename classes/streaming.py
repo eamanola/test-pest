@@ -47,7 +47,11 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
     print(subtitle_index)
     cmd = None
 
-    max_threads = int(len(os.sched_getaffinity(0)) / 2)
+    try:
+        max_threads = int(len(os.sched_getaffinity(0)) / 2)
+    except Exception:
+        max_threads = int(os.cpu_count() / 2)
+
     max_threads = max_threads if max_threads > 0 else 1
 
     if codec in ("vp8", "vp9"):
@@ -411,12 +415,12 @@ def get_streams(media, codec, width, height, start_time):
         audio.pop(0)
 
     for line in [line for line in stream_lines if "Subtitle" in line]:
-        requires_transcode = any([
+        is_bitmap = any([
             "Subtitle: dvd_subtitle" in line,
             "Subtitle: hdmv_pgs_subtitle" in line
         ])
-        if requires_transcode:
-            # continue
+        if is_bitmap:
+            continue
             pass
 
         is_default = "(default)" in line
@@ -430,7 +434,7 @@ def get_streams(media, codec, width, height, start_time):
 
         if is_ass:
             src = f"{src}.ass"
-        elif requires_transcode:
+        elif is_bitmap:
             src = f"{src}.tra"
         else:
             src = f"{src}.vtt"
@@ -440,7 +444,7 @@ def get_streams(media, codec, width, height, start_time):
             'lang': lang,
             'default': is_default,
             'forced': is_forced,
-            'requires_transcode': requires_transcode
+            'requires_transcode': is_bitmap
         }
 
         if stream_index:

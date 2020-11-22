@@ -1,3 +1,25 @@
+function get_params(url) {
+  var params = null
+
+  var parts = url.split("?")
+  if (parts.length == 2) {
+    var query = parts[1];
+    params = {
+      params: query.split("&"),
+      get: function(key) {
+        for (var i = 0, il = this.params.length; i < il; i++) {
+          if (this.params[i].startsWith(key + "="))
+            return this.params[i].split("=")[1]
+        }
+
+        return null
+      }
+    }
+  }
+
+  return params
+}
+
 function onAddMediaLibraryError(responseText) {
   var response = JSON.parse(responseText)
 
@@ -783,13 +805,9 @@ var base_url = ""
 if (window.location.port) {
   base_url = window.location.origin
 } else {
-  var GET_params_str = window.location.search.substr(1),
-    GET_params = GET_params_str.split("&")
-  for (var i = 0, il = GET_params.length; i < il; i++) {
-    if (GET_params[i].startsWith('api_url')) {
-      base_url = GET_params[i].split("=")[1]
-    }
-  }
+  var params = get_params(window.location.search)
+  var api_url = params ? params.get('api_url') : null
+  base_url = api_url ? api_url : base_url
 }
 
 function updatePage(state) {

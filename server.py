@@ -622,18 +622,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         try:
             if stream_cmd:
-                print('cmd:', ' '.join(stream_cmd))
-                proc = subprocess.Popen(stream_cmd, stdout=self.wfile)
-                proc.wait()
+                self.send_cmd_output(stream_cmd)
 
             elif send_file_path:
-                ret = self.send_chunks(send_file_path)
+                self.send_chunks(send_file_path)
 
             else:
                 self.wfile.write(reply)
 
         except (ConnectionResetError, IOError, Exception) as e:
             print('Send error:', e)
+
+    def send_cmd_output(self, cmd):
+        try:
+            print('cmd:', ' '.join(cmd))
+            proc = subprocess.Popen(cmd, stdout=self.wfile)
+            proc.wait()
+
+        finally:
+            proc.terminate()
+            time.sleep(1)
+            self.wfile.flush()
 
     def send_chunks(self, file_path):
         NEW_LINE = bytes("\r\n", "utf-8")
@@ -645,30 +654,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 if not chunk:
                     break
-                else:
-                    try:
-                        chunk_len = len(chunk)
+
+                try:
+                    chunk_len = len(chunk)
+                    post = (
+                        bytes(hex(chunk_len)[2:], "utf-8")
+                        + NEW_LINE
+                        + chunk
+                        + NEW_LINE
+                    )
+                    if chunk_len < CHUNK_SIZE:
                         post = (
-                            bytes(hex(chunk_len)[2:], "utf-8")
+                            post
+                            + bytes("0", "utf-8")
                             + NEW_LINE
-                            + chunk
                             + NEW_LINE
                         )
-                        if chunk_len < CHUNK_SIZE:
-                            post = (
-                                post
-                                + bytes("0", "utf-8")
-                                + NEW_LINE
-                                + NEW_LINE
-                            )
 
-                        self.wfile.write(post)
+                    self.wfile.write(post)
 
-                    except (ConnectionResetError, IOError, Exception) as e:
-                        print('send_file:', e)
-                        break
-                    finally:
-                        del chunk
+                finally:
+                    del chunk
 
 
 # https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
