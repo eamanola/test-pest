@@ -233,22 +233,25 @@ var create_player = (function() {
     create_play_position_total: function() {
       var play_position_total = document.createElement("div")
       play_position_total.className = "video-position-total"
-      if (this.start_time === 0) { //TODO: later
-        play_position_total.addEventListener("click", function(e) {
-          var video = this.video()
-          var duration = this.duration
 
-          var percent = (e.layerX / play_position_total.offsetWidth)
-          if (percent < 0.025) percent = 0
+      play_position_total.addEventListener("click", function(e) {
+        var video = this.video()
+        var duration = this.duration
 
-          var new_time = percent * duration
-          var buffered_end = video.buffered.end(0)
-          if (new_time > buffered_end)
-            new_time = buffered_end
+        var percent = (e.layerX / play_position_total.offsetWidth)
+        if (percent < 0.025) percent = 0
 
-          video.currentTime = new_time
-        }.bind(this), false)
-      }
+        var new_time = percent * duration - this.start_time
+
+        var buffered_end = video.buffered.end(0)
+        if (new_time > buffered_end)
+          new_time = buffered_end
+        else if (new_time < 0)
+          new_time = 0
+
+        video.currentTime = new_time
+      }.bind(this), false)
+
       play_position_total.appendChild(this.create_play_position_buffered())
       play_position_total.appendChild(this.create_play_position_played())
 
