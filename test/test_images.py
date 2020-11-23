@@ -1,5 +1,5 @@
 import unittest
-from classes.images import Images
+from api.images import Images
 
 
 class TestImages(unittest.TestCase):
@@ -11,8 +11,8 @@ class TestImages(unittest.TestCase):
     def test_thumbnails(self):
         import sys
         import os
-        from classes.media import Episode
-        from classes.container import MediaLibrary
+        from models.media import Episode
+        from models.containers import MediaLibrary
 
         media = Episode(
             "foobar",
@@ -136,8 +136,8 @@ class TestImages(unittest.TestCase):
         self.assertEqual(SYS_PATH_0, sys.path[0])
 
     def test_poster(self):
-        from classes.media import Movie
-        from classes.meta import Meta
+        from models.media import Movie
+        from models.meta import Meta
 
         media = Movie("foo", "bar", played=False)
         self.assertIsNone(Images.poster(media))

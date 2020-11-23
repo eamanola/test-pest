@@ -1,5 +1,5 @@
 import re
-from classes.db import DB
+from db.db import DB
 
 debug = True
 debug = False

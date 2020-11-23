@@ -1,6 +1,6 @@
 import hashlib
-from classes.container import Show, Season, Extra
-from classes.identifiable import Identifiable
+from models.containers import Show, Season, Extra
+from models.identifiable import Identifiable
 
 
 class Media(object):

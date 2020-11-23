@@ -1,5 +1,5 @@
 import unittest
-from classes.meta import Meta, Episode_Meta
+from models.meta import Meta, Episode_Meta
 
 
 class TestMeta(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestMeta(unittest.TestCase):
         self.assertEqual(meta.description(), "description")
 
     def test_get_episode(self):
-        from classes.media import Episode
+        from models.media import Episode
         episodes = [
             Episode_Meta(1, "title", "summary"),
             Episode_Meta(2, "title", "summary"),

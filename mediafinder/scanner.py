@@ -1,7 +1,7 @@
 import os
-from classes.file_name_parser import File_name_parser
-from classes.container import MediaLibrary, Show, Season, Extra
-from classes.media import Episode, Movie
+from mediafinder.file_name_parser import File_name_parser
+from models.containers import MediaLibrary, Show, Season, Extra
+from models.media import Episode, Movie
 
 
 class Scanner(object):

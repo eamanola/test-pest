@@ -1,5 +1,5 @@
 import unittest
-from classes.db import DB
+from db.db import DB
 
 
 class TestDB(unittest.TestCase):
@@ -72,7 +72,7 @@ class TestDB(unittest.TestCase):
         self.assertRaises(NotImplementedError, DB().version)
 
     def test_get_instance(self):
-        from classes.dbs.sqlite import Sqlite
+        from db.sqlite import Sqlite
         DB.db_type = DB.SQLITE
         self.assertIsInstance(DB.get_instance(), Sqlite)
 

@@ -88,7 +88,7 @@ class DB(object):
         instance = None
 
         if DB.db_type == DB.SQLITE:
-            from classes.dbs.sqlite import Sqlite
+            from db.sqlite import Sqlite
             instance = Sqlite()
 
         elif DB.db_type in (DB.MARIADB, DB.MYSQL):

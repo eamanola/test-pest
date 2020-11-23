@@ -1,4 +1,4 @@
-from classes.identifiable import Identifiable
+from models.identifiable import Identifiable
 import hashlib
 
 

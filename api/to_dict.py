@@ -1,7 +1,7 @@
-from classes.identifiable import Identifiable
-from classes.container import MediaLibrary, Show, Season, Extra
-from classes.media import Media, Movie, Episode
-from classes.images import Images
+from models.identifiable import Identifiable
+from models.containers import MediaLibrary, Show, Season, Extra
+from models.media import Media, Movie, Episode
+from api.images import Images
 
 
 class DictItem(object):
@@ -110,7 +110,7 @@ def _identifiable_dict(identifiable):
 
 
 def _anidb_id(identifiable):
-    from classes.ext_apis.anidb import AniDB
+    from metafinder.anidb import AniDB
 
     if AniDB.KEY in identifiable.ext_ids():
         anidb_id = identifiable.ext_ids()[AniDB.KEY]

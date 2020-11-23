@@ -1,7 +1,7 @@
 import unittest
 import test.testutils as testutils
-from classes.container import Container, MediaLibrary, Show, Season, Extra
-from classes.media import Media
+from models.containers import Container, MediaLibrary, Show, Season, Extra
+from models.media import Media
 
 
 class TestContainer(unittest.TestCase):

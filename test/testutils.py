@@ -1,6 +1,6 @@
-from classes.container import Container, MediaLibrary, Show, Season, Extra
-from classes.media import Episode, Movie
-from classes.identifiable import Identifiable
+from models.containers import Container, MediaLibrary, Show, Season, Extra
+from models.media import Episode, Movie
+from models.identifiable import Identifiable
 
 
 def compare_containers(con1, con2):

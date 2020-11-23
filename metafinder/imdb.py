@@ -1,6 +1,6 @@
 import re
-from classes.ext_api import Ext_api
-from classes.ext_title_to_id_file_parser import Ext_title_to_id_file_parser
+from metafinder.ext_api import Ext_api
+from metafinder.ext_title_to_id_file_parser import Ext_title_to_id_file_parser
 
 
 class IMDB(Ext_api):

@@ -1,5 +1,5 @@
 import unittest
-from classes.identifiable import Identifiable
+from models.identifiable import Identifiable
 
 
 class TestIdentifiable(unittest.TestCase):

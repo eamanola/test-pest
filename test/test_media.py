@@ -1,5 +1,5 @@
 import unittest
-from classes.media import Media, Episode, Movie
+from models.media import Media, Episode, Movie
 
 
 class TestMedia(unittest.TestCase):
@@ -45,7 +45,7 @@ class TestMedia(unittest.TestCase):
         self.assertIsInstance(episode, Media)
 
     def test_episode_is_extra(self):
-        from classes.container import Container, Extra
+        from models.containers import Container, Extra
 
         episode = Episode("file_path", "episode_number", "played")
         self.assertFalse(episode.is_extra())
@@ -69,7 +69,7 @@ class TestMedia(unittest.TestCase):
         self.assertTrue(episode.is_extra())
 
     def test_episode_is_extra(self):
-        from classes.container import Extra
+        from models.containers import Extra
 
         episode = Episode("file_path", 1, "played")
         self.assertTrue(episode.title().startswith("Episode"))
@@ -94,7 +94,7 @@ class TestMedia(unittest.TestCase):
         self.assertTrue(episode.title().startswith("Extra"))
 
     def test_episode_thumbnail(self):
-        from classes.container import Extra, Season, Show, MediaLibrary
+        from models.containers import Extra, Season, Show, MediaLibrary
         import re
 
         mediaLibrary = MediaLibrary("path")
@@ -112,7 +112,7 @@ class TestMedia(unittest.TestCase):
         self.assertEqual(episode.thumbnail(), thumbnail)
 
     def test_movie(self):
-        from classes.identifiable import Identifiable
+        from models.identifiable import Identifiable
         movie = Movie("file_path", "title of movie", "played")
         self.assertIsInstance(movie, Media)
         self.assertIsInstance(movie, Identifiable)

@@ -1,9 +1,7 @@
 import sys
 import os
-from classes.file_name_parser import File_name_parser
-
+from mediafinder.file_name_parser import File_name_parser
 import unittest
-from classes.ext_title_to_id_file_parser import Ext_title_to_id_file_parser
 
 
 class TestFile_name_parser(unittest.TestCase):

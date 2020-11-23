@@ -1,11 +1,11 @@
 import re
 import sqlite3
 import unittest
-from classes.dbs.sqlite import Sqlite
-from classes.container import Container, MediaLibrary, Show, Season, Extra
-from classes.identifiable import Identifiable
-from classes.media import Episode, Movie
-from classes.meta import Meta, Episode_Meta
+from db.sqlite import Sqlite
+from models.containers import Container, MediaLibrary, Show, Season, Extra
+from models.identifiable import Identifiable
+from models.media import Episode, Movie
+from models.meta import Meta, Episode_Meta
 import test.testutils as testutils
 
 debug = True

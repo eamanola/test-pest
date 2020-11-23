@@ -1,5 +1,5 @@
 import unittest
-from classes.ext_api import Ext_api
+from metafinder.ext_api import Ext_api
 
 
 class TestExt_api(unittest.TestCase):

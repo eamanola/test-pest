@@ -2,9 +2,9 @@ import http.server
 import socketserver
 import subprocess
 import json
-import classes.api as api
-from classes.apis.to_dict import DictContainer, DictMedia
-from classes.db import DB
+import api.scripts as api
+from api.to_dict import DictContainer, DictMedia
+from db.db import DB
 import os
 import sys
 import time

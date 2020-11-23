@@ -1,9 +1,8 @@
-from classes.db import DB
-from classes.container import Extra, Season, Show, MediaLibrary
-from classes.media import Media, Movie, Episode
-from classes.identifiable import Identifiable
+from models.containers import Extra, Season, Show, MediaLibrary
+from models.media import Media, Movie, Episode
+from models.identifiable import Identifiable
 from classes.watchinglist import WatchingList
-from classes.ext_apis.anidb import AniDB
+from metafinder.anidb import AniDB
 
 
 def get_container(db, container_id):
@@ -100,7 +99,7 @@ def scan(
     update_identifiables=False,
     overwrite_media_states=False
 ):
-    from classes.scanner import Scanner
+    from mediafinder.scanner import Scanner
 
     scanned = None
 
@@ -156,7 +155,7 @@ def scan(
 
 
 def _identify(db, identifiable, media_type):
-    from classes.identifier import Identifier
+    from metafinder.identifier import Identifier
 
     anidb_id = Identifier(AniDB).guess_id(
         db,
@@ -421,13 +420,11 @@ def add_media_library(db, media_library_path):
                 _identify(db, test_movie, None)
                 print('exists')
             except sqlite3.OperationalError:
-                print('generateext_title_to_id table')
-                if (os.system(
-                    'python3 generate_ext_title_to_id_dbs.py tester.db'
-                ) != 0):
-                    raise Exception("couldnt create identify db")
-                else:
-                    print('generated')
+                import metafinder.generate_ext_title_to_id_dbs
+                metafinder.generate_ext_title_to_id_dbs.generate_table(
+                    db, AniDB
+                )
+                print('generated')
 
             updated_containers = []
             for c in media_library.containers:

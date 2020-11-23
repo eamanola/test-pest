@@ -1,12 +1,12 @@
 import unittest
-from classes.identifier import Identifier
+from metafinder.identifier import Identifier
 
 
 class TestIdentifier(unittest.TestCase):
 
     def test_search_db(self):
-        from classes.dbs.sqlite import Sqlite
-        from classes.ext_api import Ext_api
+        from db.sqlite import Sqlite
+        from metafinder.ext_api import Ext_api
         db = Sqlite()
         db.connect(database=":memory:")
 

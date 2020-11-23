@@ -1,5 +1,5 @@
 import unittest
-from classes.scanner import Scanner
+from mediafinder.scanner import Scanner
 
 
 def test_file_paths():
@@ -69,7 +69,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_filter_types(self):
-        from classes.file_name_parser import File_name_parser
+        from mediafinder.file_name_parser import File_name_parser
 
         base_path, file_paths = test_file_paths()
 
@@ -82,7 +82,7 @@ class TestScanner(unittest.TestCase):
             )
 
     def test_filter_media_library(self):
-        from classes.container import MediaLibrary
+        from models.containers import MediaLibrary
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)
@@ -95,7 +95,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_filter_show(self):
-        from classes.container import Show
+        from models.containers import Show
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)
@@ -112,7 +112,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_filter_season(self):
-        from classes.container import Season
+        from models.containers import Season
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)
@@ -129,7 +129,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_filter_extra(self):
-        from classes.container import Extra
+        from models.containers import Extra
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)
@@ -146,7 +146,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_scan_media_library(self):
-        from classes.container import MediaLibrary
+        from models.containers import MediaLibrary
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)
@@ -158,7 +158,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_scan_show(self):
-        from classes.container import Show
+        from models.containers import Show
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)
@@ -170,7 +170,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_scan_season(self):
-        from classes.container import Season
+        from models.containers import Season
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)
@@ -182,7 +182,7 @@ class TestScanner(unittest.TestCase):
         remove_test_files(self, base_path, file_paths)
 
     def test_scan_extra(self):
-        from classes.container import Extra
+        from models.containers import Extra
 
         base_path, file_paths = test_file_paths()
         create_test_files(self, file_paths)

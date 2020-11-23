@@ -1,7 +1,7 @@
 import re
-from classes.ext_api import Ext_api
-from classes.ext_title_to_id_file_parser import Ext_title_to_id_file_parser
-from classes.ext_meta_getter import Ext_Meta_Getter
+from metafinder.ext_api import Ext_api
+from metafinder.ext_title_to_id_file_parser import Ext_title_to_id_file_parser
+from metafinder.ext_meta_getter import Ext_Meta_Getter
 
 
 class AniDB(Ext_api):
@@ -92,8 +92,8 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
     def parse(data):
         import gzip
         import xml.etree.ElementTree
-        from classes.meta import Meta, Episode_Meta
-        from classes.images import Images
+        from models.meta import Meta, Episode_Meta
+        from api.images import Images
 
         uncompressed = gzip.decompress(data)
         root = xml.etree.ElementTree.fromstring(uncompressed)

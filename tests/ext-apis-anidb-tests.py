@@ -1,4 +1,4 @@
-from classes.ext_apis.anidb import Anidb_title_to_id_file_parser
+from metafinder.anidb import Anidb_title_to_id_file_parser
 
 debug = True
 debug = False

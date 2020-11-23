@@ -1,4 +1,4 @@
-from classes.ext_apis.imdb import Imdb_title_to_id_file_parser
+from metafinder.imdb import Imdb_title_to_id_file_parser
 
 debug = True
 debug = False

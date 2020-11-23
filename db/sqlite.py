@@ -1,9 +1,9 @@
 import sqlite3
-from classes.db import DB
-from classes.container import Container, MediaLibrary, Show, Season, Extra
-from classes.media import Media, Episode, Movie
-from classes.identifiable import Identifiable
-from classes.meta import Meta, Episode_Meta
+from db.db import DB
+from models.containers import Container, MediaLibrary, Show, Season, Extra
+from models.media import Media, Episode, Movie
+from models.identifiable import Identifiable
+from models.meta import Meta, Episode_Meta
 
 
 class Sqlite(DB):

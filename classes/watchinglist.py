@@ -1,6 +1,6 @@
-from classes.container import MediaLibrary, Show, Season, Extra
-from classes.media import Episode
-from classes.db import DB
+from models.containers import MediaLibrary, Show, Season, Extra
+from models.media import Episode
+from db.db import DB
 
 
 class WatchingList(object):
