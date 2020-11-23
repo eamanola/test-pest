@@ -8,7 +8,23 @@ import tempfile
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
 TMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")
-FFMPEG_STREAM = False
+FFMPEG_STREAM = True
+
+if FFMPEG_STREAM:
+    def get_ip():
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            # doesn't even have to be reachable
+            s.connect(('10.255.255.255', 1))
+            IP = s.getsockname()[0]
+        except Exception:
+            IP = '127.0.0.1'
+        finally:
+            s.close()
+        return IP
+    FFMPEG_HOST = get_ip()
+    FFMPEG_PORT = "8099"
 
 
 def _get_stream_info(file_path):
@@ -57,7 +73,8 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
     if codec in ("vp8", "vp9"):
         cmd = [
             'ffmpeg', '-y', '-hide_banner',
-            '-loglevel', 'warning', '-stats',
+            '-loglevel', 'error',
+            # '-stats',
             '-ss', str(start_time),
             '-i', file_path,
             '-r', '30', '-g', '90',
@@ -212,7 +229,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
                 '-headers',
                 'Cache-Control: private, must-revalidate, max-age=0',
                 '-reconnect_streamed', '1',
-                f'http://192.168.1.119:8099/video.webm'
+                f'http://{FFMPEG_HOST}:{FFMPEG_PORT}/video.webm'
             ]
 
         return cmd
@@ -377,8 +394,9 @@ def get_streams(media, codec, width, height, start_time):
     media_id = media.id()
 
     if FFMPEG_STREAM:
-        streams = ["http://192.168.1.119:8099/video.webm"]
-        get_video_stream(media, codec, width, height, start_time, None)
+        streams = [f"http://{FFMPEG_HOST}:{FFMPEG_PORT}/video.webm"]
+        cmd = get_video_stream(media, codec, width, height, start_time, None)
+        subprocess.Popen(cmd)
     else:
         streams = [
             f'/video/{codec}/{width}/{height}/{media_id}?start={start_time}'
