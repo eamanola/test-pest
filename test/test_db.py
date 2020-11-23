@@ -1,5 +1,5 @@
 import unittest
-from db.db import DB
+from db.db import DB, get_db
 
 
 class TestDB(unittest.TestCase):
@@ -8,7 +8,7 @@ class TestDB(unittest.TestCase):
         self.assertEqual(DB.SQLITE, "sqlite")
         self.assertEqual(DB.MARIADB, "mariadb")
         self.assertEqual(DB.MYSQL, "mysql")
-        self.assertEqual(DB.db_type, DB.SQLITE)
+        self.assertEqual(DB.USE_DB, DB.SQLITE)
         self.assertRaises(NotImplementedError, DB().connect)
         self.assertRaises(NotImplementedError, DB().close)
         self.assertRaises(
@@ -71,22 +71,23 @@ class TestDB(unittest.TestCase):
         self.assertRaises(NotImplementedError, DB().last_modified)
         self.assertRaises(NotImplementedError, DB().version)
 
-    def test_get_instance(self):
+    def test_get_db(self):
         from db.sqlite import Sqlite
-        DB.db_type = DB.SQLITE
-        self.assertIsInstance(DB.get_instance(), Sqlite)
 
-        DB.db_type = DB.MARIADB
-        self.assertRaises(NotImplementedError, DB.get_instance)
+        DB.USE_DB = DB.MARIADB
+        self.assertRaises(NotImplementedError, get_db)
 
-        DB.db_type = DB.MYSQL
-        self.assertRaises(NotImplementedError, DB.get_instance)
+        DB.USE_DB = DB.MYSQL
+        self.assertRaises(NotImplementedError, get_db)
 
-        DB.db_type = None
-        self.assertRaises(NotImplementedError, DB.get_instance)
+        DB.USE_DB = None
+        self.assertRaises(NotImplementedError, get_db)
 
-        DB.db_type = "foobar"
-        self.assertRaises(NotImplementedError, DB.get_instance)
+        DB.USE_DB = "foobar"
+        self.assertRaises(NotImplementedError, get_db)
+
+        DB.USE_DB = DB.SQLITE
+        self.assertIsInstance(get_db(), Sqlite)
 
 
 if __name__ == '__main__':

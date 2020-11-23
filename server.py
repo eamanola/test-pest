@@ -4,7 +4,7 @@ import subprocess
 import json
 import api.scripts as api
 from api.to_dict import DictContainer, DictMedia
-from db.db import DB
+from db.db import get_db
 import os
 import sys
 import time
@@ -75,7 +75,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 etag = sha256(_bytes).hexdigest()
             else:
-                etag = DB.get_instance().version()
+                etag = get_db().version()
 
             if f'"{etag}"' == self.headers['If-None-Match']:
                 response_code = 304
@@ -86,7 +86,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             if file_path is not None:
                 last_modified = int(os.path.getmtime(file_path))
             else:
-                last_modified = DB.get_instance().last_modified()
+                last_modified = get_db().last_modified()
 
             dt_last_modified = datetime.fromtimestamp(
                 last_modified, timezone.utc
@@ -110,7 +110,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         etag = None
         stream_cmd = None
 
-        db = DB.get_instance()
+        db = get_db()
         db.connect()
 
         if self.path in ("/", ""):

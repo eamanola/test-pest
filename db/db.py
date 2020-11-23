@@ -3,8 +3,7 @@ class DB(object):
     SQLITE = "sqlite"
     MARIADB = "mariadb"
     MYSQL = "mysql"
-
-    db_type = SQLITE
+    USE_DB = SQLITE
 
     def __init__(self):
         super(DB, self).__init__()
@@ -83,18 +82,18 @@ class DB(object):
     def version(self):
         raise NotImplementedError()
 
-    @staticmethod
-    def get_instance():
-        instance = None
 
-        if DB.db_type == DB.SQLITE:
-            from db.sqlite import Sqlite
-            instance = Sqlite()
+def get_db():
+    db = None
 
-        elif DB.db_type in (DB.MARIADB, DB.MYSQL):
-            raise NotImplementedError()
+    if DB.USE_DB == DB.SQLITE:
+        from db.sqlite import Sqlite
+        db = Sqlite()
 
-        else:
-            raise NotImplementedError()
+    elif DB.USE_DB in (DB.MARIADB, DB.MYSQL):
+        raise NotImplementedError()
 
-        return instance
+    else:
+        raise NotImplementedError()
+
+    return db
