@@ -1,4 +1,3 @@
-import http.server
 import socketserver
 import subprocess
 import json
@@ -62,7 +61,7 @@ def mime_type(file_name):
     return content_type
 
 
-class Handler(http.server.SimpleHTTPRequestHandler):
+class Handler(socketserver.StreamRequestHandler):
 
     def revalidate_client_cache(self, file_path=None):
         response_code = None
@@ -637,6 +636,10 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except (ConnectionResetError, IOError, Exception) as e:
             print('Send error:', e)
 
+        finally:
+            self.wfile.flush()
+            self.wfile.close()
+
     def send_cmd_output(self, cmd):
         try:
             print('cmd:', ' '.join(cmd))
@@ -646,7 +649,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         finally:
             proc.terminate()
             time.sleep(1)
-            self.wfile.flush()
 
     def send_chunks(self, file_path):
         NEW_LINE = bytes("\r\n", "utf-8")
@@ -679,6 +681,39 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
                 finally:
                     del chunk
+
+    def send_response(self, response_code):
+        self.header_str = f"{self.protocol_version} {str(response_code)}\r\n"
+
+    def send_header(self, key, value):
+        self.header_str = f"{self.header_str}{key}: {str(value)}\r\n"
+
+    def end_headers(self):
+        self.header_str = f"{self.header_str}\r\n"
+
+        for entry in self.header_str.split("\r\n"):
+            print(self.path, entry)
+            break
+
+        self.wfile.write(bytes(self.header_str, "utf8"))
+
+    def handle(self):
+        data = self.request.recv(1024).strip().decode("utf8").split("\r\n")
+
+        for entry in data:
+            print(entry)
+            break
+
+        self.path = data[0].split(" ")[1]
+
+        self.headers = {}
+        import re
+        re_header = re.compile("^([^:]+): (.*)")
+        for i in range(1, len(data)):
+            parts = re_header.search(data[i])
+            self.headers[parts.group(1).strip()] = parts.group(2).strip()
+
+        self.do_GET()
 
 
 hostName = CHOSTNAME
