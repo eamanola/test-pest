@@ -8,6 +8,7 @@ from db.db import get_db
 import os
 import sys
 import time
+from CONFIG import CHOSTNAME, CPORT, CTMP_DIR
 
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
@@ -380,6 +381,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/video/"):
+            print(self.path)
             import urllib.parse
             parsed = urllib.parse.urlparse(self.path)
 
@@ -414,7 +416,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 )
                 if stream:
                     response_code = 200
-                    cache_control = "private, must-revalidate, max-age=0"
+                    # "private, must-revalidate, max-age=0"
+                    cache_control = "private, max-age=604800"
                     if transcode:
                         content_type = mime_type(".webm")
                         stream_cmd = stream
@@ -449,7 +452,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 if cmd:
                     response_code = 200
                     content_type = mime_type(".opus")
-                    cache_control = "private, must-revalidate, max-age=0"
+                    # "private, must-revalidate, max-age=0"
+                    cache_control = "private, max-age=604800"
 
                     stream_cmd = cmd
                 else:
@@ -677,26 +681,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     del chunk
 
 
-# https://stackoverflow.com/questions/166506/finding-local-ip-addresses-using-pythons-stdlib
-def get_ip():
-    import socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        # doesn't even have to be reachable
-        s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
-
-
-hostName = get_ip()
-
-serverPort = 8086
-# serverPort = 8087
-
+hostName = CHOSTNAME
+serverPort = CPORT
 socketserver.ThreadingTCPServer.allow_reuse_address = True
 httpd = socketserver.ThreadingTCPServer((hostName, serverPort), Handler)
 
@@ -717,9 +703,8 @@ finally:
     httpd.server_close()
     print("Server stopped.")
 
-    from classes.streaming import TMP_DIR
     import shutil
-    if os.path.exists(TMP_DIR):
-        shutil.rmtree(TMP_DIR)
+    if os.path.exists(CTMP_DIR):
+        shutil.rmtree(CTMP_DIR)
 
 sys.exit(0)

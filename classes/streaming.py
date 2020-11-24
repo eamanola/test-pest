@@ -3,37 +3,26 @@ import os
 import subprocess
 import re
 import time
-import tempfile
+from CONFIG import (
+    CFFMPEG_STREAM, CFFMPEG_HOST, CFFMPEG_PORT, CFFMPEG_LEGLEVEL, CTMP_DIR
+)
 
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
-TMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")
-FFMPEG_STREAM = True
-
-if FFMPEG_STREAM:
-    def get_ip():
-        import socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            # doesn't even have to be reachable
-            s.connect(('10.255.255.255', 1))
-            IP = s.getsockname()[0]
-        except Exception:
-            IP = '127.0.0.1'
-        finally:
-            s.close()
-        return IP
-    FFMPEG_HOST = get_ip()
-    FFMPEG_PORT = "8099"
 
 
 def _get_stream_info(file_path):
     cmd = ('ffmpeg', '-hide_banner', '-i', file_path)
 
-    ffmpeg_info = subprocess.run(cmd, capture_output=True, text=True)
+    ffmpeg_info = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT
+    )
+    ffmpeg_info.wait()
 
     # ffmpeg requires an OUTPUT file use stderr
-    return ffmpeg_info.stderr.split("\n")
+    return ffmpeg_info.stdout.read().decode("utf8").split("\n")
 
 
 def _get_width_height(stream_lines, screen_w, screen_h):
@@ -60,7 +49,6 @@ def _get_width_height(stream_lines, screen_w, screen_h):
 
 
 def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
-    print(subtitle_index)
     cmd = None
 
     try:
@@ -73,7 +61,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
     if codec in ("vp8", "vp9"):
         cmd = [
             'ffmpeg', '-y', '-hide_banner',
-            '-loglevel', 'error',
+            '-loglevel', CFFMPEG_LEGLEVEL,
             # '-stats',
             '-ss', str(start_time),
             '-i', file_path,
@@ -220,7 +208,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
         else:
             cmd_test.terminate()
 
-        if FFMPEG_STREAM:
+        if CFFMPEG_STREAM:
             print('Direct stream')
 
             cmd = cmd[:-1] + [
@@ -229,7 +217,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
                 '-headers',
                 'Cache-Control: private, must-revalidate, max-age=0',
                 '-reconnect_streamed', '1',
-                f'http://{FFMPEG_HOST}:{FFMPEG_PORT}/video.webm'
+                f'http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm'
             ]
 
         return cmd
@@ -237,7 +225,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
 
 def _audio_stream(file_path, stream_index, start_time):
     cmd = (
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
         '-i', file_path, '-ss', str(start_time),
         '-map', f'0:{stream_index}',
         '-c:a', 'libopus', '-f', 'opus', 'pipe:1'
@@ -248,7 +236,7 @@ def _audio_stream(file_path, stream_index, start_time):
 
 def _subtitle(file_path, stream_index, dst_path):
     cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', 'warning',
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
         '-i', file_path
     ]
 
@@ -262,7 +250,7 @@ def _subtitle(file_path, stream_index, dst_path):
 
 def _dump_attachments(file_path, dst_dir):
     cmd = (
-        'ffmpeg', '-n', '-hide_banner', '-loglevel', 'warning',
+        'ffmpeg', '-n', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
         '-dump_attachment:t', '', '-i', file_path
     )
 
@@ -329,7 +317,7 @@ def get_subtitle(media, type, index):
         stream_index = None
 
     dst_path = os.path.join(
-        TMP_DIR,
+        CTMP_DIR,
         media.id(),
         "subtitle",
         f'{type}-{index}.{"ass" if is_ass else "vtt"}'
@@ -354,7 +342,7 @@ def get_subtitle(media, type, index):
 
 def get_font(media, font_name):
     dst_path = os.path.join(
-        TMP_DIR,
+        CTMP_DIR,
         media.id(),
         "fonts",
         font_name
@@ -393,9 +381,10 @@ def get_streams(media, codec, width, height, start_time):
 
     media_id = media.id()
 
-    if FFMPEG_STREAM:
-        streams = [f"http://{FFMPEG_HOST}:{FFMPEG_PORT}/video.webm"]
+    if CFFMPEG_STREAM:
+        streams = [f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm"]
         cmd = get_video_stream(media, codec, width, height, start_time, None)
+        print(' '.join(cmd))
         subprocess.Popen(cmd)
     else:
         streams = [

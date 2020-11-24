@@ -99,7 +99,7 @@ class File_name_parser(object):
     UNKNOWN_EPISODE = 0
     UNKNOWN_YEAR = None
     MEDIA_EXTENSIONS = ('.mkv', '.mp4', '.avi', '.m4v')
-    SUBTITLE_EXTENSIONS = ('.srt',)
+    SUBTITLE_EXTENSIONS = ('.srt', '.ass')
     SUBTITLE_LANGS = ('.en',)
     FILE_EXTENSIONS = MEDIA_EXTENSIONS + SUBTITLE_EXTENSIONS
 
