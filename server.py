@@ -366,7 +366,6 @@ class Handler(socketserver.StreamRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/video/"):
-            print(self.path)
             import urllib.parse
             parsed = urllib.parse.urlparse(self.path)
 
@@ -619,6 +618,7 @@ class Handler(socketserver.StreamRequestHandler):
             proc.wait()
 
         finally:
+            print('Close', self.path)
             proc.terminate()
             time.sleep(1)
 
@@ -636,17 +636,12 @@ class Handler(socketserver.StreamRequestHandler):
                 try:
                     chunk_len = len(chunk)
                     post = (
-                        bytes(hex(chunk_len)[2:], "utf-8")
-                        + NEW_LINE
-                        + chunk
-                        + NEW_LINE
+                        bytes(hex(chunk_len)[2:], "utf-8") + NEW_LINE
+                        + chunk + NEW_LINE
                     )
                     if chunk_len < CHUNK_SIZE:
                         post = (
-                            post
-                            + bytes("0", "utf-8")
-                            + NEW_LINE
-                            + NEW_LINE
+                            post + bytes("0", "utf-8") + NEW_LINE + NEW_LINE
                         )
 
                     self.wfile.write(post)
