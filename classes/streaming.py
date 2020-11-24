@@ -185,7 +185,11 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
     if cmd:
         print('Default Trancode:')
 
-        cmd_test = subprocess.Popen(cmd, stderr=subprocess.PIPE)
+        cmd_test = subprocess.Popen(
+            cmd,
+            stderr=subprocess.PIPE,
+            stdout=subprocess.DEVNULL
+        )
         time.sleep(0.5)
 
         if cmd_test.poll() is not None and cmd_test.returncode == 1:

@@ -22,8 +22,7 @@ CPORT = 8086
 
 CFFMPEG_STREAM = True
 CFFMPEG_LEGLEVEL = "error"
-if CFFMPEG_STREAM:
-    CFFMPEG_HOST = CHOSTNAME
-    CFFMPEG_PORT = 8099
+CFFMPEG_HOST = CHOSTNAME
+CFFMPEG_PORT = 8099
 
 CTMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")

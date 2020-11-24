@@ -694,6 +694,7 @@ class Handler(socketserver.StreamRequestHandler):
         for entry in self.header_str.split("\r\n"):
             print(self.path, entry)
             break
+        print("")
 
         self.wfile.write(bytes(self.header_str, "utf8"))
 
@@ -704,7 +705,13 @@ class Handler(socketserver.StreamRequestHandler):
             print(entry)
             break
 
-        self.path = data[0].split(" ")[1]
+        try:
+            self.path = data[0].split(" ")[1]
+        except Exception as e:
+            print('RECV', e)
+            for entry in data:
+                print(entry)
+            print("")
 
         self.headers = {}
         import re
