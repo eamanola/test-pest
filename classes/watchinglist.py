@@ -28,9 +28,7 @@ class WatchingList(object):
                     remove_shows.append(s.id())
 
                 new_show_ids.append(s.id())
-                print(s.title(), 'added to watchlist')
-            else:
-                print(s.title(), 'already in watchlist')
+                print(f'Watchlist: {s.title()} added')
 
         if len(remove_shows):
             db.remove_from_watchlist(remove_shows)
@@ -55,8 +53,8 @@ class WatchingList(object):
                 media = WatchingList.get_next_container(db, show)
 
             if media is None:
-                print('Nothing found for', show.title())
-                print('removing', show.title())
+                print('Watchlist: Nothing found for', show.title())
+                print('Watchlist: removing', show.title())
                 remove.append(show.id())
             else:
                 play_next.append(media)

@@ -183,8 +183,6 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
             cmd = [c for c in cmd if c != "-vf" and not c.startswith("scale")]
 
     if cmd:
-        print('Default Trancode:')
-
         cmd_test = subprocess.Popen(
             cmd,
             stderr=subprocess.PIPE,
@@ -193,7 +191,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
         time.sleep(0.5)
 
         if cmd_test.poll() is not None and cmd_test.returncode == 1:
-            print('Transcode fail')
+            print('Video test fail')
 
             stderr_str = cmd_test.stderr.read().decode("utf-8")
 
@@ -209,12 +207,12 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
                         cmd.insert(i + 1, "-af")
                         cmd.insert(i + 2, 'aformat=channel_layouts=5.1|stereo')
                         break
+            else:
+                print(stderr_str)
         else:
             cmd_test.terminate()
 
         if CFFMPEG_STREAM:
-            print('Direct stream')
-
             cmd = cmd[:-1] + [
                 '-content_type', 'video/webm',
                 '-listen', '1',
@@ -223,6 +221,8 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
                 '-reconnect_streamed', '1',
                 f'http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm'
             ]
+
+        print('Video:', ' '.join(cmd))
 
         return cmd
 
@@ -234,6 +234,8 @@ def _audio_stream(file_path, stream_index, start_time):
         '-map', f'0:{stream_index}',
         '-c:a', 'libopus', '-f', 'opus', 'pipe:1'
     )
+
+    print('Audio:', ' '.join(cmd))
 
     return cmd
 
@@ -249,6 +251,8 @@ def _subtitle(file_path, stream_index, dst_path):
 
     cmd.append(dst_path)
 
+    print('Subtitle:', ' '.join(cmd))
+
     return subprocess.call(cmd)
 
 
@@ -257,6 +261,8 @@ def _dump_attachments(file_path, dst_dir):
         'ffmpeg', '-n', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
         '-dump_attachment:t', '', '-i', file_path
     )
+
+    print('Attachment dump:', ' '.join(cmd))
 
     return subprocess.call(cmd, cwd=dst_dir)
 

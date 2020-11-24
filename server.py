@@ -103,12 +103,15 @@ class Handler(socketserver.StreamRequestHandler):
         return response_code
 
     def do_GET(self):
-        reply = None
-        send_file_path = None
+        response_code = None
+
         cache_control = None
         last_modified = None
         etag = None
-        stream_cmd = None
+
+        response_json = None
+        response_file_path = None
+        response_cmd = None
 
         db = get_db()
         db.connect()
@@ -138,14 +141,14 @@ class Handler(socketserver.StreamRequestHandler):
                 play_next = api.play_next_list(db)
 
                 response_code = 200
-                reply = {
+                cache_control = "private, must-revalidate, max-age=0"
+                etag = db.version()
+                # last_modified = db.last_modified()
+                response_json = {
                     'play_next_list':  [DictMedia.dict(m) for m in play_next],
                     'media_libraries':
                         [DictContainer.dict(ml) for ml in media_libraries]
                 }
-                cache_control = "private, must-revalidate, max-age=0"
-                # last_modified = db.last_modified()
-                etag = db.version()
 
         elif self.path.startswith("/c/"):
             response_code = self.revalidate_client_cache()
@@ -159,14 +162,12 @@ class Handler(socketserver.StreamRequestHandler):
 
                     if container:
                         response_code = 200
-                        reply = DictContainer.dict(container)
-
                         cache_control = "private, must-revalidate, max-age=0"
-                        # last_modified = db.last_modified()
                         etag = db.version()
+                        # last_modified = db.last_modified()
+                        response_json = DictContainer.dict(container)
                     else:
                         response_code = 404
-
                 else:
                     response_code = 400
 
@@ -182,14 +183,12 @@ class Handler(socketserver.StreamRequestHandler):
 
                     if media:
                         response_code = 200
-                        reply = DictMedia.dict(media)
-
                         cache_control = "private, must-revalidate, max-age=0"
-                        # last_modified = db.last_modified()
                         etag = db.version()
+                        # last_modified = db.last_modified()
+                        response_json = DictMedia.dict(media)
                     else:
                         response_code = 404
-
                 else:
                     response_code = 400
 
@@ -200,11 +199,10 @@ class Handler(socketserver.StreamRequestHandler):
                 play_next_list = api.play_next_list(db)
 
                 response_code = 200
-                reply = [DictMedia.dict(m) for m in play_next_list]
-
                 cache_control = "private, must-revalidate, max-age=0"
-                # last_modified = db.last_modified()
                 etag = db.version()
+                # last_modified = db.last_modified()
+                response_json = [DictMedia.dict(m) for m in play_next_list]
 
         elif self.path.startswith("/clearplaynextlist"):
             api.clear_play_next_list(db)
@@ -220,12 +218,11 @@ class Handler(socketserver.StreamRequestHandler):
 
                 if container_id:
                     response_code = 200
-                    reply = DictContainer.dict(
+                    response_json = DictContainer.dict(
                         api.get_container(db, container_id)
                     )
                 else:
                     response_code = 404
-
             else:
                 response_code = 400
 
@@ -250,11 +247,11 @@ class Handler(socketserver.StreamRequestHandler):
 
                 if found:
                     response_code = 200
-                    reply = {'identified': identified}
+                    response_json = {'identified': identified}
                     if identified:
-                        reply = {**reply, **item_dict}
+                        response_json = {**response_json, **item_dict}
                     else:
-                        reply = {**reply, 'data_id': item_id}
+                        response_json = {**response_json, 'data_id': item_id}
                 else:
                     response_code = 404
 
@@ -296,10 +293,9 @@ class Handler(socketserver.StreamRequestHandler):
 
                 if found:
                     response_code = 200
-                    reply = {**message, 'data_id': item_id}
+                    response_json = {**message, 'data_id': item_id}
                 else:
                     response_code = 404
-
             else:
                 response_code = 400
 
@@ -324,10 +320,9 @@ class Handler(socketserver.StreamRequestHandler):
 
                 if found:
                     response_code = 200
-                    reply = item_dict
+                    response_json = item_dict
                 else:
                     response_code = 404
-
             else:
                 response_code = 400
 
@@ -371,11 +366,10 @@ class Handler(socketserver.StreamRequestHandler):
                     start_time
                 )
                 if streams:
-                    reply = streams
+                    response_json = streams
                     response_code = 200
                 else:
                     response_code = 404
-
             else:
                 response_code = 400
 
@@ -419,10 +413,9 @@ class Handler(socketserver.StreamRequestHandler):
                     cache_control = "private, max-age=604800"
                     if transcode:
                         content_type = mime_type(".webm")
-                        stream_cmd = stream
+                        response_cmd = stream
                     else:
-                        content_type = mime_type(stream)
-                        send_file_path = stream
+                        response_file_path = stream
                 else:
                     response_code = 404
             else:
@@ -454,7 +447,7 @@ class Handler(socketserver.StreamRequestHandler):
                     # "private, must-revalidate, max-age=0"
                     cache_control = "private, max-age=604800"
 
-                    stream_cmd = cmd
+                    response_cmd = cmd
                 else:
                     response_code = 404
             else:
@@ -482,9 +475,8 @@ class Handler(socketserver.StreamRequestHandler):
                 )
                 if subtitle_path:
                     response_code = 200
-                    send_file_path = subtitle_path
-                    content_type = mime_type(subtitle_path)
                     cache_control = "private, max-age=604800"
+                    response_file_path = subtitle_path
                 else:
                     response_code = 404
             else:
@@ -500,9 +492,8 @@ class Handler(socketserver.StreamRequestHandler):
 
                 if font_path:
                     response_code = 200
-                    send_file_path = font_path
-                    content_type = mime_type(font_path)
                     cache_control = "private, max-age=604800"
+                    response_file_path = font_path
                 else:
                     response_code = 404
             else:
@@ -519,7 +510,6 @@ class Handler(socketserver.StreamRequestHandler):
             )
         ):
             response_code = 404
-            content_type = None
 
             path = [sys.path[0]] + self.path[1:].split("/")
 
@@ -527,11 +517,8 @@ class Handler(socketserver.StreamRequestHandler):
 
             if os.path.exists(file_path):
                 response_code = 200
-                send_file_path = file_path
-
-                content_type = mime_type(file_path)
-
                 cache_control = "private, max-age=604800"
+                response_file_path = file_path
 
         elif (
             self.path in (
@@ -565,17 +552,12 @@ class Handler(socketserver.StreamRequestHandler):
             if response_code is None:
                 if os.path.exists(file_path):
                     response_code = 200
-                    send_file_path = file_path
-
-                    content_type = mime_type(file_path)
-
                     cache_control = "private, must-revalidate, max-age=0"
-
-                    if content_type.startswith("image"):
+                    if self.path.startswith("/images/"):
                         cache_control = "private, max-age=604800"
-
                     last_modified = os.path.getmtime(file_path)
 
+                    response_file_path = file_path
                 else:
                     response_code = 404
         else:
@@ -584,37 +566,35 @@ class Handler(socketserver.StreamRequestHandler):
 
         db.close()
 
-        if not send_file_path and not stream_cmd:
-            if response_code in (200, 304) and reply is None:
-                reply = OK_REPLY
-            if response_code == 400:
-                reply = INVALID_REQUEST_REPLY
+        if response_code is None:
+            raise Exception("no response code for:", self.path)
+
+        if not response_cmd and not response_file_path and not response_json:
+            if response_code in (200, 304):
+                response_json = OK_REPLY
+            elif response_code == 400:
+                response_json = INVALID_REQUEST_REPLY
             elif response_code == 404:
-                reply = NOT_FOUND_REPLY
-
-            if isinstance(reply, (dict, list)):
-                reply = json.dumps(reply)
-                content_type = "text/json"
-
-            if isinstance(reply, str):
-                reply = bytes(reply, "utf-8")
-
-        if content_type is None:
-            cache_control = "no-store"
+                response_json = NOT_FOUND_REPLY
 
         self.protocol_version = 'HTTP/1.1'
 
         self.send_response(response_code)
 
+        if response_json is not None:
+            content_type = "text/json"
+        elif response_file_path is not None:
+            content_type = mime_type(response_file_path)
+
         self.send_header("Content-type", content_type)
+
         if cache_control is not None:
             self.send_header("Cache-Control", cache_control)
         if last_modified is not None:
-            # self.date_time_string
             self.send_header("Last-Modified", epoch_to_httptime(last_modified))
         if etag is not None:
             self.send_header("ETag", f'"{etag}"')
-        if send_file_path is not None:
+        if response_file_path is not None:
             self.send_header("Transfer-Encoding", "chunked")
 
         # should be null?
@@ -624,25 +604,20 @@ class Handler(socketserver.StreamRequestHandler):
         # print(self.headers)
 
         try:
-            if stream_cmd:
-                self.send_cmd_output(stream_cmd)
+            if response_cmd:
+                self.send_cmd_output(response_cmd)
 
-            elif send_file_path:
-                self.send_chunks(send_file_path)
+            elif response_file_path:
+                self.send_chunks(response_file_path)
 
-            else:
-                self.wfile.write(reply)
+            elif response_json is not None:
+                self.send_body(bytes(json.dumps(response_json), "utf-8"))
 
         except (ConnectionResetError, IOError, Exception) as e:
             print('Send error:', e)
 
-        finally:
-            self.wfile.flush()
-            self.wfile.close()
-
     def send_cmd_output(self, cmd):
         try:
-            print('cmd:', ' '.join(cmd))
             proc = subprocess.Popen(cmd, stdout=self.wfile)
             proc.wait()
 
@@ -682,6 +657,9 @@ class Handler(socketserver.StreamRequestHandler):
                 finally:
                     del chunk
 
+    def send_body(self, body):
+        self.wfile.write(body)
+
     def send_response(self, response_code):
         self.header_str = f"{self.protocol_version} {str(response_code)}\r\n"
 
@@ -697,31 +675,38 @@ class Handler(socketserver.StreamRequestHandler):
         print("")
 
         self.wfile.write(bytes(self.header_str, "utf8"))
+        self.wfile.flush()
 
     def handle(self):
-        data = self.request.recv(1024).strip().decode("utf8").split("\r\n")
+        data = self.request.recv(1024).strip().decode("utf8")
+
+        if data == "":
+            print('Nothing to do')
+            return
+
+        else:
+            data = data.split("\r\n")
 
         for entry in data:
             print(entry)
             break
 
-        try:
-            self.path = data[0].split(" ")[1]
-        except Exception as e:
-            print('RECV', e)
-            for entry in data:
-                print(entry)
-            print("")
+        self.path = data[0].split(" ")[1]
 
         self.headers = {}
         if len(data) > 1:
             import re
-            re_header = re.compile("^([^:]+): (.*)")
+            re_header = re.compile("^([^:]+): (.*)$")
             for i in range(1, len(data)):
                 parts = re_header.search(data[i])
                 self.headers[parts.group(1).strip()] = parts.group(2).strip()
 
-        self.do_GET()
+        try:
+            self.do_GET()
+
+        finally:
+            self.wfile.flush()
+            self.wfile.close()
 
 
 hostName = CHOSTNAME
