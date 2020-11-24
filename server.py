@@ -692,7 +692,7 @@ class Handler(socketserver.StreamRequestHandler):
         self.header_str = f"{self.header_str}\r\n"
 
         for entry in self.header_str.split("\r\n"):
-            print(self.path, entry)
+            print(entry, self.path)
             break
         print("")
 
@@ -714,11 +714,12 @@ class Handler(socketserver.StreamRequestHandler):
             print("")
 
         self.headers = {}
-        import re
-        re_header = re.compile("^([^:]+): (.*)")
-        for i in range(1, len(data)):
-            parts = re_header.search(data[i])
-            self.headers[parts.group(1).strip()] = parts.group(2).strip()
+        if len(data) > 1:
+            import re
+            re_header = re.compile("^([^:]+): (.*)")
+            for i in range(1, len(data)):
+                parts = re_header.search(data[i])
+                self.headers[parts.group(1).strip()] = parts.group(2).strip()
 
         self.do_GET()
 
