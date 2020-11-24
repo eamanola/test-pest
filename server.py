@@ -12,6 +12,8 @@ from CONFIG import CHOSTNAME, CPORT, CTMP_DIR
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
 INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
 OK_REPLY = {'code': 200, 'message': 'Ok'}
+MUST_REVALIDATE = "private, must-revalidate, max-age=0"
+CACHE_ONE_WEEK = f"private, max-age={7 * 24 * 60 * 60}"
 
 
 def epoch_to_httptime(secs):
@@ -105,9 +107,7 @@ class Handler(socketserver.StreamRequestHandler):
     def do_GET(self):
         response_code = None
 
-        cache_control = None
-        last_modified = None
-        etag = None
+        response_headers = {}
 
         response_json = None
         response_file_path = None
@@ -141,9 +141,7 @@ class Handler(socketserver.StreamRequestHandler):
                 play_next = api.play_next_list(db)
 
                 response_code = 200
-                cache_control = "private, must-revalidate, max-age=0"
-                etag = db.version()
-                # last_modified = db.last_modified()
+                response_headers["ETag"] = db.version()
                 response_json = {
                     'play_next_list':  [DictMedia.dict(m) for m in play_next],
                     'media_libraries':
@@ -162,9 +160,7 @@ class Handler(socketserver.StreamRequestHandler):
 
                     if container:
                         response_code = 200
-                        cache_control = "private, must-revalidate, max-age=0"
-                        etag = db.version()
-                        # last_modified = db.last_modified()
+                        response_headers["ETag"] = db.version()
                         response_json = DictContainer.dict(container)
                     else:
                         response_code = 404
@@ -183,9 +179,7 @@ class Handler(socketserver.StreamRequestHandler):
 
                     if media:
                         response_code = 200
-                        cache_control = "private, must-revalidate, max-age=0"
-                        etag = db.version()
-                        # last_modified = db.last_modified()
+                        response_headers["ETag"] = db.version()
                         response_json = DictMedia.dict(media)
                     else:
                         response_code = 404
@@ -199,9 +193,7 @@ class Handler(socketserver.StreamRequestHandler):
                 play_next_list = api.play_next_list(db)
 
                 response_code = 200
-                cache_control = "private, must-revalidate, max-age=0"
-                etag = db.version()
-                # last_modified = db.last_modified()
+                response_headers["ETag"] = db.version()
                 response_json = [DictMedia.dict(m) for m in play_next_list]
 
         elif self.path.startswith("/clearplaynextlist"):
@@ -366,8 +358,8 @@ class Handler(socketserver.StreamRequestHandler):
                     start_time
                 )
                 if streams:
-                    response_json = streams
                     response_code = 200
+                    response_json = streams
                 else:
                     response_code = 404
             else:
@@ -409,10 +401,9 @@ class Handler(socketserver.StreamRequestHandler):
                 )
                 if stream:
                     response_code = 200
-                    # "private, must-revalidate, max-age=0"
-                    cache_control = "private, max-age=604800"
+                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     if transcode:
-                        content_type = mime_type(".webm")
+                        response_headers["Content-type"] = mime_type(".webm")
                         response_cmd = stream
                     else:
                         response_file_path = stream
@@ -443,9 +434,8 @@ class Handler(socketserver.StreamRequestHandler):
                 )
                 if cmd:
                     response_code = 200
-                    content_type = mime_type(".opus")
-                    # "private, must-revalidate, max-age=0"
-                    cache_control = "private, max-age=604800"
+                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
+                    response_headers["Content-type"] = mime_type(".opus")
 
                     response_cmd = cmd
                 else:
@@ -475,7 +465,7 @@ class Handler(socketserver.StreamRequestHandler):
                 )
                 if subtitle_path:
                     response_code = 200
-                    cache_control = "private, max-age=604800"
+                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     response_file_path = subtitle_path
                 else:
                     response_code = 404
@@ -492,7 +482,7 @@ class Handler(socketserver.StreamRequestHandler):
 
                 if font_path:
                     response_code = 200
-                    cache_control = "private, max-age=604800"
+                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     response_file_path = font_path
                 else:
                     response_code = 404
@@ -517,7 +507,7 @@ class Handler(socketserver.StreamRequestHandler):
 
             if os.path.exists(file_path):
                 response_code = 200
-                cache_control = "private, max-age=604800"
+                response_headers["Cache-Control"] = CACHE_ONE_WEEK
                 response_file_path = file_path
 
         elif (
@@ -552,10 +542,12 @@ class Handler(socketserver.StreamRequestHandler):
             if response_code is None:
                 if os.path.exists(file_path):
                     response_code = 200
-                    cache_control = "private, must-revalidate, max-age=0"
                     if self.path.startswith("/images/"):
-                        cache_control = "private, max-age=604800"
-                    last_modified = os.path.getmtime(file_path)
+                        response_headers["Cache-Control"] = CACHE_ONE_WEEK
+                    else:
+                        response_headers["Last-Modified"] = epoch_to_httptime(
+                            os.path.getmtime(file_path)
+                        )
 
                     response_file_path = file_path
                 else:
@@ -577,33 +569,38 @@ class Handler(socketserver.StreamRequestHandler):
             elif response_code == 404:
                 response_json = NOT_FOUND_REPLY
 
-        self.protocol_version = 'HTTP/1.1'
+        if "Content-type" not in response_headers.keys():
+            if response_json is not None:
+                response_headers["Content-type"] = "text/json"
+            elif response_file_path is not None:
+                response_headers["Content-type"] = mime_type(
+                    response_file_path
+                )
 
-        self.send_response(response_code)
-
-        if response_json is not None:
-            content_type = "text/json"
-        elif response_file_path is not None:
-            content_type = mime_type(response_file_path)
-
-        self.send_header("Content-type", content_type)
-
-        if cache_control is not None:
-            self.send_header("Cache-Control", cache_control)
-        if last_modified is not None:
-            self.send_header("Last-Modified", epoch_to_httptime(last_modified))
-        if etag is not None:
-            self.send_header("ETag", f'"{etag}"')
         if response_file_path is not None:
-            self.send_header("Transfer-Encoding", "chunked")
+            response_headers["Transfer-Encoding"] = "chunked"
+
+        if "Cache-Control" not in response_headers.keys():
+            if (
+                "ETag" in response_headers.keys()
+                or "Last-Modified" in response_headers.keys()
+            ):
+                response_headers["Cache-Control"] = MUST_REVALIDATE
 
         # should be null?
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
+        response_headers["Access-Control-Allow-Origin"] = "*"
 
-        # print(self.headers)
+        self.protocol_version = 'HTTP/1.1'
 
         try:
+            self.send_response(response_code)
+
+            for key in response_headers.keys():
+                self.send_header(key, response_headers[key])
+            self.end_headers()
+
+            # print(self.headers)
+
             if response_cmd:
                 self.send_cmd_output(response_cmd)
 
