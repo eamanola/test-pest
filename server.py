@@ -576,7 +576,7 @@ class Handler(socketserver.StreamRequestHandler):
                     response_file_path
                 )
 
-        if response_file_path is not None:
+        if response_file_path is not None or response_cmd is not None:
             response_headers["Transfer-Encoding"] = "chunked"
 
         if "Cache-Control" not in response_headers.keys():
@@ -614,9 +614,44 @@ class Handler(socketserver.StreamRequestHandler):
 
     def send_cmd_output(self, cmd):
         try:
-            proc = subprocess.Popen(cmd, stdout=self.wfile)
-            proc.wait()
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
+            CHUNK_SIZE = 1024 * 1024 * 4
+            NEW_LINE = bytes("\r\n", "utf-8")
+            end_transmission = False
+
+            while proc.poll() is None or proc.stdout.peek(1):
+                chunk = proc.stdout.read(CHUNK_SIZE)
+                post = None
+                len_chunk = len(chunk)
+
+                try:
+                    if len_chunk < CHUNK_SIZE:
+                        if proc.poll() is None:
+                            try:
+                                proc.stdout.seek(-len_chunk)
+                            except Exception as e:
+                                print('end of file?', e)
+
+                            time.sleep(1)
+                            continue
+                        else:
+                            end_transmission = True
+
+                    post = (
+                        bytes(hex(len_chunk)[2:], "utf-8") + NEW_LINE
+                        + chunk + NEW_LINE
+                    )
+                    if end_transmission:
+                        post = (
+                            post + bytes("0", "utf-8") + NEW_LINE + NEW_LINE
+                        )
+
+                    self.wfile.write(post)
+
+                finally:
+                    del chunk
+                    del post
         finally:
             print('Close', self.path)
             proc.terminate()
@@ -647,6 +682,7 @@ class Handler(socketserver.StreamRequestHandler):
                     self.wfile.write(post)
 
                 finally:
+                    del post
                     del chunk
 
     def send_body(self, body):
