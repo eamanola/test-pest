@@ -614,6 +614,7 @@ var create_player = (function() {
       for (var i = 0, il = sources.length; i < il; i++) {
         video.removeChild(sources[i])
       }
+      video.removeAttribute("src")
       video.load()
 
       document.body.removeChild(this.wrapper)
