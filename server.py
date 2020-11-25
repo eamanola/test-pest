@@ -631,18 +631,9 @@ class Handler(socketserver.StreamRequestHandler):
 
                 try:
                     if len_chunk < chunk_size:
-                        if proc.poll() is None:
-                            try:
-                                proc.stdout.seek(-len_chunk)
-                                time.sleep(0.25)
-                                print('.', end="")
-                                continue
-                            except Exception as e:
-                                print('end of file?', e)
-                                end_transmission = True
+                        time.sleep(1)
 
-                        else:
-                            end_transmission = True
+                        end_transmission = proc.poll() is not None
 
                     post = (
                         bytes(hex(len_chunk)[2:], "utf-8") + NEW_LINE
