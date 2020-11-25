@@ -486,11 +486,15 @@ var create_player = (function() {
       } else {
         var video = this.video()
         var track = document.createElement('track')
+
         track.setAttribute('src', src)
         track.setAttribute("kind", "subtitles")
         if (this.start_time) {
           var offset = this.start_time
           track.addEventListener("load", function(e) {
+            // TODO: find a better way to clear activeCues list
+            var cue_cache = []
+
             var cues = e.target.track.cues
             var currentTime = video.currentTime
             var new_start_time = new_end_time = null
@@ -499,18 +503,27 @@ var create_player = (function() {
               new_start_time = cues[i].startTime - offset
               new_end_time = cues[i].endTime - offset
 
+              cues[i].startTime = new_start_time
+              cues[i].endTime = new_end_time
+
               if (
                 new_start_time < currentTime
                 || new_end_time < currentTime
               ) {
-                // TODO: find a better way to clear activeCues list
                 e.target.track.removeCue(cues[i])
+                cue_cache.push(cues[i])
                 i = i - 1
                 il = cues.length
-              } else {
-                cues[i].startTime = new_start_time
-                cues[i].endTime = new_end_time
               }
+            }
+
+            if (cue_cache.length) {
+              setTimeout((function(textTrack, cue_cache) {
+                return function() {
+                  for (var i = 0, il = cue_cache.length; i < il; i ++)
+                    textTrack.addCue(cue_cache[i])
+                }
+              })(e.target.track, cue_cache), 0)
             }
           }, false)
         }
