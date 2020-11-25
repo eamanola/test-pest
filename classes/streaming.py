@@ -240,20 +240,20 @@ def _audio_stream(file_path, stream_index, start_time):
     return cmd
 
 
-def _subtitle(file_path, stream_index, dst_path):
+def _subtitle(file_path, stream_index, format):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-i', file_path
+        '-i', file_path, '-f', format
     ]
 
     if stream_index is not None:
         cmd = cmd + ['-map', f'0:{stream_index}']
 
-    cmd.append(dst_path)
+    cmd.append('pipe:1')
 
     print('Subtitle:', ' '.join(cmd))
 
-    return subprocess.call(cmd)
+    return cmd
 
 
 def _dump_attachments(file_path, dst_dir):
@@ -295,7 +295,8 @@ def get_audio_stream(media, stream_index, start_time):
 
 
 def get_subtitle(media, type, index):
-    file_path = None
+    if type not in ("internal", "external"):
+        return None, None
 
     if type == "internal":
         file_path = os.path.join(media.parent().path(), media.file_path())
@@ -304,8 +305,8 @@ def get_subtitle(media, type, index):
             media.parent().path(), media.subtitles[int(index)]
         )
 
-    if file_path is None or not os.path.exists(file_path):
-        return None
+    if not os.path.exists(file_path):
+        return None, None
 
     stream_index = None
     is_ass = False
@@ -326,28 +327,16 @@ def get_subtitle(media, type, index):
         is_ass = file_path.endswith(".ass")
         stream_index = None
 
-    dst_path = os.path.join(
-        CTMP_DIR,
-        media.id(),
-        "subtitle",
-        f'{type}-{index}.{"ass" if is_ass else "vtt"}'
-    )
+    if is_ass:
+        mime = ".ass"
+        format = "ass"
+    else:
+        mime = ".vtt"
+        format = "webvtt"
 
-    if os.path.exists(dst_path):
-        return dst_path
+    ffmpeg_cmd = _subtitle(file_path, stream_index, format)
 
-    from pathlib import Path
-    Path(dst_path).parent.mkdir(parents=True, exist_ok=True)
-
-    exit_code = _subtitle(file_path, stream_index, dst_path)
-    if exit_code != 0:
-        if os.path.exists(dst_path):
-            os.remove(dst_path)
-
-    if os.path.exists(dst_path):
-        return dst_path
-
-    return None
+    return ffmpeg_cmd, mime
 
 
 def get_font(media, font_name):

@@ -361,15 +361,15 @@ def get_audio_stream(db, media_id, stream_index, start_time=0):
 
 
 def get_subtitle(db, media_id, type, stream_index):
-    subtitle = None
+    stream, mime = None, None
     media = db.get_media(media_id)
 
     if media:
         import classes.streaming as streaming
 
-        subtitle = streaming.get_subtitle(media, type, stream_index)
+        stream, mime = streaming.get_subtitle(media, type, stream_index)
 
-    return subtitle
+    return stream, mime
 
 
 def get_font(db, media_id, font_name):

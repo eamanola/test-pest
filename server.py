@@ -456,16 +456,18 @@ class Handler(socketserver.StreamRequestHandler):
                 and len(parts) == 4
                 and not is_bitmap
             ):
-                subtitle_path = api.get_subtitle(
+                cmd, mime = api.get_subtitle(
                     db,
                     media_id,
                     type,
                     stream_index
                 )
-                if subtitle_path:
+                if cmd:
                     response_code = 200
                     response_headers["Cache-Control"] = CACHE_ONE_WEEK
-                    response_file_path = subtitle_path
+                    response_headers["Content-type"] = mime_type(mime)
+
+                    response_cmd = cmd
                 else:
                     response_code = 404
             else:
@@ -598,8 +600,6 @@ class Handler(socketserver.StreamRequestHandler):
                 self.send_header(key, response_headers[key])
             self.end_headers()
 
-            # print(self.headers)
-
             if response_cmd:
                 self.send_cmd_output(response_cmd)
 
@@ -630,11 +630,12 @@ class Handler(socketserver.StreamRequestHandler):
                         if proc.poll() is None:
                             try:
                                 proc.stdout.seek(-len_chunk)
+                                time.sleep(1)
+                                continue
                             except Exception as e:
                                 print('end of file?', e)
+                                end_transmission = True
 
-                            time.sleep(1)
-                            continue
                         else:
                             end_transmission = True
 

@@ -484,6 +484,7 @@ var create_player = (function() {
           this.request_transcoding(stream_index)
         }
       } else {
+        var video = this.video()
         var track = document.createElement('track')
         track.setAttribute('src', src)
         track.setAttribute("kind", "subtitles")
@@ -491,14 +492,29 @@ var create_player = (function() {
           var offset = this.start_time
           track.addEventListener("load", function(e) {
             var cues = e.target.track.cues
+            var currentTime = video.currentTime
+            var new_start_time = new_end_time = null
+
             for (var i = 0, il = cues.length; i < il; i++) {
-              cues[i].startTime -= offset
-              cues[i].endTime -= offset
+              new_start_time = cues[i].startTime - offset
+              new_end_time = cues[i].endTime - offset
+
+              if (
+                new_start_time < currentTime
+                || new_end_time < currentTime
+              ) {
+                // TODO: find a better way to clear activeCues list
+                e.target.track.removeCue(cues[i])
+                i = i - 1
+                il = cues.length
+              } else {
+                cues[i].startTime = new_start_time
+                cues[i].endTime = new_end_time
+              }
             }
           }, false)
         }
 
-        var video = this.video()
         video.appendChild(track)
         video.textTracks[0].mode = "showing"
       }
