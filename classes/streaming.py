@@ -430,6 +430,7 @@ def get_streams(media, codec, width, height, start_time):
         lang = info.group(2) if info else None
 
         _audio = {
+            'id': stream_index,
             'src': f"/audio/{stream_index}/{media_id}?start={start_time}",
             'lang': lang,
             'is_forced': is_forced,

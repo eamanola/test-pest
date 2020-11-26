@@ -29,7 +29,9 @@ var create_player = (function() {
 
     if (streams_obj.audio.length > 0) {
       this.create_audio(streams_obj.audio)
-      controls.appendChild(this.create_audio_select(streams_obj.audio))
+      if (streams_obj.audio.length > 1) {
+        controls.appendChild(this.create_audio_select(streams_obj.audio))
+      }
       this.sync_audio()
     }
 
@@ -302,20 +304,16 @@ var create_player = (function() {
 
       for (var i = 0, il = audio_obj.length; i < il; i++) {
         audio_option = document.createElement('option')
-        audio_option.setAttribute("value", audio_obj[i].lang)
-        audio_option.innerHTML = audio_obj[i].lang
+        audio_option.setAttribute("value", audio_obj[i].id)
+        audio_option.innerHTML = (audio_obj[i].lang || "Unknown")
+          + (audio_obj[i].forced ? " (forced)" : "")
+          + (audio_obj[i].default ? " (default)" : "")
 
         if (audio_obj[i].default === true) {
           audio_option.setAttribute("selected", "selected")
-
-          this.set_audio(audio_obj[i].lang)
         }
 
         audio_select.appendChild(audio_option);
-      }
-
-      if (audio_obj.length === 1) {
-        audio_select.style.display = "none"
       }
 
       return audio_select
@@ -404,10 +402,15 @@ var create_player = (function() {
         audio = document.createElement('audio')
         // audio.setAttribute("type", "audio/ogg")
         audio.setAttribute("src", audio_obj[i].src)
-        audio.setAttribute("data-lang", audio_obj[i].lang)
+        audio.setAttribute("data-audio-id", audio_obj[i].id)
         // audio.setAttribute("controls", "1")
         audio.preload = "auto"
         audio.style.display = "none"
+
+        if (audio_obj[i].default === true) {
+          this.current_audio = audio
+        }
+
         this.wrapper.appendChild(audio);
       }
     },
@@ -521,7 +524,7 @@ var create_player = (function() {
         video.textTracks[0].mode = "showing"
       }
     },
-    set_audio: function(lang) {
+    set_audio: function(audio_id) {
       var current_audio = this.current_audio
       var video = this.video()
       var current_volume = 1
@@ -531,7 +534,7 @@ var create_player = (function() {
       }
 
       var audio_el = this.wrapper.querySelector(
-        'audio[data-lang="' + lang + '"]'
+        'audio[data-audio-id="' + audio_id + '"]'
       )
       audio_el.volume = current_volume
       if (!video.paused) {
