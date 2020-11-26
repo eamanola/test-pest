@@ -579,15 +579,15 @@ class Handler(socketserver.StreamRequestHandler):
                     response_file_path
                 )
 
-        if response_file_path is not None or response_cmd is not None:
-            response_headers["Transfer-Encoding"] = "chunked"
-
         if "Cache-Control" not in response_headers.keys():
             if (
                 "ETag" in response_headers.keys()
                 or "Last-Modified" in response_headers.keys()
             ):
                 response_headers["Cache-Control"] = MUST_REVALIDATE
+
+        if response_file_path is not None:
+            response_headers["Transfer-Encoding"] = "chunked"
 
         # should be null?
         response_headers["Access-Control-Allow-Origin"] = "*"
@@ -619,34 +619,19 @@ class Handler(socketserver.StreamRequestHandler):
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
             CHUNK_SIZE = 1024 * 8  # io.DEFAULT_BUFFER_SIZE
-            NEW_LINE = bytes("\r\n", "utf-8")
 
-            while proc.stdout.peek(1):
-                try:
-                    chunk = proc.stdout.read(CHUNK_SIZE)
-                    len_chunk = len(chunk)
-                    end_transmission = False
-                    post = None
+            chunk = proc.stdout.read(CHUNK_SIZE)
+            while chunk:
+                len_chunk = len(chunk)
+                if len_chunk < CHUNK_SIZE:
+                    print('sleep', self.path)
+                    time.sleep(1)
+                del len_chunk
 
-                    if len_chunk < CHUNK_SIZE:
-                        time.sleep(1)
+                self.wfile.write(chunk)
+                del chunk
 
-                        end_transmission = proc.poll() is not None
-
-                    post = (
-                        bytes(hex(len_chunk)[2:], "utf-8") + NEW_LINE
-                        + chunk + NEW_LINE
-                    )
-                    if end_transmission:
-                        post = (
-                            post + bytes("0", "utf-8") + NEW_LINE + NEW_LINE
-                        )
-
-                    self.wfile.write(post)
-
-                finally:
-                    del chunk
-                    del post
+                chunk = proc.stdout.read(CHUNK_SIZE)
 
         finally:
             proc.kill()

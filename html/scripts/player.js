@@ -65,6 +65,7 @@ var create_player = (function() {
     fullscreen_hide_ui_timeout: null,
     FULLSCREEN_HIDE_UI_TIMEOUT: 5 * 1000,
     start_time: 0,
+    _can_play: 0,
     create_wrapper: function() {
       var wrapper = document.createElement('div')
       wrapper.className = "video-wrapper"
@@ -137,21 +138,8 @@ var create_player = (function() {
         }
       }.bind(this), false)
 
-      video.addEventListener("canplay", function(e) {
-        this.BUFFER_TIME
-
-        setTimeout(function() {
-          this.set_state("playing")
-
-          this.video().play()
-
-          setTimeout(function() {
-            if (this.video().videoHeight === 0) {
-              this.show_chrome_transcode()
-            }
-          }.bind(this), 1000)
-        }.bind(this), this.BUFFER_TIME)
-      }.bind(this), false)
+      this._can_play ++;
+      video.addEventListener("canplay", this.on_can_play.bind(this), false)
 
       return video
     },
@@ -184,12 +172,14 @@ var create_player = (function() {
       )
 
       overlay.addEventListener("wheel", function(e) {
-        var el = this.current_audio || this.video()
-        var new_volume = el.volume - (e.deltaY / 3 * 0.05)
-        if (new_volume < 0) new_volume = 0
-        else if (new_volume > 1)  new_volume = 1
+        var current_audio = this.current_audio
+        if (current_audio) {
+          var new_volume = current_audio.volume - (e.deltaY / 3 * 0.05)
+          if (new_volume < 0) new_volume = 0
+          else if (new_volume > 1)  new_volume = 1
 
-        el.volume = new_volume
+          current_audio.volume = new_volume
+        }
       }.bind(this), false)
 
       return overlay
@@ -407,11 +397,14 @@ var create_player = (function() {
         audio.preload = "auto"
         audio.style.display = "none"
 
-        if (audio_obj[i].default === true) {
-          this.current_audio = audio
-        }
-
         this.wrapper.appendChild(audio);
+
+        if (audio_obj[i].default === true) {
+          this.set_audio(audio_obj[i].id)
+
+          this._can_play ++;
+          audio.addEventListener("canplay", this.on_can_play.bind(this), false)
+        }
       }
     },
 
@@ -723,6 +716,24 @@ var create_player = (function() {
             false
           )
         }
+      }
+    },
+
+    on_can_play: function() {
+      this._can_play --;
+
+      if (this._can_play <= 0) {
+        setTimeout(function() {
+          this.set_state("playing")
+
+          this.video().play().then(
+            function() {
+              if (this.video().videoHeight === 0) {
+                this.show_chrome_transcode()
+              }
+            }.bind(this)
+          )
+        }.bind(this), this.BUFFER_TIME)
       }
     }
   }

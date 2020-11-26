@@ -80,7 +80,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
         ]
 
         if not CFFMPEG_STREAM:
-            cmd = cmd + ['-bufsize', '4M']  # ?
+            cmd = cmd + ['-bufsize', '1M']
 
         if codec == "vp9":
             cmd = cmd + ['-c:v', 'vp9', '-row-mt', '1']
