@@ -59,7 +59,7 @@ var create_player = (function() {
     wrapper : null,
     current_audio: null,
     ass_renderer: null,
-    BUFFER_TIME: 1000 * 0,
+    BUFFER_TIME: 1000 * 2,
     fullscreen_hide_ui_timeout: null,
     FULLSCREEN_HIDE_UI_TIMEOUT: 5 * 1000,
     start_time: 0,

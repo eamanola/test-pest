@@ -61,12 +61,16 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
     if codec in ("vp8", "vp9"):
         cmd = [
             'ffmpeg', '-y', '-hide_banner',
-            '-loglevel', CFFMPEG_LEGLEVEL,
+            '-loglevel', CFFMPEG_LEGLEVEL
             # '-stats',
-            '-re',
+        ]
+
+        if not CFFMPEG_STREAM:
+            cmd = cmd + ['-re']
+
+        cmd = cmd + [
             '-ss', str(start_time),
             '-i', file_path,
-            '-bufsize', '4M',
             '-r', '30', '-g', '90',
             '-quality', 'realtime',
             '-qmin', '4', '-qmax', '48',
@@ -74,6 +78,9 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
             '-speed', '10',
             '-map', '0:a:0', '-sn', '-dn', '-map', '-0:t'
         ]
+
+        if not CFFMPEG_STREAM:
+            cmd = cmd + ['-bufsize', '4M']  # ?
 
         if codec == "vp9":
             cmd = cmd + ['-c:v', 'vp9', '-row-mt', '1']

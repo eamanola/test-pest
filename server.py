@@ -618,20 +618,17 @@ class Handler(socketserver.StreamRequestHandler):
             print('start', self.path)
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
-            INITIAL_BUFFER = 1024 * 1024 * 4
-            STREAM_BUFFER = 1024 * 8
+            CHUNK_SIZE = 1024 * 8  # io.DEFAULT_BUFFER_SIZE
             NEW_LINE = bytes("\r\n", "utf-8")
-
-            chunk_size = INITIAL_BUFFER
 
             while proc.stdout.peek(1):
                 try:
-                    chunk = proc.stdout.read(chunk_size)
+                    chunk = proc.stdout.read(CHUNK_SIZE)
                     len_chunk = len(chunk)
                     end_transmission = False
                     post = None
 
-                    if len_chunk < chunk_size:
+                    if len_chunk < CHUNK_SIZE:
                         time.sleep(1)
 
                         end_transmission = proc.poll() is not None
@@ -647,8 +644,6 @@ class Handler(socketserver.StreamRequestHandler):
 
                     self.wfile.write(post)
 
-                    if chunk_size != STREAM_BUFFER:
-                        chunk_size = STREAM_BUFFER
                 finally:
                     del chunk
                     del post
