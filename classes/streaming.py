@@ -74,9 +74,9 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
             '-r', '30', '-g', '90',
             '-quality', 'realtime',
             '-qmin', '4', '-qmax', '48',
-            '-c:a', 'libopus', '-f', 'webm',
+            '-f', 'webm',
             '-speed', '10',
-            '-map', '0:a:0', '-sn', '-dn', '-map', '-0:t'
+            '-an', '-sn', '-dn', '-map', '-0:t?'
         ]
 
         if not CFFMPEG_STREAM:
@@ -204,20 +204,8 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
 
             stderr_str = cmd_test.stderr.read().decode("utf-8")
 
-            # http://trac.ffmpeg.org/ticket/5718
-            if any((
-                "libopus" in line
-                and "Invalid channel layout 5.1(side)" in line
-            ) for line in stderr_str.split("\n")):
-                print('Mapping channels manually')
-
-                for i in range(len(cmd)):
-                    if cmd[i] == 'libopus':
-                        cmd.insert(i + 1, "-af")
-                        cmd.insert(i + 2, 'aformat=channel_layouts=5.1|stereo')
-                        break
-            else:
-                print(stderr_str)
+            # fix cmd
+            print(stderr_str)
         else:
             cmd_test.terminate()
 
@@ -237,12 +225,39 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
 
 
 def _audio_stream(file_path, stream_index, start_time):
-    cmd = (
+    cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
         '-i', file_path, '-ss', str(start_time),
         '-map', f'0:{stream_index}',
         '-c:a', 'libopus', '-f', 'opus', 'pipe:1'
+    ]
+
+    cmd_test = subprocess.Popen(
+        cmd,
+        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL
     )
+    time.sleep(0.5)
+
+    if cmd_test.poll() is not None and cmd_test.returncode == 1:
+        print('Audio test fail')
+
+        stderr_str = cmd_test.stderr.read().decode("utf-8")
+
+        # http://trac.ffmpeg.org/ticket/5718
+        if any((
+            "libopus" in line
+            and "Invalid channel layout 5.1(side)" in line
+        ) for line in stderr_str.split("\n")):
+            print('Mapping channels manually')
+
+            cmd.insert(-1, "-af")
+            cmd.insert(-1, 'aformat=channel_layouts=5.1|stereo')
+
+        else:
+            print(stderr_str)
+    else:
+        cmd_test.terminate()
 
     print('Audio:', ' '.join(cmd))
 
@@ -417,7 +432,8 @@ def get_streams(media, codec, width, height, start_time):
         _audio = {
             'src': f"/audio/{stream_index}/{media_id}?start={start_time}",
             'lang': lang,
-            'is_forced': is_forced
+            'is_forced': is_forced,
+            'default': is_default
         }
 
         if stream_index:
@@ -426,8 +442,8 @@ def get_streams(media, codec, width, height, start_time):
             else:
                 audio.append(_audio)
 
-    if len(audio):
-        audio.pop(0)
+    if len(audio) and audio[0]['default'] is not True:
+        audio[0]['default'] = True
 
     for line in [line for line in stream_lines if "Subtitle" in line]:
         is_bitmap = any([

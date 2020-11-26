@@ -106,6 +106,7 @@ var create_player = (function() {
       // v.muted = true
       video.autoplay = false
       video.preload = "auto"
+      video.muted = true
 
       video.addEventListener("error", console.error, false)
 
@@ -296,43 +297,25 @@ var create_player = (function() {
       var audio_select = document.createElement('select')
 
       audio_select.addEventListener("change", function() {
-        var current_audio = this.current_audio
-        var video = this.video()
-        var current_volume = null
-        if (current_audio !== null) {
-          current_audio.pause()
-          current_volume = current_audio.volume
-        }
-        else {
-          current_volume = video.volume
-        }
-        if (audio_select.value == "") {
-          video.muted = false
-          video.volume = current_volume
-          this.current_audio = null
-        } else {
-          var audio_el = this.wrapper.querySelector(
-            'audio[data-lang="' + audio_select.value + '"]'
-          )
-          video.muted = true
-          audio_el.volume = current_volume
-          if (!video.paused) {
-            audio_el.play()
-          }
-          this.current_audio = audio_el
-        }
+        this.set_audio(audio_select.value)
       }.bind(this), false)
-
-      var audio_option = document.createElement('option')
-      audio_option.innerHTML = "default"
-      audio_option.setAttribute("value", "")
-      audio_select.appendChild(audio_option)
 
       for (var i = 0, il = audio_obj.length; i < il; i++) {
         audio_option = document.createElement('option')
-        audio_option.innerHTML = audio_obj[i].lang
         audio_option.setAttribute("value", audio_obj[i].lang)
+        audio_option.innerHTML = audio_obj[i].lang
+
+        if (audio_obj[i].default === true) {
+          audio_option.setAttribute("selected", "selected")
+
+          this.set_audio(audio_obj[i].lang)
+        }
+
         audio_select.appendChild(audio_option);
+      }
+
+      if (audio_obj.length === 1) {
+        audio_select.style.display = "none"
       }
 
       return audio_select
@@ -537,6 +520,24 @@ var create_player = (function() {
         video.appendChild(track)
         video.textTracks[0].mode = "showing"
       }
+    },
+    set_audio: function(lang) {
+      var current_audio = this.current_audio
+      var video = this.video()
+      var current_volume = 1
+      if (current_audio !== null) {
+        current_audio.pause()
+        current_volume = current_audio.volume
+      }
+
+      var audio_el = this.wrapper.querySelector(
+        'audio[data-lang="' + lang + '"]'
+      )
+      audio_el.volume = current_volume
+      if (!video.paused) {
+        audio_el.play()
+      }
+      this.current_audio = audio_el
     },
     toggleFullscreen: function(e) {
       var fullscreen_button = this.wrapper.querySelector(".fullscreen-button")
