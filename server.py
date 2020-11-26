@@ -520,6 +520,7 @@ class Handler(socketserver.StreamRequestHandler):
                 "/scripts/player.js",
                 "/scripts/scripts.js",
                 "/styles/styles.css",
+                "/styles/fonts/FONTIN_SANS_0.OTF",
                 "/index.html"
             )
             or self.path in (
@@ -623,7 +624,7 @@ class Handler(socketserver.StreamRequestHandler):
 
             chunk_size = INITIAL_BUFFER
 
-            while True:
+            while proc.stdout.peek(1):
                 try:
                     chunk = proc.stdout.read(chunk_size)
                     len_chunk = len(chunk)
@@ -645,7 +646,6 @@ class Handler(socketserver.StreamRequestHandler):
                         )
 
                     self.wfile.write(post)
-                    self.wfile.flush()
 
                     if chunk_size != STREAM_BUFFER:
                         chunk_size = STREAM_BUFFER

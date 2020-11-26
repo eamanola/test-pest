@@ -339,6 +339,18 @@
   height: inherit;
 }
 
+@font-face {
+  font-family: Fontin Sans;
+  src: url(fonts/FONTIN_SANS_0.OTF) format("opentype");
+}
+
+::cue {
+  font-size: 3em;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000, 0px 1px 0 #000, 0px -1px 0 #000, -1px 0px 0 #000, 1px 0px 0 #000, 2px 2px 0 #000, -2px 2px 0 #000, 2px -2px 0 #000, -2px -2px 0 #000, 0px 2px 0 #000, 0px -2px 0 #000, -2px 0px 0 #000, 2px 0px 0 #000, 1px 2px 0 #000, -1px 2px 0 #000, 1px -2px 0 #000, -1px -2px 0 #000, 2px 1px 0 #000, -2px 1px 0 #000, 2px -1px 0 #000, -2px -1px 0 #000;
+  background-color: transparent;
+}
+
 @media screen and (max-width: 64em) {
   body {
     font-size: 1.6em;

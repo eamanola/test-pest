@@ -489,6 +489,12 @@ var create_player = (function() {
 
         track.setAttribute('src', src)
         track.setAttribute("kind", "subtitles")
+        track.addEventListener("load", function(e) {
+          var cues = e.target.track.cues
+          for (var i = 0, il = cues.length; i < il; i++) {
+            cues[i].line = 100 // bottom of screen, but not default -1
+          }
+        }, false)
         if (this.start_time) {
           var offset = this.start_time
           track.addEventListener("load", function(e) {
