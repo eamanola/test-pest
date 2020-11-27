@@ -372,20 +372,17 @@ class Handler(socketserver.StreamRequestHandler):
             parsed = urllib.parse.urlparse(self.path)
 
             parts = parsed.path[1:].split("/")
-            codec = parts[1]
-            width = int(parts[2])
-            height = int(parts[3])
-            media_id = parts[4]
+            width = int(parts[1])
+            height = int(parts[2])
+            media_id = parts[3]
 
             params = urllib.parse.parse_qs(parsed.query)
 
-            transcode = (
-                "transcode" in params.keys()
-                and params['transcode'][0] == '1'
-            ) or (
-                "User-Agent" in self.headers.keys()
-                and "Chrome/" in self.headers["User-Agent"]
-            )
+            if "transcode" in params.keys():
+                transcode = params['transcode'][0]
+            else:
+                transcode = None
+
             start_time = (
                 int(params['start'][0]) if "start" in params.keys() else 0
             )
@@ -393,11 +390,10 @@ class Handler(socketserver.StreamRequestHandler):
                 int(params['si'][0]) if "si" in params.keys() else None
             )
 
-            if (media_id and codec and width and height and len(parts) == 5):
+            if (media_id and width and height and len(parts) == 4):
                 stream, mime = api.get_video_stream(
                     db,
                     media_id,
-                    codec,
                     width,
                     height,
                     transcode,

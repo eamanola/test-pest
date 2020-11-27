@@ -643,12 +643,12 @@ var create_player = (function() {
         if (
           params == null
           || (
-            params.get("transcode") !== "1"
+            params.get("transcode") !== "vp9"
             || subtitle_index !== params.get("si")
           )
         ) {
           new_src = source_src.split("?")[0]
-            + "?transcode=1&start="
+            + "?transcode=vp9&start="
             + Math.floor(this.current_time())
             + (subtitle_index !== null ? ("&si=" + subtitle_index) : "")
           streams.push(new_src)

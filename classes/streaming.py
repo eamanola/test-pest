@@ -58,6 +58,9 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
 
     max_threads = max_threads if max_threads > 0 else 1
 
+    if codec is None:
+        print("Return copy")
+
     if codec in ("vp8", "vp9"):
         mime = ".webm"
         cmd = [
@@ -418,7 +421,7 @@ def get_streams(media, width, height, decoders, start_time):
         subprocess.Popen(cmd)
     else:
         streams = [
-            f'/video/{codec}/{width}/{height}/{media_id}?start={start_time}'
+            f'/video/{width}/{height}/{media_id}?start={start_time}&transcode={codec}'
         ]
 
     audio = []
