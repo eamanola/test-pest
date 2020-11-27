@@ -41,6 +41,8 @@ def mime_type(file_name):
         content_type = "video/x-matroska"
     elif file_name.endswith(".mp4"):
         content_type = "video/mp4"
+    elif file_name.endswith("h264"):
+        content_type = 'video/mp4; codecs="avc1.42E01E"'
     elif file_name.endswith(".opus"):
         content_type = "audio/opus"
     elif file_name.endswith(".gif"):
@@ -368,6 +370,17 @@ class Handler(socketserver.StreamRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/video/"):
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
+            print('video call')
             import urllib.parse
             parsed = urllib.parse.urlparse(self.path)
 
@@ -405,7 +418,11 @@ class Handler(socketserver.StreamRequestHandler):
                     response_headers["Cache-Control"] = CACHE_ONE_WEEK
 
                     response_headers["Content-type"] = mime_type(mime)
-                    response_cmd = stream
+
+                    if isinstance(stream, str):
+                        response_file_path = stream
+                    else:
+                        response_cmd = stream
                 else:
                     response_code = 404
             else:
@@ -727,8 +744,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 try:
     httpd.daemon_threads = True
     subprocess.Popen([
-        # 'firefox',
-        'chromium',
+        'firefox',
+        # 'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}'
     ])

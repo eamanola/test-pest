@@ -65,7 +65,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
         mime = ".webm"
         cmd = [
             'ffmpeg', '-y', '-hide_banner',
-            '-loglevel', CFFMPEG_LEGLEVEL, '-stats'
+            '-loglevel', CFFMPEG_LEGLEVEL  # , '-stats'
         ]
 
         if not CFFMPEG_STREAM:
@@ -227,6 +227,22 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
         return cmd, mime
 
 
+def _video_dump(file_path, start_time, dst_path):
+    cmd = (
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
+        '-ss', str(start_time), '-i', file_path,
+        '-an', '-sn', '-dn', '-map', '-0:t?', '-map', '0:v:0',
+        '-c', 'copy', dst_path
+    )
+
+    print('Dump video:', ' '.join(cmd))
+    proc = subprocess.Popen(cmd)
+    proc.wait()
+    print('Done')
+
+    return 0
+
+
 def _audio_stream(file_path, stream_index, start_time):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
@@ -297,16 +313,31 @@ def _dump_attachments(file_path, dst_dir):
 def get_video_stream(media, codec, width, height, start_time, subtitle_index):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
-        return None
+        return None, None
 
     stream_lines = [line for line in _get_stream_info(file_path) if (
         "Stream" in line and "Video" in line
     )]
     w, h = _get_width_height(stream_lines, width, height)
 
-    ffmpeg_cmd, mime = _video_stream(
-        file_path, codec, w, h, start_time, subtitle_index
-    )
+    if not codec:
+        is_h264 = "Video: h264" in stream_lines[0]
+        if is_h264:
+            mime = ".mp4"
+
+        if not mime:
+            return None, None
+
+        dst_path = os.path.join(CTMP_DIR, f'{media.id()}-video{mime}')
+        os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+
+        _video_dump(file_path, start_time, dst_path)
+
+        ffmpeg_cmd, mime = dst_path, mime
+    else:
+        ffmpeg_cmd, mime = _video_stream(
+            file_path, codec, w, h, start_time, subtitle_index
+        )
 
     return ffmpeg_cmd, mime
 
@@ -405,30 +436,42 @@ def get_streams(media, width, height, decoders, start_time):
     if not os.path.exists(file_path):
         return None
 
-    media_id = media.id()
-
-    if "vp9" in decoders:
-        codec = "vp9"
-    else:
-        codec = "vp8"
-
-    if CFFMPEG_STREAM:
-        streams = [f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm"]
-        cmd, mime = get_video_stream(
-            media, codec, width, height, start_time, None
-        )
-        print(' '.join(cmd))
-        subprocess.Popen(cmd)
-    else:
-        streams = [
-            f'/video/{width}/{height}/{media_id}?start={start_time}&transcode={codec}'
-        ]
-
+    streams = []
     audio = []
     subtitles = []
     fonts = []
 
+    media_id = media.id()
+
     stream_lines = _get_stream_info(file_path)
+
+    for line in [line for line in stream_lines if "Video" in line]:
+        print(line)
+        is_h264 = "Video: h264" in line
+        break
+
+    if is_h264 and "h264" in decoders:
+        transcode = None
+    elif "vp9" in decoders:
+        transcode = "vp9"
+    else:
+        transcode = "vp8"
+
+    if CFFMPEG_STREAM:
+        streams.append(f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm")
+        cmd, mime = get_video_stream(
+            media, "vp9", width, height, start_time, None
+        )
+        print(' '.join(cmd))
+        subprocess.Popen(cmd)
+    else:
+        video_url = f'/video/{width}/{height}/{media_id}?start={start_time}'
+
+        if transcode:
+            video_url = f'{video_url}&transcode={transcode}'
+
+        streams.append(video_url)
+
     re_sub_audio = re.compile(R_SUB_AUDIO)
 
     for line in [line for line in stream_lines if "Audio" in line]:

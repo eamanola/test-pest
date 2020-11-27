@@ -65,7 +65,7 @@ var create_player = (function() {
     fullscreen_hide_ui_timeout: null,
     FULLSCREEN_HIDE_UI_TIMEOUT: 5 * 1000,
     start_time: 0,
-    _can_play: 0,
+    _can_play: [],
     create_wrapper: function() {
       var wrapper = document.createElement('div')
       wrapper.className = "video-wrapper"
@@ -138,7 +138,7 @@ var create_player = (function() {
         }
       }.bind(this), false)
 
-      this._can_play ++;
+      this._can_play.push(video)
       video.addEventListener("canplay", this.on_can_play.bind(this), false)
 
       return video
@@ -402,8 +402,13 @@ var create_player = (function() {
         if (audio_obj[i].default === true) {
           this.set_audio(audio_obj[i].id)
 
-          this._can_play ++;
-          audio.addEventListener("canplay", this.on_can_play.bind(this), false)
+          // HACK: Force <Audio> to buffer from 0s
+          // Otherwise buffer starts at random time
+          function on_loadedmetadata(e) {
+            this.load();
+            this.removeEventListener("loadedmetadata", on_loadedmetadata, false)
+          }
+          audio.addEventListener("loadedmetadata", on_loadedmetadata, false)
         }
       }
     },
@@ -428,6 +433,9 @@ var create_player = (function() {
         if (current_audio != null) {
           if (Math.abs(current_audio.currentTime - video.currentTime) > 0.5)
             current_audio.currentTime = video.currentTime
+          if(!video.paused && current_audio.paused) {
+            current_audio.play()
+          }
         }
       }.bind(this), false)
 
@@ -719,10 +727,13 @@ var create_player = (function() {
       }
     },
 
-    on_can_play: function() {
-      this._can_play --;
+    on_can_play: function(e) {
+      var index = this._can_play.indexOf(e.target);
+      if (index > -1) {
+        this._can_play.splice(index, 1);
+      }
 
-      if (this._can_play == 0) {
+      if (this._can_play.length == 0) {
         setTimeout(function() {
           this.video().play().then(
             function() {
