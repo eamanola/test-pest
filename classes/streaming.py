@@ -49,7 +49,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
 
 
 def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
-    cmd = None
+    cmd, mime = None, None
 
     try:
         max_threads = int(len(os.sched_getaffinity(0)) / 2)
@@ -59,10 +59,10 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
     max_threads = max_threads if max_threads > 0 else 1
 
     if codec in ("vp8", "vp9"):
+        mime = ".webm"
         cmd = [
             'ffmpeg', '-y', '-hide_banner',
-            '-loglevel', CFFMPEG_LEGLEVEL
-            # '-stats',
+            '-loglevel', CFFMPEG_LEGLEVEL, '-stats'
         ]
 
         if not CFFMPEG_STREAM:
@@ -221,7 +221,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
 
         print('Video:', ' '.join(cmd))
 
-        return cmd
+        return cmd, mime
 
 
 def _audio_stream(file_path, stream_index, start_time):
@@ -301,11 +301,11 @@ def get_video_stream(media, codec, width, height, start_time, subtitle_index):
     )]
     w, h = _get_width_height(stream_lines, width, height)
 
-    ffmpeg_cmd = _video_stream(
+    ffmpeg_cmd, mime = _video_stream(
         file_path, codec, w, h, start_time, subtitle_index
     )
 
-    return ffmpeg_cmd
+    return ffmpeg_cmd, mime
 
 
 def get_audio_stream(media, stream_index, start_time):
@@ -406,7 +406,9 @@ def get_streams(media, codec, width, height, start_time):
 
     if CFFMPEG_STREAM:
         streams = [f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm"]
-        cmd = get_video_stream(media, codec, width, height, start_time, None)
+        cmd, mime = get_video_stream(
+            media, codec, width, height, start_time, None
+        )
         print(' '.join(cmd))
         subprocess.Popen(cmd)
     else:

@@ -392,7 +392,7 @@ class Handler(socketserver.StreamRequestHandler):
             )
 
             if (media_id and codec and width and height and len(parts) == 5):
-                stream = api.get_video_stream(
+                stream, mime = api.get_video_stream(
                     db,
                     media_id,
                     codec,
@@ -405,11 +405,9 @@ class Handler(socketserver.StreamRequestHandler):
                 if stream:
                     response_code = 200
                     response_headers["Cache-Control"] = CACHE_ONE_WEEK
-                    if transcode:
-                        response_headers["Content-type"] = mime_type(".webm")
-                        response_cmd = stream
-                    else:
-                        response_file_path = stream
+
+                    response_headers["Content-type"] = mime_type(mime)
+                    response_cmd = stream
                 else:
                     response_code = 404
             else:
