@@ -303,7 +303,7 @@ def clear_play_next_list(db):
     WatchingList.remove_all(db)
 
 
-def get_streams(db, media_id, codec, width, height, start_time=0):
+def get_streams(db, media_id, width, height, decoders, start_time=0):
     streams = None
     media = db.get_media(media_id)
 
@@ -311,7 +311,7 @@ def get_streams(db, media_id, codec, width, height, start_time=0):
         import classes.streaming as streaming
 
         streams = streaming.get_streams(
-            media, codec, width, height, start_time
+            media, width, height, decoders, start_time
         )
 
         if streams:

@@ -397,12 +397,17 @@ def get_font(media, font_name):
     return None
 
 
-def get_streams(media, codec, width, height, start_time):
+def get_streams(media, width, height, decoders, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
 
     media_id = media.id()
+
+    if "vp9" in decoders:
+        codec = "vp9"
+    else:
+        codec = "vp8"
 
     if CFFMPEG_STREAM:
         streams = [f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm"]

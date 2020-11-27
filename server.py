@@ -338,23 +338,25 @@ class Handler(socketserver.StreamRequestHandler):
             parsed = urllib.parse.urlparse(self.path)
 
             parts = parsed.path[1:].split("/")
-            codec = parts[1]
-            width = int(parts[2])
-            height = int(parts[3])
-            media_id = parts[4]
+            width = int(parts[1])
+            height = int(parts[2])
+            media_id = parts[3]
 
             params = urllib.parse.parse_qs(parsed.query)
+            decoders = (
+                params['decoders'] if "decoders" in params.keys() else []
+            )
             start_time = (
                 int(params['start'][0]) if "start" in params.keys() else 0
             )
 
-            if (media_id and codec and width and height and len(parts) == 5):
+            if (media_id and width and height and len(parts) == 4):
                 streams = api.get_streams(
                     db,
                     media_id,
-                    codec,
                     width,
                     height,
+                    decoders,
                     start_time
                 )
                 if streams:

@@ -337,10 +337,11 @@ function onPlaySingleClick(e) {
       ajax(
         [base_url,
         'streams',
-        stream_codec,
         screen.width,
         screen.height,
-        data_id].join('/') + "?start=" + start_time, onStreamsReceived)
+        data_id].join('/') + "?start=" + start_time
+        + "&decoders=" + decoders.join("&decoders="),
+        onStreamsReceived)
     }
   }
 
@@ -867,7 +868,7 @@ window.addEventListener("popstate", function(e) {
   updatePage(e.state)
 }, false);
 
-var stream_codec = null;
+var decoders = [];
 (function inits(){
   var play_button = document.getElementById('play-button')
   play_button.addEventListener('click', onPlayClick, false)
@@ -904,7 +905,6 @@ var stream_codec = null;
   home()
   create_add_to_play_list()
 
-  var decoders = []
   if (MediaSource.isTypeSupported('video/webm; codecs="vp9"'))
     decoders.push("vp9")
 
@@ -926,17 +926,7 @@ var stream_codec = null;
 
   console.log(decoders)
 
-  if (window.MediaSource && MediaSource.isTypeSupported) {
-    if (MediaSource.isTypeSupported('video/webm; codecs="vp9"'))
-      stream_codec = "vp9"
-    else if (MediaSource.isTypeSupported('video/webm; codecs="vp8, vorbis"'))
-      stream_codec = "vp8"
-    else if (MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"'))
-      // Too slow for live encoding, preprocessing required
-      stream_codec = null  // "av1"
-  }
-
-  if (stream_codec === null) {
+  if (decoders.length > 0) {
     document.getElementById("toggle-player").display = 'none'
   } else {
     if (player === "vlc") {
