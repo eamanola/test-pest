@@ -904,6 +904,28 @@ var stream_codec = null;
   home()
   create_add_to_play_list()
 
+  var decoders = []
+  if (MediaSource.isTypeSupported('video/webm; codecs="vp9"'))
+    decoders.push("vp9")
+
+  if (MediaSource.isTypeSupported('video/webm; codecs="vp8"'))
+    decoders.push("vp8")
+
+  if (MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"'))
+    decoders.push("h264")
+
+  var audio = document.createElement("audio")
+  if (audio.canPlayType('audio/ogg; codecs=opus'))
+    decoders.push("opus")
+
+  if (audio.canPlayType('audio/ogg; codecs=flac'))
+    decoders.push("flac")
+
+  if (audio.canPlayType('audio/aac'))
+    decoders.push("aac")
+
+  console.log(decoders)
+
   if (window.MediaSource && MediaSource.isTypeSupported) {
     if (MediaSource.isTypeSupported('video/webm; codecs="vp9"'))
       stream_codec = "vp9"
