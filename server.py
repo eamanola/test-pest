@@ -376,9 +376,13 @@ class Handler(socketserver.StreamRequestHandler):
             media_id = parts[4]
 
             params = urllib.parse.parse_qs(parsed.query)
+
             transcode = (
                 "transcode" in params.keys()
                 and params['transcode'][0] == '1'
+            ) or (
+                "User-Agent" in self.headers.keys()
+                and "Chrome/" in self.headers["User-Agent"]
             )
             start_time = (
                 int(params['start'][0]) if "start" in params.keys() else 0
@@ -727,8 +731,8 @@ print(f"Server started http://{hostName}:{serverPort}")
 try:
     httpd.daemon_threads = True
     subprocess.Popen([
-        'firefox',
-        # 'chromium',
+        # 'firefox',
+        'chromium',
         # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
         f'http://{hostName}:{serverPort}'
     ])

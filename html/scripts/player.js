@@ -722,14 +722,14 @@ var create_player = (function() {
     on_can_play: function() {
       this._can_play --;
 
-      if (this._can_play <= 0) {
+      if (this._can_play == 0) {
         setTimeout(function() {
-          this.set_state("playing")
-
           this.video().play().then(
             function() {
               if (this.video().videoHeight === 0) {
                 this.show_chrome_transcode()
+              } else {
+                this.set_state("playing")
               }
             }.bind(this)
           )
@@ -740,6 +740,6 @@ var create_player = (function() {
 
   return function (streams_obj) {
     new Player(streams_obj)
-    console.error('player created')
+    console.log('player created')
   }
 })()
