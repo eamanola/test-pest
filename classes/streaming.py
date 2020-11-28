@@ -9,6 +9,9 @@ from CONFIG import (
 
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
+ALWAYS_TRANSCODE = False
+ALWAYS_TRANSCODE_AUDIO = ALWAYS_TRANSCODE
+ALWAYS_TRANSCODE_VIDEO = ALWAYS_TRANSCODE
 
 
 def _get_stream_info(file_path):
@@ -519,6 +522,9 @@ def get_streams(media, width, height, decoders, start_time):
     else:
         transcode = "vp8"
 
+    if ALWAYS_TRANSCODE_VIDEO:
+        transcode = "vp9"
+
     if CFFMPEG_STREAM:
         streams.append(f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm")
         cmd, mime = get_video_stream(
@@ -554,6 +560,9 @@ def get_streams(media, width, height, decoders, start_time):
         elif is_flac and "flac" in decoders:
             transcode = None
         else:
+            transcode = "opus"
+
+        if ALWAYS_TRANSCODE_AUDIO:
             transcode = "opus"
 
         audio_url = f"/audio/{stream_index}/{media_id}?start={start_time}"

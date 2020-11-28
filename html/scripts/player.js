@@ -398,6 +398,7 @@ var create_player = (function() {
           this.removeEventListener("loadedmetadata", on_loadedmetadata, false)
         }
         audio.addEventListener("loadedmetadata", on_loadedmetadata, false)
+
         // audio.setAttribute("type", "audio/ogg")
         audio.setAttribute("src", audio_obj[i].src)
         audio.setAttribute("data-audio-id", audio_obj[i].id)
@@ -431,8 +432,13 @@ var create_player = (function() {
         var current_audio = this.current_audio
         var video = this.video()
         if (current_audio != null) {
-          if (Math.abs(current_audio.currentTime - video.currentTime) > 0.5)
+          if (Math.abs(current_audio.currentTime - video.currentTime) > 0.5) {
             current_audio.currentTime = video.currentTime
+            console.log(
+              'try', video.currentTime,
+              'result', current_audio.currentTime
+            )
+          }
           if(!video.paused && current_audio.paused) {
             current_audio.play()
           }
