@@ -9,6 +9,7 @@ from CONFIG import (
 
 R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
 R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
+
 ALWAYS_TRANSCODE = False
 ALWAYS_TRANSCODE_AUDIO = ALWAYS_TRANSCODE
 ALWAYS_TRANSCODE_VIDEO = ALWAYS_TRANSCODE
@@ -238,12 +239,12 @@ def _video_dump(file_path, start_time, dst_path):
         '-c', 'copy', dst_path
     )
 
-    print('Dump video:', ' '.join(cmd))
+    print('Dump video:')  # , ' '.join(cmd))
     proc = subprocess.Popen(cmd)
     proc.wait()
-    print('Dump video:Done')
+    # print('Dump video:Done')
 
-    return 0
+    return proc.returncode
 
 
 def _audio_stream(file_path, stream_index, start_time):
@@ -294,12 +295,12 @@ def _audio_dump(file_path, stream_index, start_time, dst_path):
         '-c', 'copy', dst_path
     )
 
-    print('Dump audio:', ' '.join(cmd))
+    print('Dump audio:')  # , ' '.join(cmd))
     proc = subprocess.Popen(cmd)
     proc.wait()
-    print('Dump audio: Done')
+    # print('Dump audio: Done')
 
-    return 0
+    return proc.returncode
 
 
 def _subtitle(file_path, stream_index, format):
@@ -324,7 +325,7 @@ def _dump_attachments(file_path, dst_dir):
         '-dump_attachment:t', '', '-i', file_path
     )
 
-    print('Attachment dump:', ' '.join(cmd))
+    print('Attachment dump:')  # , ' '.join(cmd))
 
     return subprocess.call(cmd, cwd=dst_dir)
 
@@ -356,7 +357,8 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
 
         if not os.path.exists(dst_path):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-            _video_dump(file_path, start_time, dst_path)
+            if _video_dump(file_path, start_time, dst_path) != 0:
+                return None, None
 
         stream, mime = dst_path, mime
     else:
@@ -370,7 +372,7 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
 def get_audio_stream(media, stream_index, codec, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
-        return None
+        return None, None
 
     if not codec:
         stream_lines = _get_stream_info(file_path)
@@ -384,6 +386,7 @@ def get_audio_stream(media, stream_index, codec, start_time):
 
             is_aac = "Audio: aac" in line
             is_flac = "Audio: flac" in line
+            is_opus = "Audio: opus" in line
 
             break
 
@@ -391,9 +394,11 @@ def get_audio_stream(media, stream_index, codec, start_time):
             mime = ".aac"
         elif is_flac:
             mime = ".flac"
+        elif is_opus:
+            mime = ".opus"
 
         if not mime:
-            return None
+            return None, None
 
         dst_path = os.path.join(
             CTMP_DIR, f'{media.id()}-audio-{stream_index}{mime}'
@@ -401,14 +406,14 @@ def get_audio_stream(media, stream_index, codec, start_time):
 
         if not os.path.exists(dst_path):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-            _audio_dump(file_path, stream_index, start_time, dst_path)
+            if _audio_dump(file_path, stream_index, start_time, dst_path) != 0:
+                return None, None
 
         ffmpeg_cmd = dst_path
     else:
         ffmpeg_cmd = _audio_stream(file_path, stream_index, start_time)
         mime = ".opus"
 
-    mime = ".opus"
     return ffmpeg_cmd, mime
 
 
@@ -554,10 +559,13 @@ def get_streams(media, width, height, decoders, start_time):
         is_forced = "(forced)" in line
         is_aac = "Audio: aac" in line
         is_flac = "Audio: flac" in line
+        is_opus = "Audio: opus" in line
 
         if is_aac and "aac" in decoders:
             transcode = None
         elif is_flac and "flac" in decoders:
+            transcode = None
+        elif is_opus and "opus" in decoders:
             transcode = None
         else:
             transcode = "opus"

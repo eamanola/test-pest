@@ -615,6 +615,15 @@ class Handler(socketserver.StreamRequestHandler):
             if 'Range' in self.headers and response_code == 200:
                 response_code = 206
 
+                start = re.compile(r'^bytes=(\d+)-').search(
+                    self.headers['Range']
+                )
+                if start:
+                    response_headers["Content-Length"] = (
+                        response_headers["Content-Length"]
+                        - int(start.group(1))
+                    )
+
         # should be null?
         response_headers["Access-Control-Allow-Origin"] = "*"
 
