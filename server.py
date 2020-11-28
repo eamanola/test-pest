@@ -370,17 +370,6 @@ class Handler(socketserver.StreamRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/video/"):
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
-            print('video call')
             import urllib.parse
             parsed = urllib.parse.urlparse(self.path)
 

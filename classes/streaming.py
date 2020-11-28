@@ -338,13 +338,13 @@ def get_video_stream(media, codec, width, height, start_time, subtitle_index):
 
         _video_dump(file_path, start_time, dst_path)
 
-        ffmpeg_cmd, mime = dst_path, mime
+        stream, mime = dst_path, mime
     else:
-        ffmpeg_cmd, mime = _video_stream(
+        stream, mime = _video_stream(
             file_path, codec, w, h, start_time, subtitle_index
         )
 
-    return ffmpeg_cmd, mime
+    return stream, mime
 
 
 def get_audio_stream(media, stream_index, start_time):
