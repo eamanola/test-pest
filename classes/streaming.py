@@ -322,8 +322,13 @@ def get_video_stream(media, codec, width, height, start_time, subtitle_index):
 
     if not codec:
         is_h264 = "Video: h264" in stream_lines[0]
+        is_vp8 = "Video: vp8" in stream_lines[0]
+        is_vp9 = "Video: vp9" in stream_lines[0]
+
         if is_h264:
             mime = ".mp4"
+        elif is_vp8 or is_vp9:
+            mime = ".webm"
 
         if not mime:
             return None, None
@@ -446,11 +451,16 @@ def get_streams(media, width, height, decoders, start_time):
     stream_lines = _get_stream_info(file_path)
 
     for line in [line for line in stream_lines if "Video" in line]:
-        print(line)
         is_h264 = "Video: h264" in line
+        is_vp8 = "Video: vp8" in line
+        is_vp9 = "Video: vp9" in line
         break
 
     if is_h264 and "h264" in decoders:
+        transcode = None
+    elif is_vp8 and "vp8" in decoders:
+        transcode = None
+    elif is_vp9 and "vp9" in decoders:
         transcode = None
     elif "vp9" in decoders:
         transcode = "vp9"
