@@ -325,7 +325,7 @@ def get_video_stream(
     media_id,
     width,
     height,
-    transcode,
+    codec,
     start_time=0,
     subtitle_index=None
 ):
@@ -336,7 +336,7 @@ def get_video_stream(
         import classes.streaming as streaming
 
         stream, mime = streaming.get_video_stream(
-            media, transcode, width, height, start_time, subtitle_index
+            media, width, height, codec, start_time, subtitle_index
         )
 
     return stream, mime

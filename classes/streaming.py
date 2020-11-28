@@ -238,7 +238,7 @@ def _video_dump(file_path, start_time, dst_path):
     print('Dump video:', ' '.join(cmd))
     proc = subprocess.Popen(cmd)
     proc.wait()
-    print('Done')
+    print('Dump video:Done')
 
     return 0
 
@@ -294,7 +294,7 @@ def _audio_dump(file_path, stream_index, start_time, dst_path):
     print('Dump audio:', ' '.join(cmd))
     proc = subprocess.Popen(cmd)
     proc.wait()
-    print('Done')
+    print('Dump audio: Done')
 
     return 0
 
@@ -326,7 +326,7 @@ def _dump_attachments(file_path, dst_dir):
     return subprocess.call(cmd, cwd=dst_dir)
 
 
-def get_video_stream(media, codec, width, height, start_time, subtitle_index):
+def get_video_stream(media, width, height, codec, start_time, subtitle_index):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None, None
@@ -516,7 +516,7 @@ def get_streams(media, width, height, decoders, start_time):
     if CFFMPEG_STREAM:
         streams.append(f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm")
         cmd, mime = get_video_stream(
-            media, "vp9", width, height, start_time, None
+            media, width, height, "vp9", start_time, None
         )
         print(' '.join(cmd))
         subprocess.Popen(cmd)
