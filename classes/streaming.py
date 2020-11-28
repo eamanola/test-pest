@@ -283,6 +283,22 @@ def _audio_stream(file_path, stream_index, start_time):
     return cmd
 
 
+def _audio_dump(file_path, stream_index, start_time, dst_path):
+    cmd = (
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
+        '-ss', str(start_time), '-i', file_path,
+        '-vn', '-sn', '-dn', '-map', '-0:t?', '-map', f'0:{stream_index}',
+        '-c', 'copy', dst_path
+    )
+
+    print('Dump audio:', ' '.join(cmd))
+    proc = subprocess.Popen(cmd)
+    proc.wait()
+    print('Done')
+
+    return 0
+
+
 def _subtitle(file_path, stream_index, format):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
@@ -347,14 +363,44 @@ def get_video_stream(media, codec, width, height, start_time, subtitle_index):
     return stream, mime
 
 
-def get_audio_stream(media, stream_index, start_time):
+def get_audio_stream(media, stream_index, codec, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
 
-    ffmpeg_cmd = _audio_stream(file_path, stream_index, start_time)
+    if not codec:
+        stream_lines = _get_stream_info(file_path)
+        re_sub_audio = re.compile(R_SUB_AUDIO)
 
-    return ffmpeg_cmd
+        for line in [line for line in stream_lines if "Audio" in line]:
+            info = re_sub_audio.search(line)
+            _stream_index = info.group(1) if info else None
+            if _stream_index != stream_index:
+                continue
+
+            is_aac = "Audio: aac" in line
+
+            break
+
+        if is_aac:
+            mime = ".aac"
+
+        if not mime:
+            return None
+
+        dst_path = os.path.join(
+            CTMP_DIR, f'{media.id()}-audio-{stream_index}{mime}'
+        )
+        os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+
+        _audio_dump(file_path, stream_index, start_time, dst_path)
+        ffmpeg_cmd = dst_path
+    else:
+        ffmpeg_cmd = _audio_stream(file_path, stream_index, start_time)
+        mime = ".opus"
+
+    mime = ".opus"
+    return ffmpeg_cmd, mime
 
 
 def get_subtitle(media, type, index):
@@ -485,26 +531,39 @@ def get_streams(media, width, height, decoders, start_time):
     re_sub_audio = re.compile(R_SUB_AUDIO)
 
     for line in [line for line in stream_lines if "Audio" in line]:
-        is_default = "(default)" in line
-        is_forced = "(forced)" in line
-
         info = re_sub_audio.search(line)
         stream_index = info.group(1) if info else None
+        if not stream_index:
+            continue
+
         lang = info.group(2) if info else None
+
+        is_default = "(default)" in line
+        is_forced = "(forced)" in line
+        is_aac = "Audio: aac" in line
+
+        if is_aac and "aac" in decoders:
+            transcode = None
+        else:
+            transcode = "opus"
+
+        audio_url = f"/audio/{stream_index}/{media_id}?start={start_time}"
+
+        if transcode:
+            audio_url = f'{audio_url}&transcode={transcode}'
 
         _audio = {
             'id': stream_index,
-            'src': f"/audio/{stream_index}/{media_id}?start={start_time}",
+            'src': audio_url,
             'lang': lang,
             'is_forced': is_forced,
             'default': is_default
         }
 
-        if stream_index:
-            if is_default:
-                audio.insert(0, _audio)
-            else:
-                audio.append(_audio)
+        if is_default:
+            audio.insert(0, _audio)
+        else:
+            audio.append(_audio)
 
     if len(audio) and audio[0]['default'] is not True:
         audio[0]['default'] = True

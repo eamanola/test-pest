@@ -59,6 +59,8 @@ def mime_type(file_name):
         content_type = "application/vnd.ms-opentype"
     elif file_name.endswith((".ttf", ".TTF")):
         content_type = "application/x-truetype-font"
+    elif file_name.endswith(".aac"):
+        content_type = "audio/aac"
     else:
         content_type = "application/octet-stream"
 
@@ -430,19 +432,28 @@ class Handler(socketserver.StreamRequestHandler):
                 int(params['start'][0]) if "start" in params.keys() else 0
             )
 
+            if "transcode" in params.keys():
+                transcode = params['transcode'][0]
+            else:
+                transcode = None
+
             if (media_id and stream_index and len(parts) == 3):
-                cmd = api.get_audio_stream(
+                stream, mime = api.get_audio_stream(
                     db,
                     media_id,
                     stream_index,
+                    transcode,
                     start_time
                 )
-                if cmd:
+                if stream:
                     response_code = 200
                     response_headers["Cache-Control"] = CACHE_ONE_WEEK
-                    response_headers["Content-type"] = mime_type(".opus")
+                    response_headers["Content-type"] = mime_type(mime)
 
-                    response_cmd = cmd
+                    if isinstance(stream, str):
+                        response_file_path = stream
+                    else:
+                        response_cmd = stream
                 else:
                     response_code = 404
             else:
