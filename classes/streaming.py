@@ -350,9 +350,10 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
             return None, None
 
         dst_path = os.path.join(CTMP_DIR, f'{media.id()}-video{mime}')
-        os.makedirs(os.path.dirname(dst_path), exist_ok=True)
 
-        _video_dump(file_path, start_time, dst_path)
+        if not os.path.exists(dst_path):
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            _video_dump(file_path, start_time, dst_path)
 
         stream, mime = dst_path, mime
     else:
@@ -379,11 +380,14 @@ def get_audio_stream(media, stream_index, codec, start_time):
                 continue
 
             is_aac = "Audio: aac" in line
+            is_flac = "Audio: flac" in line
 
             break
 
         if is_aac:
             mime = ".aac"
+        elif is_flac:
+            mime = ".flac"
 
         if not mime:
             return None
@@ -391,9 +395,11 @@ def get_audio_stream(media, stream_index, codec, start_time):
         dst_path = os.path.join(
             CTMP_DIR, f'{media.id()}-audio-{stream_index}{mime}'
         )
-        os.makedirs(os.path.dirname(dst_path), exist_ok=True)
 
-        _audio_dump(file_path, stream_index, start_time, dst_path)
+        if not os.path.exists(dst_path):
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            _audio_dump(file_path, stream_index, start_time, dst_path)
+
         ffmpeg_cmd = dst_path
     else:
         ffmpeg_cmd = _audio_stream(file_path, stream_index, start_time)
@@ -541,8 +547,11 @@ def get_streams(media, width, height, decoders, start_time):
         is_default = "(default)" in line
         is_forced = "(forced)" in line
         is_aac = "Audio: aac" in line
+        is_flac = "Audio: flac" in line
 
         if is_aac and "aac" in decoders:
+            transcode = None
+        elif is_flac and "flac" in decoders:
             transcode = None
         else:
             transcode = "opus"

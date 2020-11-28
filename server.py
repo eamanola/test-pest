@@ -61,6 +61,8 @@ def mime_type(file_name):
         content_type = "application/x-truetype-font"
     elif file_name.endswith(".aac"):
         content_type = "audio/aac"
+    elif file_name.endswith(".flac"):
+        content_type = "audio/flac"
     else:
         content_type = "application/octet-stream"
 
