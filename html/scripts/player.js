@@ -376,9 +376,10 @@ var create_player = (function() {
         //src.setAttribute("type", "video/webm")
         src.setAttribute("src", streams[i])
         src.addEventListener("error", function(e) {
-          console.log(++error_count, e)
-          if (error_count == video.querySelectorAll('source').length) {
-            console.log('transcode required')
+          error_count = error_count + 1
+          var source_length = video.querySelectorAll('source').length
+          console.log(error_count + '/' + source_length, e)
+          if (error_count == source_length) {
             this.request_transcoding()
           }
         }.bind(this), false)
@@ -414,8 +415,14 @@ var create_player = (function() {
         if (current_audio !== null) {
           setTimeout(function() {
             current_audio.currentTime = video.currentTime
-            current_audio.play()
-          }, 100)
+            current_audio.play().catch(
+              (function(audio) {
+                return function(error) {
+                  this.on_audio_error(error, audio)
+                }
+              })(current_audio).bind(this)
+            )
+          }.bind(this), 100)
         }
       }.bind(this), false)
 
@@ -427,7 +434,13 @@ var create_player = (function() {
             current_audio.currentTime = video.currentTime
           }
           if(!video.paused && current_audio.paused) {
-            current_audio.play()
+            current_audio.play().catch(
+              (function(audio) {
+                return function(error) {
+                  this.on_audio_error(error, audio)
+                }
+              })(current_audio).bind(this)
+            )
           }
         }
       }.bind(this), false)
@@ -532,7 +545,13 @@ var create_player = (function() {
       )
       audio_el.volume = current_volume
       if (!video.paused) {
-        audio_el.play()
+        audio_el.play().catch(
+          (function(audio) {
+            return function(error) {
+              this.on_audio_error(error, audio)
+            }
+          })(audio_el).bind(this)
+        )
       }
       this.current_audio = audio_el
     },
@@ -658,9 +677,9 @@ var create_player = (function() {
       }
 
       if (streams.length) {
-        console.log('adding new sources')
         this.create_sources(streams)
         video.load()
+        console.log('transcoding video')
       }
     },
 
@@ -739,11 +758,30 @@ var create_player = (function() {
           )
         }.bind(this), this.BUFFER_TIME)
       }
+    },
+    on_audio_error: function(error, audio) {
+      if (/The element has no supported sources./.test(error)){
+        var current_src = audio.currentSrc
+        var params = get_params(current_src)
+
+        if (
+          params == null
+          || (params.get("transcode") !== "opus")
+        ) {
+          var start = params.get("start")
+          new_src = current_src.split("?")[0]
+            + "?transcode=opus"
+            + (start ? ("&start=" + start) : "")
+          audio.src = new_src
+          audio.load()
+          console.log("transcoding audio")
+        }
+      }
     }
   }
 
   return function (streams_obj) {
+    console.log('Create player')
     new Player(streams_obj)
-    console.log('player created')
   }
 })()
