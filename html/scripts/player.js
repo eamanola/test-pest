@@ -390,15 +390,6 @@ var create_player = (function() {
       var audio = null
       for (var i = 0, il = audio_obj.length; i < il; i++) {
         audio = document.createElement('audio')
-
-        // HACK: Force <Audio> to buffer from 0s
-        // Otherwise buffer starts at random time
-        function on_loadedmetadata(e) {
-          this.load();
-          this.removeEventListener("loadedmetadata", on_loadedmetadata, false)
-        }
-        audio.addEventListener("loadedmetadata", on_loadedmetadata, false)
-
         // audio.setAttribute("type", "audio/ogg")
         audio.setAttribute("src", audio_obj[i].src)
         audio.setAttribute("data-audio-id", audio_obj[i].id)
@@ -434,10 +425,6 @@ var create_player = (function() {
         if (current_audio != null) {
           if (Math.abs(current_audio.currentTime - video.currentTime) > 0.5) {
             current_audio.currentTime = video.currentTime
-            console.log(
-              'try', video.currentTime,
-              'result', current_audio.currentTime
-            )
           }
           if(!video.paused && current_audio.paused) {
             current_audio.play()

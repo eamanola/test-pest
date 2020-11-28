@@ -7,6 +7,7 @@ from db.db import get_db
 import os
 import sys
 import time
+import re
 from CONFIG import CHOSTNAME, CPORT, CTMP_DIR
 
 NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
@@ -607,6 +608,12 @@ class Handler(socketserver.StreamRequestHandler):
 
         if response_file_path is not None:
             response_headers["Transfer-Encoding"] = "chunked"
+            response_headers["Accept-Ranges"] = "bytes"
+            response_headers["Content-Length"] = os.path.getsize(
+                response_file_path
+            )
+            if 'Range' in self.headers and response_code == 200:
+                response_code = 206
 
         # should be null?
         response_headers["Access-Control-Allow-Origin"] = "*"
@@ -661,6 +668,13 @@ class Handler(socketserver.StreamRequestHandler):
         CHUNK_SIZE = 1024 * 1024 * 1
 
         with open(file_path, "rb") as f:
+            if 'Range' in self.headers:
+                start = re.compile(r'^bytes=(\d+)-').search(
+                    self.headers['Range']
+                )
+                if start:
+                    f.seek(int(start.group(1)), 0)
+                    print('Start', int(start.group(1)), self.headers['Range'])
             while True:
                 chunk = f.read(CHUNK_SIZE)
 
