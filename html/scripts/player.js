@@ -388,15 +388,19 @@ var create_player = (function() {
       }
     },
     create_audio: function(audio_obj) {
-      var audio = null
+      var audio = null, source = null
       for (var i = 0, il = audio_obj.length; i < il; i++) {
         audio = document.createElement('audio')
         // audio.setAttribute("type", "audio/ogg")
-        audio.setAttribute("src", audio_obj[i].src)
         audio.setAttribute("data-audio-id", audio_obj[i].id)
         // audio.setAttribute("controls", "1")
         audio.preload = "auto"
         audio.style.display = "none"
+
+        source = document.createElement("source")
+        source.setAttribute("src", audio_obj[i].src)
+        source.addEventListener("error", console.error, false)
+        audio.appendChild(source)
 
         this.wrapper.appendChild(audio);
 
