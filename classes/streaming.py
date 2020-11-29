@@ -544,9 +544,10 @@ def get_streams(media, width, height, decoders, start_time):
         video_url = f'/video/{width}/{height}/{media_id}?start={start_time}'
 
         if transcode:
-            video_url = f'{video_url}&transcode={transcode}'
-
-        streams.append(video_url)
+            streams.append(f'{video_url}&transcode={transcode}')
+        else:
+            streams.append(video_url)
+            streams.append(f'{video_url}&transcode=vp9')
 
     re_sub_audio = re.compile(R_SUB_AUDIO)
 
@@ -579,14 +580,18 @@ def get_streams(media, width, height, decoders, start_time):
         if ALWAYS_TRANSCODE_AUDIO:
             transcode = "opus"
 
+        sources = []
         audio_url = f"/audio/{stream_index}/{media_id}?start={start_time}"
 
         if transcode:
-            audio_url = f'{audio_url}&transcode={transcode}'
+            sources.append(f'{audio_url}&transcode={transcode}')
+        else:
+            sources.append(audio_url)
+            sources.append(f'{audio_url}&transcode=opus')
 
         _audio = {
             'id': stream_index,
-            'src': [audio_url],
+            'src': sources,
             'lang': lang,
             'is_forced': is_forced,
             'default': is_default
