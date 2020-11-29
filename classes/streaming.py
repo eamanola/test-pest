@@ -247,12 +247,12 @@ def _video_dump(file_path, start_time, dst_path):
     return proc.returncode
 
 
-def _audio_stream(file_path, stream_index, start_time):
+def _audio_stream(file_path, stream_index, start_time, format, audio_codec):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
         '-i', file_path, '-ss', str(start_time),
         '-map', f'0:{stream_index}',
-        '-c:a', 'libopus', '-f', 'opus', 'pipe:1'
+        '-c:a', audio_codec, '-f', format, 'pipe:1'
     ]
 
     cmd_test = subprocess.Popen(
@@ -287,15 +287,15 @@ def _audio_stream(file_path, stream_index, start_time):
     return cmd
 
 
-def _audio_dump(file_path, stream_index, start_time, dst_path):
+def _audio_dump(file_path, stream_index, start_time, format, dst_path):
     cmd = (
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
         '-ss', str(start_time), '-i', file_path,
         '-vn', '-sn', '-dn', '-map', '-0:t?', '-map', f'0:{stream_index}',
-        '-c', 'copy', dst_path
+        '-c', 'copy', '-f', format, dst_path
     )
 
-    print('Dump audio:')  # , ' '.join(cmd))
+    print('Dump audio:', ' '.join(cmd))
     proc = subprocess.Popen(cmd)
     proc.wait()
     # print('Dump audio: Done')
@@ -387,15 +387,21 @@ def get_audio_stream(media, stream_index, codec, start_time):
             is_aac = "Audio: aac" in line
             is_flac = "Audio: flac" in line
             is_opus = "Audio: opus" in line
-
+            is_vorbis = "Audio: vorbis" in line
             break
 
         if is_aac:
             mime = ".aac"
+            format = "aac"
         elif is_flac:
             mime = ".flac"
+            format = "flac"
         elif is_opus:
             mime = ".opus"
+            format = "opus"
+        elif is_vorbis:
+            mime = ".vorbis"
+            format = "oga"
 
         if not mime:
             return None, None
@@ -406,13 +412,25 @@ def get_audio_stream(media, stream_index, codec, start_time):
 
         if not os.path.exists(dst_path):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-            if _audio_dump(file_path, stream_index, start_time, dst_path) != 0:
+            if _audio_dump(
+                file_path, stream_index, start_time, format, dst_path
+            ) != 0:
                 return None, None
 
         ffmpeg_cmd = dst_path
     else:
-        ffmpeg_cmd = _audio_stream(file_path, stream_index, start_time)
-        mime = ".opus"
+        if codec == "vorbis":
+            format = "oga"
+            audio_codec = "libvorbis"
+            mime = ".vorbis"
+        else:
+            format = "opus"
+            audio_codec = "libopus"
+            mime = ".opus"
+
+        ffmpeg_cmd = _audio_stream(
+            file_path, stream_index, start_time, format, audio_codec
+        )
 
     return ffmpeg_cmd, mime
 
@@ -564,6 +582,7 @@ def get_streams(media, width, height, decoders, start_time):
         is_aac = "Audio: aac" in line
         is_flac = "Audio: flac" in line
         is_opus = "Audio: opus" in line
+        is_vorbis = "Audio: vorbis" in line
 
         if is_aac and "aac" in decoders:
             transcode = None
@@ -571,8 +590,12 @@ def get_streams(media, width, height, decoders, start_time):
             transcode = None
         elif is_opus and "opus" in decoders:
             transcode = None
-        else:
+        elif is_vorbis and "vorbis" in decoders:
+            transcode = None
+        elif "opus" in decoders:
             transcode = "opus"
+        else:
+            transcode = "vorbis"
 
         if transcode:
             print(line)

@@ -64,6 +64,8 @@ def mime_type(file_name):
         content_type = "audio/aac"
     elif file_name.endswith(".flac"):
         content_type = "audio/flac"
+    elif file_name.endswith(".vorbis"):
+        content_type = 'audio/ogg; codecs="vorbis"'
     else:
         content_type = "application/octet-stream"
 

@@ -921,6 +921,9 @@ var decoders = [];
   if (audio.canPlayType('audio/ogg; codecs=flac'))
     decoders.push("flac")
 
+  if (audio.canPlayType('audio/ogg; codecs="vorbis"'))
+    decoders.push("vorbis")
+
   if (audio.canPlayType('audio/aac'))
     decoders.push("aac")
 
