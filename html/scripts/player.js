@@ -785,6 +785,8 @@ var create_player = (function() {
           audio.load()
           console.log("transcoding audio")
         }
+      } else if (/NotAllowedError: play\(\) can only be initiated by a user gesture./) {
+        this.video().pause()
       }
     },
     on_video_play_error: function(error){
