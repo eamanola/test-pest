@@ -646,7 +646,7 @@ class Handler(socketserver.StreamRequestHandler):
                 self.send_body(bytes(json.dumps(response_json), "utf-8"))
 
         except (ConnectionResetError, IOError, Exception) as e:
-            print('Send error:', e)
+            print('Send error:', e, self.path)
 
     def send_cmd_output(self, cmd):
         try:

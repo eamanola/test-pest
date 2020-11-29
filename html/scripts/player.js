@@ -626,7 +626,10 @@ var create_player = (function() {
       var audio = this.wrapper.querySelectorAll("audio")
       for (var i = 0, il = audio.length; i < il; i++) {
         audio[i].pause()
-        audio[i].removeAttribute("src")
+        var sources = audio[i].querySelectorAll("source")
+        for (var j = 0, jl = sources.length; j < jl; j++){
+          audio[i].removeChild(sources[j])
+        }
         audio[i].load()
       }
 
