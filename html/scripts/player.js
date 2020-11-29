@@ -120,10 +120,13 @@ var create_player = (function() {
       video.addEventListener("progress", function() {
         var duration = player.duration
         if(duration) {
-          if (this.buffered.length) {
-            player.play_position_buffered().style.width =
-              (player.start_time + this.buffered.end(0)) / duration * 100 + '%'
-          }
+          setTimeout(function(){
+            if (video.buffered.length) {
+              player.play_position_buffered().style.width =
+                Math.floor(player.start_time + video.buffered.end(0))
+                / duration * 100 + '%'
+            }
+          }, 1000)
         }
       }, false)
 
@@ -133,8 +136,10 @@ var create_player = (function() {
 
         var duration = this.duration
         if(duration) {
-          this.play_position_played().style.width =
-            this.current_time() / duration * 100 + '%'
+          setTimeout(function(){
+            this.play_position_played().style.width =
+              this.current_time() / duration * 100 + '%'
+          }.bind(this), 0)
         }
       }.bind(this), false)
 
@@ -227,8 +232,10 @@ var create_player = (function() {
       var play_position_total = document.createElement("div")
       play_position_total.className = "video-position-total"
 
+      if (false)
       play_position_total.addEventListener("click", function(e) {
         var video = this.video()
+        var current_audio = this.current_audio
         var duration = this.duration
 
         var percent = (e.layerX / play_position_total.offsetWidth)
@@ -236,7 +243,34 @@ var create_player = (function() {
 
         var new_time = percent * duration - this.start_time
 
-        var buffered_end = video.buffered.end(0)
+        var buffered_end = 0
+        var buffered_end_video = 0
+        if (video.buffered.length)
+          buffered_end_video = video.buffered.end(0)
+
+        if (current_audio) {
+          var buffered_end_audio = 0
+          if (current_audio.buffered.length) {
+            buffered_end_audio = current_audio.buffered.end(0);
+            /*
+            var trim;
+            if (e.originalTarge == this.play_position_buffered()) {
+              trim = 60
+            } else {
+              trim = 10
+            }
+            buffered_end_audio = buffered_end_audio - trim
+
+            if (buffered_end_audio < current_audio.buffered.start(0)) {
+              buffered_end_audio = current_audio.buffered.start(0)
+            }
+            */
+          }
+          buffered_end = Math.min(buffered_end_video, buffered_end_audio)
+        } else {
+          buffered_end = buffered_end_video
+        }
+
         if (new_time > buffered_end)
           new_time = buffered_end
         else if (new_time < 0)
@@ -436,7 +470,9 @@ var create_player = (function() {
         var current_audio = this.current_audio
         var video = this.video()
         if (current_audio != null) {
-          if (Math.abs(current_audio.currentTime - video.currentTime) > 0.5) {
+          var out_of_sync = Math.abs(current_audio.currentTime - video.currentTime) > 0.5
+
+          if (out_of_sync) {
             current_audio.currentTime = video.currentTime
           }
           if(!video.paused && current_audio.paused) {
