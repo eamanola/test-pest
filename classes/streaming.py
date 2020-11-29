@@ -527,6 +527,9 @@ def get_streams(media, width, height, decoders, start_time):
     else:
         transcode = "vp8"
 
+    if transcode:
+        print(line)
+
     if ALWAYS_TRANSCODE_VIDEO:
         transcode = "vp9"
 
@@ -569,6 +572,9 @@ def get_streams(media, width, height, decoders, start_time):
             transcode = None
         else:
             transcode = "opus"
+
+        if transcode:
+            print(line)
 
         if ALWAYS_TRANSCODE_AUDIO:
             transcode = "opus"
