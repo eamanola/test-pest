@@ -326,8 +326,6 @@ class Handler(socketserver.StreamRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/addmedialibrary/"):
-            print(self.path)
-
             media_library_param = self.path.replace("/addmedialibrary/", "")
             if media_library_param:
                 from urllib.parse import unquote
@@ -409,14 +407,15 @@ class Handler(socketserver.StreamRequestHandler):
                 )
                 if stream:
                     response_code = 200
-                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
 
                     response_headers["Content-type"] = mime_type(mime)
 
                     if isinstance(stream, str):
                         response_file_path = stream
+                        response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     else:
                         response_cmd = stream
+                        response_headers["Cache-Control"] = MUST_REVALIDATE
                 else:
                     response_code = 404
             else:
@@ -450,13 +449,14 @@ class Handler(socketserver.StreamRequestHandler):
                 )
                 if stream:
                     response_code = 200
-                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     response_headers["Content-type"] = mime_type(mime)
 
                     if isinstance(stream, str):
                         response_file_path = stream
+                        response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     else:
                         response_cmd = stream
+                        response_headers["Cache-Control"] = MUST_REVALIDATE
                 else:
                     response_code = 404
             else:
@@ -650,7 +650,6 @@ class Handler(socketserver.StreamRequestHandler):
 
     def send_cmd_output(self, cmd):
         try:
-            print('start', self.path)
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
             CHUNK_SIZE = 1024 * 8  # io.DEFAULT_BUFFER_SIZE
@@ -659,7 +658,6 @@ class Handler(socketserver.StreamRequestHandler):
             while chunk:
                 len_chunk = len(chunk)
                 if len_chunk < CHUNK_SIZE:
-                    print('sleep', self.path)
                     time.sleep(1)
                 del len_chunk
 
@@ -738,9 +736,9 @@ class Handler(socketserver.StreamRequestHandler):
         else:
             data = data.split("\r\n")
 
-        for entry in data:
-            print(entry)
-            break
+        # for entry in data:
+        #    print(entry)
+        #    break
 
         self.path = data[0].split(" ")[1]
 
