@@ -295,7 +295,7 @@ def _audio_dump(file_path, stream_index, start_time, format, dst_path):
         '-c', 'copy', '-f', format, dst_path
     )
 
-    print('Dump audio:', ' '.join(cmd))
+    print('Dump audio:')  # , ' '.join(cmd))
     proc = subprocess.Popen(cmd)
     proc.wait()
     # print('Dump audio: Done')

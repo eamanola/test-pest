@@ -738,9 +738,9 @@ class Handler(socketserver.StreamRequestHandler):
         else:
             data = data.split("\r\n")
 
-        # for entry in data:
-        #    print(entry)
-        #    break
+        for entry in data:
+            print(entry)
+            break
 
         self.path = data[0].split(" ")[1]
 

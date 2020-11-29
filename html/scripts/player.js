@@ -64,6 +64,7 @@ var create_player = (function() {
     BUFFER_TIME: 1000 * 2,
     fullscreen_hide_ui_timeout: null,
     FULLSCREEN_HIDE_UI_TIMEOUT: 5 * 1000,
+    ENABLE_SEEK: false,
     start_time: 0,
     _can_play: [],
     create_wrapper: function() {
@@ -116,19 +117,21 @@ var create_player = (function() {
       // ? check effect tonight
       video.addEventListener("ended", this.close.bind(this), false)
 
-      var player = this
-      video.addEventListener("progress", function() {
-        var duration = player.duration
-        if(duration) {
-          setTimeout(function(){
-            if (video.buffered.length) {
-              player.play_position_buffered().style.width =
-                Math.floor(player.start_time + video.buffered.end(0))
-                / duration * 100 + '%'
-            }
-          }, 1000)
-        }
-      }, false)
+      if (this.ENABLE_SEEK) {
+        var player = this
+        video.addEventListener("progress", function() {
+          var duration = player.duration
+          if(duration) {
+            setTimeout(function(){
+              if (video.buffered.length) {
+                player.play_position_buffered().style.width =
+                  Math.floor(player.start_time + video.buffered.end(0))
+                  / duration * 100 + '%'
+              }
+            }, 1000)
+          }
+        }, false)
+      }
 
       video.addEventListener("timeupdate", function() {
         var time = format_secs(this.current_time())
@@ -232,7 +235,7 @@ var create_player = (function() {
       var play_position_total = document.createElement("div")
       play_position_total.className = "video-position-total"
 
-      if (false)
+      if (this.ENABLE_SEEK)
       play_position_total.addEventListener("click", function(e) {
         var video = this.video()
         var current_audio = this.current_audio
@@ -252,19 +255,6 @@ var create_player = (function() {
           var buffered_end_audio = 0
           if (current_audio.buffered.length) {
             buffered_end_audio = current_audio.buffered.end(0);
-            /*
-            var trim;
-            if (e.originalTarge == this.play_position_buffered()) {
-              trim = 60
-            } else {
-              trim = 10
-            }
-            buffered_end_audio = buffered_end_audio - trim
-
-            if (buffered_end_audio < current_audio.buffered.start(0)) {
-              buffered_end_audio = current_audio.buffered.start(0)
-            }
-            */
           }
           buffered_end = Math.min(buffered_end_video, buffered_end_audio)
         } else {
@@ -279,7 +269,8 @@ var create_player = (function() {
         video.currentTime = new_time
       }.bind(this), false)
 
-      play_position_total.appendChild(this.create_play_position_buffered())
+      if (this.ENABLE_SEEK)
+        play_position_total.appendChild(this.create_play_position_buffered())
       play_position_total.appendChild(this.create_play_position_played())
 
       return play_position_total
@@ -470,11 +461,16 @@ var create_player = (function() {
         var current_audio = this.current_audio
         var video = this.video()
         if (current_audio != null) {
-          var out_of_sync = Math.abs(current_audio.currentTime - video.currentTime) > 0.5
+          var time_diff = video.currentTime - current_audio.currentTime
+          var out_of_sync = Math.abs(time_diff) > 0.5
 
           if (out_of_sync) {
             current_audio.currentTime = video.currentTime
+            console.log(
+              'Audio synced', current_audio.currentTime === video.currentTime
+            )
           }
+
           if(!video.paused && current_audio.paused) {
             current_audio.play().catch(
               (function(audio) {
