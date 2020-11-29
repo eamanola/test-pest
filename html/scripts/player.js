@@ -159,7 +159,7 @@ var create_player = (function() {
         e.stopPropagation()
         var video = this.video()
         if (video.paused) {
-          video.play()
+          video.play().catch(this.on_video_play_error.bind(this))
         } else {
           video.pause()
         }
@@ -424,7 +424,7 @@ var create_player = (function() {
             current_audio.play().catch(
               (function(audio) {
                 return function(error) {
-                  this.on_audio_error(error, audio)
+                  this.on_audio_play_error(error, audio)
                 }
               })(current_audio).bind(this)
             )
@@ -443,7 +443,7 @@ var create_player = (function() {
             current_audio.play().catch(
               (function(audio) {
                 return function(error) {
-                  this.on_audio_error(error, audio)
+                  this.on_audio_play_error(error, audio)
                 }
               })(current_audio).bind(this)
             )
@@ -554,7 +554,7 @@ var create_player = (function() {
         audio_el.play().catch(
           (function(audio) {
             return function(error) {
-              this.on_audio_error(error, audio)
+              this.on_audio_play_error(error, audio)
             }
           })(audio_el).bind(this)
         )
@@ -764,11 +764,11 @@ var create_player = (function() {
                 this.set_state("playing")
               }
             }.bind(this)
-          )
+          ).catch(this.on_video_play_error.bind(this))
         }.bind(this), this.BUFFER_TIME)
       }
     },
-    on_audio_error: function(error, audio) {
+    on_audio_play_error: function(error, audio) {
       if (/The element has no supported sources./.test(error)){
         var current_src = audio.currentSrc
         var params = get_params(current_src)
@@ -786,6 +786,9 @@ var create_player = (function() {
           console.log("transcoding audio")
         }
       }
+    },
+    on_video_play_error: function(error){
+      // console.log('on_video_play_error:', error)
     }
   }
 
