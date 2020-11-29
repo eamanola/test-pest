@@ -353,7 +353,9 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
         if not mime:
             return None, None
 
-        dst_path = os.path.join(CTMP_DIR, f'{media.id()}-video{mime}')
+        dst_path = os.path.join(
+            CTMP_DIR, f'{media.id()}-{start_time}-video{mime}'
+            )
 
         if not os.path.exists(dst_path):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
@@ -407,7 +409,7 @@ def get_audio_stream(media, stream_index, codec, start_time):
             return None, None
 
         dst_path = os.path.join(
-            CTMP_DIR, f'{media.id()}-audio-{stream_index}{mime}'
+            CTMP_DIR, f'{media.id()}-audio-{start_time}-{stream_index}{mime}'
         )
 
         if not os.path.exists(dst_path):
