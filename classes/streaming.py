@@ -392,7 +392,7 @@ def get_audio_stream(media, stream_index, codec, start_time):
 
         if is_aac:
             mime = ".aac"
-            format = "aac"
+            format = "adts"
         elif is_flac:
             mime = ".flac"
             format = "flac"
