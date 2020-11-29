@@ -586,7 +586,7 @@ def get_streams(media, width, height, decoders, start_time):
 
         _audio = {
             'id': stream_index,
-            'src': audio_url,
+            'src': [audio_url],
             'lang': lang,
             'is_forced': is_forced,
             'default': is_default

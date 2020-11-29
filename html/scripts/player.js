@@ -397,10 +397,12 @@ var create_player = (function() {
         audio.preload = "auto"
         audio.style.display = "none"
 
-        source = document.createElement("source")
-        source.setAttribute("src", audio_obj[i].src)
-        source.addEventListener("error", console.error, false)
-        audio.appendChild(source)
+        for (var j = 0, jl = audio_obj[i].src.length; j < jl; j++) {
+          source = document.createElement("source")
+          source.setAttribute("src", audio_obj[i].src[j])
+          source.addEventListener("error", console.error, false)
+          audio.appendChild(source)
+        }
 
         this.wrapper.appendChild(audio);
 
