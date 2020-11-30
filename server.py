@@ -465,11 +465,19 @@ class Handler(socketserver.StreamRequestHandler):
                 response_code = 400
 
         elif self.path.startswith("/subtitle/"):
-            parts = self.path[1:].split("/")
+            import urllib.parse
+            parsed = urllib.parse.urlparse(self.path)
+
+            parts = parsed.path[1:].split("/")
             type = parts[1]
             stream_index = parts[2]
             media_id = parts[3].split(".")[0]
             is_bitmap = parts[3].split(".")[1] == "tra"
+
+            params = urllib.parse.parse_qs(parsed.query)
+            start_time = (
+                int(params['start'][0]) if "start" in params.keys() else 0
+            )
 
             if (
                 media_id
@@ -482,7 +490,8 @@ class Handler(socketserver.StreamRequestHandler):
                     db,
                     media_id,
                     type,
-                    stream_index
+                    stream_index,
+                    start_time
                 )
                 if cmd:
                     response_code = 200

@@ -356,14 +356,16 @@ def get_audio_stream(db, media_id, stream_index, codec, start_time=0):
     return stream, mime
 
 
-def get_subtitle(db, media_id, type, stream_index):
+def get_subtitle(db, media_id, type, stream_index, start_time):
     stream, mime = None, None
     media = db.get_media(media_id)
 
     if media:
         import classes.streaming as streaming
 
-        stream, mime = streaming.get_subtitle(media, type, stream_index)
+        stream, mime = streaming.get_subtitle(
+            media, type, stream_index, start_time
+        )
 
     return stream, mime
 

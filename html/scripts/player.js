@@ -493,7 +493,8 @@ var create_player = (function() {
       }.bind(this), false)
     },
     set_subtitle: function(src) {
-      if (/\.ass$/.test(src)) {
+      var src_path = src.split("?")[0]
+      if (/\.ass$/.test(src_path)) {
         try {
           if (this.ass_renderer === null) {
             this.ass_renderer = new SubtitlesOctopus({
@@ -510,7 +511,7 @@ var create_player = (function() {
         } catch (e) {
           console.log('ass render', e)
         }
-      } else if (/\.tra$/.test(src)) {
+      } else if (/\.tra$/.test(src_path)) {
         var parts = src.split("/")
         if (parts.length > 4) {
           var stream_index = parts[3]

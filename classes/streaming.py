@@ -303,10 +303,10 @@ def _audio_dump(file_path, stream_index, start_time, format, dst_path):
     return proc.returncode
 
 
-def _subtitle(file_path, stream_index, format):
+def _subtitle(file_path, stream_index, format, start_time):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-i', file_path, '-f', format
+        '-ss', str(start_time), '-i', file_path, '-f', format
     ]
 
     if stream_index is not None:
@@ -437,7 +437,7 @@ def get_audio_stream(media, stream_index, codec, start_time):
     return ffmpeg_cmd, mime
 
 
-def get_subtitle(media, type, index):
+def get_subtitle(media, type, index, start_time):
     if type not in ("internal", "external"):
         return None, None
 
@@ -477,7 +477,7 @@ def get_subtitle(media, type, index):
         mime = ".vtt"
         format = "webvtt"
 
-    ffmpeg_cmd = _subtitle(file_path, stream_index, format)
+    ffmpeg_cmd = _subtitle(file_path, stream_index, format, start_time)
 
     return ffmpeg_cmd, mime
 
