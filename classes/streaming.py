@@ -521,7 +521,7 @@ def get_font(media, font_name):
     return None
 
 
-def adjust_start_time(file_path, start_time):
+def _get_previous_iframe_time(file_path, start_time):
     cmd = (
         'ffprobe', '-hide_banner', '-loglevel',
         'error', '-select_streams', 'v:0',
@@ -560,7 +560,7 @@ def get_streams(media, width, height, decoders, start_time):
     start_time = 0
 
     if start_time:
-        start_time = adjust_start_time(file_path, start_time)
+        start_time = _get_previous_iframe_time(file_path, start_time)
 
     streams = []
     audio = []
