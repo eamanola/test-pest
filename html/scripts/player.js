@@ -180,6 +180,8 @@ var create_player = (function() {
       )
 
       overlay.addEventListener("wheel", function(e) {
+        e.preventDefault()
+        e.stopPropagation()
         var current_audio = this.current_audio
         if (current_audio) {
           var new_volume = current_audio.volume - (e.deltaY / 3 * 0.05)
