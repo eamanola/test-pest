@@ -52,7 +52,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
+def _video_stream(file_path, codec, width, height, subtitle_index):
     cmd, mime = None, None
 
     try:
@@ -76,7 +76,6 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
             cmd = cmd + ['-re']
 
         cmd = cmd + [
-            '-ss', str(start_time),
             '-i', file_path,
             '-r', '30', '-g', '90',
             '-quality', 'realtime',
@@ -231,10 +230,9 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
         return cmd, mime
 
 
-def _video_dump(file_path, start_time, dst_path):
+def _video_dump(file_path, dst_path):
     cmd = (
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time),
         '-i', file_path,
         '-an', '-sn', '-dn', '-map', '-0:t?', '-map', '0:v:0',
         '-c', 'copy', dst_path
@@ -248,10 +246,9 @@ def _video_dump(file_path, start_time, dst_path):
     return proc.returncode
 
 
-def _audio_stream(file_path, stream_index, start_time, format, audio_codec):
+def _audio_stream(file_path, stream_index, format, audio_codec):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time),
         '-i', file_path,
         '-map', f'0:{stream_index}',
         '-c:a', audio_codec, '-f', format, 'pipe:1'
@@ -289,10 +286,9 @@ def _audio_stream(file_path, stream_index, start_time, format, audio_codec):
     return cmd
 
 
-def _audio_dump(file_path, stream_index, start_time, format, dst_path):
+def _audio_dump(file_path, stream_index, format, dst_path):
     cmd = (
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time),
         '-i', file_path,
         '-vn', '-sn', '-dn', '-map', '-0:t?', '-map', f'0:{stream_index}',
         '-c', 'copy', '-f', format, dst_path
@@ -306,10 +302,9 @@ def _audio_dump(file_path, stream_index, start_time, format, dst_path):
     return proc.returncode
 
 
-def _subtitle(file_path, stream_index, format, start_time):
+def _subtitle(file_path, stream_index, format):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time),
         '-i', file_path,
         '-f', format
     ]
@@ -336,7 +331,16 @@ def _dump_attachments(file_path, dst_dir):
 
 
 def get_video_stream(media, width, height, codec, start_time, subtitle_index):
-    file_path = os.path.join(media.parent().path(), media.file_path())
+    if start_time:
+        file_path = os.path.join(
+            CTMP_DIR,
+            f'trimmed-{start_time}-{media.id()}.mkv'
+        )
+    else:
+        file_path = os.path.join(
+            media.parent().path(), media.file_path()
+        )
+
     if not os.path.exists(file_path):
         return None, None
 
@@ -364,20 +368,29 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
 
         if not os.path.exists(dst_path):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
-            if _video_dump(file_path, start_time, dst_path) != 0:
+            if _video_dump(file_path, dst_path) != 0:
                 return None, None
 
         stream, mime = dst_path, mime
     else:
         stream, mime = _video_stream(
-            file_path, codec, w, h, start_time, subtitle_index
+            file_path, codec, w, h, subtitle_index
         )
 
     return stream, mime
 
 
 def get_audio_stream(media, stream_index, codec, start_time):
-    file_path = os.path.join(media.parent().path(), media.file_path())
+    if start_time:
+        file_path = os.path.join(
+            CTMP_DIR,
+            f'trimmed-{start_time}-{media.id()}.mkv'
+        )
+    else:
+        file_path = os.path.join(
+            media.parent().path(), media.file_path()
+        )
+
     if not os.path.exists(file_path):
         return None, None
 
@@ -420,7 +433,7 @@ def get_audio_stream(media, stream_index, codec, start_time):
         if not os.path.exists(dst_path):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
             if _audio_dump(
-                file_path, stream_index, start_time, format, dst_path
+                file_path, stream_index, format, dst_path
             ) != 0:
                 return None, None
 
@@ -436,7 +449,7 @@ def get_audio_stream(media, stream_index, codec, start_time):
             mime = ".opus"
 
         ffmpeg_cmd = _audio_stream(
-            file_path, stream_index, start_time, format, audio_codec
+            file_path, stream_index, format, audio_codec
         )
 
     return ffmpeg_cmd, mime
@@ -447,7 +460,15 @@ def get_subtitle(media, type, index, start_time):
         return None, None
 
     if type == "internal":
-        file_path = os.path.join(media.parent().path(), media.file_path())
+        if start_time:
+            file_path = os.path.join(
+                CTMP_DIR,
+                f'trimmed-{start_time}-{media.id()}.mkv'
+            )
+        else:
+            file_path = os.path.join(
+                media.parent().path(), media.file_path()
+            )
     elif type == "external":
         file_path = os.path.join(
             media.parent().path(), media.subtitles[int(index)]
@@ -482,7 +503,7 @@ def get_subtitle(media, type, index, start_time):
         mime = ".vtt"
         format = "webvtt"
 
-    ffmpeg_cmd = _subtitle(file_path, stream_index, format, start_time)
+    ffmpeg_cmd = _subtitle(file_path, stream_index, format)
 
     return ffmpeg_cmd, mime
 
@@ -552,15 +573,59 @@ def _get_previous_iframe_time(file_path, start_time):
     return start_time
 
 
+def trim(media, start_time):
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
+
+    dst_path = os.path.join(
+        CTMP_DIR, f'trimmed-{start_time}-{media.id()}.mkv'
+    )
+    if os.path.exists(dst_path):
+        return dst_path
+
+    os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+
+    cmd = [
+        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL, '-stats'
+    ]
+
+    cmd = cmd + [
+        '-ss', str(start_time),
+        '-i', file_path
+    ]
+
+    for subtitle in media.subtitles:
+        cmd = cmd + [
+            '-ss', str(start_time),
+            '-i', os.path.join(media.parent().path(), subtitle)
+        ]
+
+    cmd = cmd + ['-map', '0']
+
+    index = 1
+    for subtitle in media.subtitles:
+        cmd = cmd + ['-map', str(index)]
+        index = index + 1
+
+    cmd = cmd + ['-c:a', 'copy', '-c:v', 'copy', '-c:s', 'ass', '-copyts']
+    cmd = cmd + [dst_path]
+
+    print('Trim:', ' '.join(cmd))
+
+    proc = subprocess.Popen(cmd)
+    proc.wait()
+
+    return dst_path
+
+
 def get_streams(media, width, height, decoders, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
 
-    start_time = 0
-
     if start_time:
-        start_time = _get_previous_iframe_time(file_path, start_time)
+        file_path = trim(media, start_time)
 
     streams = []
     audio = []
@@ -597,7 +662,7 @@ def get_streams(media, width, height, decoders, start_time):
     if CFFMPEG_STREAM:
         streams.append(f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm")
         cmd, mime = get_video_stream(
-            media, width, height, "vp9", start_time, None
+            media, width, height, "vp9", None
         )
         print(' '.join(cmd))
         subprocess.Popen(cmd)
@@ -690,11 +755,11 @@ def get_streams(media, width, height, decoders, start_time):
         src = f'/subtitle/internal/{stream_index}/{media_id}'
 
         if is_ass:
-            src = f"{src}.ass"  # ?start={start_time}"
+            src = f"{src}.ass?start={start_time}"
         elif is_bitmap:
-            src = f"{src}.tra"
+            src = f"{src}.tra?start={start_time}"
         else:
-            src = f"{src}.vtt"
+            src = f"{src}.vtt?start={start_time}"
 
         subtitle = {
             'src': src,
@@ -707,16 +772,17 @@ def get_streams(media, width, height, decoders, start_time):
         if stream_index:
             subtitles.append(subtitle)
 
-    for i in range(len(media.subtitles)):
-        src = f'/subtitle/external/{i}/{media_id}'
-        is_ass = media.subtitles[i].endswith(".ass")
-        src = src + (".ass" if is_ass else ".vtt")
-        subtitles.append({
-            'src': src,
-            'lang': "External",
-            'default': False,
-            'forced': False
-        })
+    if not start_time:
+        for i in range(len(media.subtitles)):
+            src = f'/subtitle/external/{i}/{media_id}'
+            is_ass = media.subtitles[i].endswith(".ass")
+            src = src + (".ass" if is_ass else ".vtt")
+            subtitles.append({
+                'src': src,
+                'lang': "External",
+                'default': False,
+                'forced': False
+            })
 
     duration = 0
     for line in stream_lines:

@@ -501,7 +501,6 @@ var create_player = (function() {
               video: this.video(),
               subUrl: src,
               fonts: this.fonts,
-              timeOffset: this.start_time,
               workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js',
               legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js'
             })
@@ -529,6 +528,7 @@ var create_player = (function() {
             cues[i].line = 100 // bottom of screen, but not default -1
           }
         }, false)
+        /*
         if (this.start_time) {
           var offset = this.start_time
           track.addEventListener("load", function(e) {
@@ -566,7 +566,7 @@ var create_player = (function() {
               })(e.target.track, cue_cache), 0)
             }
           }, false)
-        }
+        }*/
 
         video.appendChild(track)
         video.textTracks[0].mode = "showing"
