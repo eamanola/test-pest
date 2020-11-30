@@ -391,7 +391,7 @@ class Handler(socketserver.StreamRequestHandler):
                 transcode = None
 
             start_time = (
-                int(params['start'][0]) if "start" in params.keys() else 0
+                float(params['start'][0]) if "start" in params.keys() else 0
             )
             subtitle_index = (
                 int(params['si'][0]) if "si" in params.keys() else None
@@ -433,7 +433,7 @@ class Handler(socketserver.StreamRequestHandler):
 
             params = urllib.parse.parse_qs(parsed.query)
             start_time = (
-                int(params['start'][0]) if "start" in params.keys() else 0
+                float(params['start'][0]) if "start" in params.keys() else 0
             )
 
             if "transcode" in params.keys():
@@ -476,7 +476,7 @@ class Handler(socketserver.StreamRequestHandler):
 
             params = urllib.parse.parse_qs(parsed.query)
             start_time = (
-                int(params['start'][0]) if "start" in params.keys() else 0
+                float(params['start'][0]) if "start" in params.keys() else 0
             )
 
             if (

@@ -226,7 +226,7 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
                 f'http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm'
             ]
 
-        print('Video:', ' '.join(cmd))
+        print('Video:')  # , ' '.join(cmd))
 
         return cmd, mime
 
@@ -282,7 +282,7 @@ def _audio_stream(file_path, stream_index, start_time, format, audio_codec):
     else:
         cmd_test.terminate()
 
-    print('Audio:', ' '.join(cmd))
+    print('Audio:')  # , ' '.join(cmd))
 
     return cmd
 
@@ -314,7 +314,7 @@ def _subtitle(file_path, stream_index, format, start_time):
 
     cmd.append('pipe:1')
 
-    print('Subtitle:', ' '.join(cmd))
+    print('Subtitle:')  # , ' '.join(cmd))
 
     return cmd
 
@@ -516,10 +516,43 @@ def get_font(media, font_name):
     return None
 
 
+def adjust_start_time(file_path, start_time):
+    cmd = (
+        'ffprobe', '-hide_banner', '-loglevel',
+        'error', '-select_streams', 'v:0',
+        '-skip_frame', 'nokey', '-show_frames', '-show_entries',
+        'frame=pkt_pts_time',  # ,pict_type',
+        '-print_format', 'json',
+        file_path
+    )
+
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    proc.wait()
+
+    import json
+    output = json.loads(proc.stdout.read())
+    frames = output["frames"]
+    frames.reverse()
+    for frame in frames:
+        if float(frame["pkt_pts_time"]) > start_time:
+            continue
+
+        previous_i_frame_time = float(frame["pkt_pts_time"])
+        print('start_time', start_time, '->', previous_i_frame_time)
+
+        import math
+        return math.ceil(previous_i_frame_time)
+
+    return start_time
+
+
 def get_streams(media, width, height, decoders, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
+
+    if start_time:
+        start_time = adjust_start_time(file_path, start_time)
 
     streams = []
     audio = []
@@ -649,7 +682,7 @@ def get_streams(media, width, height, decoders, start_time):
         src = f'/subtitle/internal/{stream_index}/{media_id}'
 
         if is_ass:
-            src = f"{src}.ass"
+            src = f"{src}.ass"  # ?start={start_time}"
         elif is_bitmap:
             src = f"{src}.tra"
         else:
