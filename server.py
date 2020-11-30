@@ -411,13 +411,13 @@ class Handler(socketserver.StreamRequestHandler):
                     response_code = 200
 
                     response_headers["Content-type"] = mime_type(mime)
+                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
 
                     if isinstance(stream, str):
                         response_file_path = stream
-                        response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     else:
                         response_cmd = stream
-                        response_headers["Cache-Control"] = MUST_REVALIDATE
+                        # response_headers["Cache-Control"] = MUST_REVALIDATE
                 else:
                     response_code = 404
             else:
@@ -452,13 +452,13 @@ class Handler(socketserver.StreamRequestHandler):
                 if stream:
                     response_code = 200
                     response_headers["Content-type"] = mime_type(mime)
+                    response_headers["Cache-Control"] = CACHE_ONE_WEEK
 
                     if isinstance(stream, str):
                         response_file_path = stream
-                        response_headers["Cache-Control"] = CACHE_ONE_WEEK
                     else:
                         response_cmd = stream
-                        response_headers["Cache-Control"] = MUST_REVALIDATE
+                        # response_headers["Cache-Control"] = MUST_REVALIDATE
                 else:
                     response_code = 404
             else:
