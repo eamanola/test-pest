@@ -234,7 +234,8 @@ def _video_stream(file_path, codec, width, height, start_time, subtitle_index):
 def _video_dump(file_path, start_time, dst_path):
     cmd = (
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time), '-i', file_path,
+        '-ss', str(start_time),
+        '-i', file_path,
         '-an', '-sn', '-dn', '-map', '-0:t?', '-map', '0:v:0',
         '-c', 'copy', dst_path
     )
@@ -250,7 +251,8 @@ def _video_dump(file_path, start_time, dst_path):
 def _audio_stream(file_path, stream_index, start_time, format, audio_codec):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time), '-i', file_path,
+        '-ss', str(start_time),
+        '-i', file_path,
         '-map', f'0:{stream_index}',
         '-c:a', audio_codec, '-f', format, 'pipe:1'
     ]
@@ -290,7 +292,8 @@ def _audio_stream(file_path, stream_index, start_time, format, audio_codec):
 def _audio_dump(file_path, stream_index, start_time, format, dst_path):
     cmd = (
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time), '-i', file_path,
+        '-ss', str(start_time),
+        '-i', file_path,
         '-vn', '-sn', '-dn', '-map', '-0:t?', '-map', f'0:{stream_index}',
         '-c', 'copy', '-f', format, dst_path
     )
@@ -306,7 +309,9 @@ def _audio_dump(file_path, stream_index, start_time, format, dst_path):
 def _subtitle(file_path, stream_index, format, start_time):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-ss', str(start_time), '-i', file_path, '-f', format
+        '-ss', str(start_time),
+        '-i', file_path,
+        '-f', format
     ]
 
     if stream_index is not None:
@@ -532,8 +537,9 @@ def adjust_start_time(file_path, start_time):
     import json
     output = json.loads(proc.stdout.read())
     frames = output["frames"]
-    frames.reverse()
-    for frame in frames:
+
+    for i in range(len(frames)-1, 0, -1):  # frame in frames:
+        frame = frames[i]
         if float(frame["pkt_pts_time"]) > start_time:
             continue
 
