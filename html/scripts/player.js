@@ -64,7 +64,7 @@ var create_player = (function() {
     BUFFER_TIME: 1000 * 2,
     fullscreen_hide_ui_timeout: null,
     FULLSCREEN_HIDE_UI_TIMEOUT: 5 * 1000,
-    ENABLE_SEEK: true,
+    ENABLE_SEEK: false,
     start_time: 0,
     _can_play: [],
     create_wrapper: function() {

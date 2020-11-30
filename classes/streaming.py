@@ -250,7 +250,7 @@ def _video_dump(file_path, start_time, dst_path):
 def _audio_stream(file_path, stream_index, start_time, format, audio_codec):
     cmd = [
         'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-i', file_path, '-ss', str(start_time),
+        '-ss', str(start_time), '-i', file_path,
         '-map', f'0:{stream_index}',
         '-c:a', audio_codec, '-f', format, 'pipe:1'
     ]
@@ -550,6 +550,8 @@ def get_streams(media, width, height, decoders, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
+
+    start_time = 0
 
     if start_time:
         start_time = adjust_start_time(file_path, start_time)
