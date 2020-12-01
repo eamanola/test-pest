@@ -129,21 +129,19 @@ var create_player = (function() {
       // ? check effect tonight
       video.addEventListener("ended", this.close.bind(this), false)
 
-      if (this.ENABLE_SEEK) {
-        var player = this
-        video.addEventListener("progress", function() {
-          var duration = player.duration
-          if(duration) {
-            setTimeout(function(){
-              if (video.buffered.length) {
-                player.play_position_buffered().style.width =
-                  Math.floor(player.start_time + video.buffered.end(0))
-                  / duration * 100 + '%'
-              }
-            }, 1000)
-          }
-        }, false)
-      }
+      var player = this
+      video.addEventListener("progress", function() {
+        var duration = player.duration
+        if(duration) {
+          setTimeout(function(){
+            if (video.buffered.length) {
+              player.play_position_buffered().style.width =
+                Math.floor(player.start_time + video.buffered.end(0))
+                / duration * 100 + '%'
+            }
+          }, 1000)
+        }
+      }, false)
 
       video.addEventListener("timeupdate", function() {
         var time = format_secs(this.current_time())
@@ -283,8 +281,7 @@ var create_player = (function() {
         video.currentTime = new_time
       }.bind(this), false)
 
-      if (this.ENABLE_SEEK)
-        play_position_total.appendChild(this.create_play_position_buffered())
+      play_position_total.appendChild(this.create_play_position_buffered())
       play_position_total.appendChild(this.create_play_position_played())
 
       return play_position_total

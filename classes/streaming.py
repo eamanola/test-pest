@@ -542,7 +542,7 @@ def get_font(media, font_name):
     return None
 
 
-def _get_previous_iframe_time(file_path, start_time):
+def __get_previous_iframe_time(file_path, start_time):
     cmd = (
         'ffprobe', '-hide_banner', '-loglevel',
         'error', '-select_streams', 'v:0',
@@ -623,8 +623,6 @@ def get_streams(media, width, height, decoders, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None
-
-    # start_time = 500
 
     if start_time:
         file_path = trim(media, start_time)
