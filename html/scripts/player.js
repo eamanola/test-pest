@@ -12,38 +12,17 @@ var create_player = (function() {
     return time
   }
 
-  var Player = function(streams_obj) {
-    this.media_id = streams_obj.id
-    this.duration = streams_obj.duration
-    this.start_time = streams_obj.start_time
-
+  var Player = function(streams_url) {
     var wrapper = this.wrapper = this.create_wrapper()
     this.set_state("buffering")
 
     wrapper.appendChild(this.create_video())
     wrapper.appendChild(this.create_loading())
     wrapper.appendChild(this.create_overlay())
+
     var controls = this.create_controls()
-
-    this.create_sources(streams_obj.streams)
-
-    if (streams_obj.audio.length > 0) {
-      this.create_audio(streams_obj.audio)
-      if (streams_obj.audio.length > 1) {
-        controls.appendChild(this.create_audio_select(streams_obj.audio))
-      }
-      this.sync_audio()
-    }
-
-    // create after sources, in case default subtitle requires re-transcoding
-    if (streams_obj.subtitles.length > 0) {
-      this.fonts = streams_obj.fonts
-      controls.appendChild(this.create_subtitle_select(streams_obj.subtitles))
-    }
-
     controls.appendChild(this.create_close_btn())
     controls.appendChild(this.create_fullscreen_btn())
-    controls.appendChild(this.create_play_position())
     wrapper.appendChild(controls)
 
     document.addEventListener(
@@ -53,6 +32,11 @@ var create_player = (function() {
     );
 
     document.body.prepend(wrapper)
+
+    ajax(
+      streams_url,
+      this.on_meta.bind(this)
+    )
   }
 
   Player.prototype = {
@@ -72,6 +56,34 @@ var create_player = (function() {
       wrapper.className = "video-wrapper"
 
       return wrapper
+    },
+    on_meta: function(responseText) {
+      console.log(responseText)
+      var streams_obj = JSON.parse(responseText);
+
+      this.media_id = streams_obj.id
+      this.duration = streams_obj.duration
+      this.start_time = streams_obj.start_time
+
+      this.create_sources(streams_obj.streams)
+
+      if (streams_obj.audio.length > 0) {
+        this.create_audio(streams_obj.audio)
+        if (streams_obj.audio.length > 1) {
+          this.controls()
+            .appendChild(this.create_audio_select(streams_obj.audio))
+        }
+        this.sync_audio()
+      }
+
+      // create after sources, in case default subtitle requires re-transcoding
+      if (streams_obj.subtitles.length > 0) {
+        this.fonts = streams_obj.fonts
+        this.controls()
+          .appendChild(this.create_subtitle_select(streams_obj.subtitles))
+      }
+
+      this.controls().appendChild(this.create_play_position())
     },
     set_state: function(state) {
       if (state == "buffering")
@@ -227,7 +239,7 @@ var create_player = (function() {
 
       play_position.appendChild(this.create_play_position_time())
 
-      if (this.duration) {
+      if (this.duration){
         play_position.appendChild(this.create_play_position_duration())
       }
 
