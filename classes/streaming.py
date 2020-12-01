@@ -334,7 +334,7 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
     if start_time:
         file_path = os.path.join(
             CTMP_DIR,
-            f'trimmed-{start_time}-{media.id()}.mkv'
+            f'trimmed-{start_time}-{media.id()}.{media.file_path()[-3:]}'
         )
     else:
         file_path = os.path.join(
@@ -384,7 +384,7 @@ def get_audio_stream(media, stream_index, codec, start_time):
     if start_time:
         file_path = os.path.join(
             CTMP_DIR,
-            f'trimmed-{start_time}-{media.id()}.mkv'
+            f'trimmed-{start_time}-{media.id()}.{media.file_path()[-3:]}'
         )
     else:
         file_path = os.path.join(
@@ -463,7 +463,7 @@ def get_subtitle(media, type, index, start_time):
         if start_time:
             file_path = os.path.join(
                 CTMP_DIR,
-                f'trimmed-{start_time}-{media.id()}.mkv'
+                f'trimmed-{start_time}-{media.id()}.{media.file_path()[-3:]}'
             )
         else:
             file_path = os.path.join(
@@ -579,7 +579,7 @@ def trim(media, start_time):
         return None
 
     dst_path = os.path.join(
-        CTMP_DIR, f'trimmed-{start_time}-{media.id()}.mkv'
+        CTMP_DIR, f'trimmed-{start_time}-{media.id()}.{media.file_path()[-3:]}'
     )
     if os.path.exists(dst_path):
         return dst_path
