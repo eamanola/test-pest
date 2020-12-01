@@ -620,9 +620,14 @@ class Handler(socketserver.StreamRequestHandler):
         if response_file_path is not None:
             response_headers["Transfer-Encoding"] = "chunked"
             response_headers["Accept-Ranges"] = "bytes"
-            response_headers["Content-Length"] = os.path.getsize(
-                response_file_path
-            )
+
+            MAX_SIZE = self.MAX_BYTES_PER_CONN
+            file_size = os.path.getsize(response_file_path)
+            if MAX_SIZE < file_size:
+                response_headers["Content-Length"] = MAX_SIZE
+            else:
+                response_headers["Content-Length"] = file_size
+
             if 'Range' in self.headers and response_code == 200:
                 response_code = 206
 
@@ -630,9 +635,31 @@ class Handler(socketserver.StreamRequestHandler):
                     self.headers['Range']
                 )
                 if start:
-                    response_headers["Content-Length"] = (
-                        response_headers["Content-Length"]
-                        - int(start.group(1))
+                    start_1 = int(start.group(1))
+                    if MAX_SIZE < file_size - start_1:
+                        response_headers["Content-Length"] = MAX_SIZE
+                    else:
+                        response_headers["Content-Length"] = (
+                            file_size - start_1
+                        )
+                    print(
+                        'cl:',
+                        response_headers["Content-Length"],
+                        self.path
+                    )
+
+                    if start_1 + MAX_SIZE < file_size:
+                        end = start_1 + MAX_SIZE
+                    else:
+                        end = file_size
+
+                    response_headers["Content-Range"] = (
+                        f"bytes {start_1}-{end}/{file_size}"
+                    )
+                    print(
+                        'cr:',
+                        response_headers["Content-Range"],
+                        self.path
                     )
 
         # should be null?
@@ -683,7 +710,8 @@ class Handler(socketserver.StreamRequestHandler):
 
     def send_chunks(self, file_path):
         NEW_LINE = bytes("\r\n", "utf-8")
-        CHUNK_SIZE = 1024 * 1024 * 1
+        MAX_SIZE = self.MAX_BYTES_PER_CONN
+        CHUNK_SIZE = MAX_SIZE  # 1024 * 1024 * 1
 
         with open(file_path, "rb") as f:
             if 'Range' in self.headers:
@@ -693,7 +721,8 @@ class Handler(socketserver.StreamRequestHandler):
                 if start:
                     f.seek(int(start.group(1)), 0)
                     print('Start', int(start.group(1)), self.headers['Range'])
-            while True:
+            sent = 0
+            while sent < MAX_SIZE:
                 chunk = f.read(CHUNK_SIZE)
 
                 if not chunk:
@@ -701,17 +730,20 @@ class Handler(socketserver.StreamRequestHandler):
 
                 try:
                     chunk_len = len(chunk)
+                    sent = sent + chunk_len
                     post = (
                         bytes(hex(chunk_len)[2:], "utf-8") + NEW_LINE
                         + chunk + NEW_LINE
                     )
-                    if chunk_len < CHUNK_SIZE:
+                    if chunk_len < CHUNK_SIZE or sent == MAX_SIZE:
                         post = (
                             post + bytes("0", "utf-8") + NEW_LINE + NEW_LINE
                         )
 
                     self.wfile.write(post)
                     self.wfile.flush()
+
+                    print(sent, '/', MAX_SIZE, self.path)
 
                 finally:
                     del chunk
@@ -762,6 +794,7 @@ class Handler(socketserver.StreamRequestHandler):
                 self.headers[parts.group(1).strip()] = parts.group(2).strip()
 
         try:
+            self.MAX_BYTES_PER_CONN = 1024 * 1024 * 8
             self.do_GET()
 
         finally:
