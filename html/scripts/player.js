@@ -135,8 +135,17 @@ var create_player = (function() {
         if(duration) {
           setTimeout(function(){
             if (video.buffered.length) {
+              var buffered_end = video.buffered.end(0)
+
+              if (player.current_audio) {
+                if (player.current_audio.buffered.length) {
+                  var audio_buffered_end = player.current_audio.buffered.end(0)
+                  buffered_end = Math.min(buffered_end, audio_buffered_end)
+                }
+              }
+
               player.play_position_buffered().style.width =
-                Math.floor(player.start_time + video.buffered.end(0))
+                Math.floor(player.start_time + buffered_end)
                 / duration * 100 + '%'
             }
           }, 1000)
@@ -259,18 +268,18 @@ var create_player = (function() {
         var new_time = percent * duration - this.start_time
 
         var buffered_end = 0
-        var buffered_end_video = 0
         if (video.buffered.length)
-          buffered_end_video = video.buffered.end(0)
+          buffered_end = video.buffered.end(
+            video.buffered.length - 1
+          )
 
         if (current_audio) {
-          var buffered_end_audio = 0
           if (current_audio.buffered.length) {
-            buffered_end_audio = current_audio.buffered.end(0);
+            var audio_buffered_end = current_audio.buffered.end(
+              current_audio.buffered.length - 1
+            );
+            buffered_end = Math.min(buffered_end, audio_buffered_end)
           }
-          buffered_end = Math.min(buffered_end_video, buffered_end_audio)
-        } else {
-          buffered_end = buffered_end_video
         }
 
         if (new_time > buffered_end)
@@ -431,6 +440,7 @@ var create_player = (function() {
         audio.setAttribute("data-audio-id", audio_obj[i].id)
         // audio.setAttribute("controls", "1")
         audio.preload = "auto"
+        audio.autoplay = false
         audio.style.display = "none"
 
         for (var j = 0, jl = audio_obj[i].src.length; j < jl; j++) {
@@ -829,12 +839,14 @@ var create_player = (function() {
           audio.load()
           console.log("transcoding audio")
         }
-      } else if (/NotAllowedError: play\(\) can only be initiated by a user gesture./) {
+      } else if (/NotAllowedError: play\(\) can only be initiated by a user gesture./.test(error)) {
         this.video().pause()
+      } else {
+        console.log('on_audio_play_error:', error)
       }
     },
     on_video_play_error: function(error){
-      // console.log('on_video_play_error:', error)
+      console.log('on_video_play_error:', error)
     }
   }
 

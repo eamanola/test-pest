@@ -621,7 +621,7 @@ class Handler(socketserver.StreamRequestHandler):
             response_headers["Transfer-Encoding"] = "chunked"
             response_headers["Accept-Ranges"] = "bytes"
 
-            MAX_SIZE = self.MAX_BYTES_PER_CONN
+            MAX_SIZE = self.MAX_BYTES_PER_CHUNK_CONN
             file_size = os.path.getsize(response_file_path)
             if MAX_SIZE < file_size:
                 response_headers["Content-Length"] = MAX_SIZE
@@ -642,11 +642,11 @@ class Handler(socketserver.StreamRequestHandler):
                         response_headers["Content-Length"] = (
                             file_size - start_1
                         )
-                    print(
-                        'cl:',
-                        response_headers["Content-Length"],
-                        self.path
-                    )
+                    # print(
+                    #    'cl:',
+                    #    response_headers["Content-Length"],
+                    #    self.path
+                    # )
 
                     if start_1 + MAX_SIZE < file_size:
                         end = start_1 + MAX_SIZE
@@ -690,7 +690,7 @@ class Handler(socketserver.StreamRequestHandler):
         try:
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
-            CHUNK_SIZE = 1024 * 8  # io.DEFAULT_BUFFER_SIZE
+            CHUNK_SIZE = 8 * 1024  # self.CHUNK_SIZE
 
             chunk = proc.stdout.read(CHUNK_SIZE)
             while chunk:
@@ -710,8 +710,8 @@ class Handler(socketserver.StreamRequestHandler):
 
     def send_chunks(self, file_path):
         NEW_LINE = bytes("\r\n", "utf-8")
-        MAX_SIZE = self.MAX_BYTES_PER_CONN
-        CHUNK_SIZE = MAX_SIZE  # 1024 * 1024 * 1
+        MAX_SIZE = self.MAX_BYTES_PER_CHUNK_CONN
+        CHUNK_SIZE = self.CHUNK_SIZE  # 1024 * 1024 * 1
 
         with open(file_path, "rb") as f:
             if 'Range' in self.headers:
@@ -720,7 +720,7 @@ class Handler(socketserver.StreamRequestHandler):
                 )
                 if start:
                     f.seek(int(start.group(1)), 0)
-                    print('Start', int(start.group(1)), self.headers['Range'])
+
             sent = 0
             while sent < MAX_SIZE:
                 chunk = f.read(CHUNK_SIZE)
@@ -743,7 +743,7 @@ class Handler(socketserver.StreamRequestHandler):
                     self.wfile.write(post)
                     self.wfile.flush()
 
-                    print(sent, '/', MAX_SIZE, self.path)
+                    # print(sent, '/', MAX_SIZE, self.path)
 
                 finally:
                     del chunk
@@ -764,7 +764,6 @@ class Handler(socketserver.StreamRequestHandler):
         for entry in self.header_str.split("\r\n"):
             print(entry, self.path)
             break
-        print("")
 
         self.wfile.write(bytes(self.header_str, "utf8"))
         self.wfile.flush()
@@ -794,7 +793,8 @@ class Handler(socketserver.StreamRequestHandler):
                 self.headers[parts.group(1).strip()] = parts.group(2).strip()
 
         try:
-            self.MAX_BYTES_PER_CONN = 1024 * 1024 * 8
+            self.MAX_BYTES_PER_CHUNK_CONN = 1024 * 1024 * 8
+            self.CHUNK_SIZE = 1024 * 512
             self.do_GET()
 
         finally:
