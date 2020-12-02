@@ -13,7 +13,8 @@ class OMDB(MetaSource):
         import urllib
 
         import re
-        search_str = re.sub(r'[^A-Za-z]+', " ", title).strip()
+        search_str = re.sub(r'[0-9]{4}', " ", title).strip()
+        search_str = re.sub(r'[^0-9A-Za-z]+', " ", search_str).strip()
 
         TEST = False
 

@@ -190,6 +190,15 @@ class File_name_parser(object):
             if has_episode:
                 episode = has_episode.group(1)
 
+                # check if number is related to the movie
+                has_episode_folder = File_name_parser.re_episode2.search(
+                    File_name_parser.clean_show_name(parts[1])
+                )
+                if has_episode_folder:
+                    if episode == has_episode_folder.group(1):
+                        print('A movie with number?', file)
+                        episode = File_name_parser.UNKNOWN_EPISODE
+
         return int(episode)
 
     @staticmethod
