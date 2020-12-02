@@ -218,7 +218,8 @@ class ApiRequestHandler(RequestHandler):
 
             if found:
                 code = 200
-                json = item_dict
+                if updated:
+                    json = item_dict
             else:
                 code = 404
 
@@ -270,9 +271,9 @@ class ApiRequestHandler(RequestHandler):
             response = self.played(db, request)
 
         elif self.path.startswith("/info/"):
-            response = self.played(db, request)
+            response = self.info(db, request)
 
         elif self.path.startswith("/addmedialibrary/"):
-            response = self.played(db, request)
+            response = self.addmedialibrary(db, request)
 
         return super().router(db, request) if response is None else response

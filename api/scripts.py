@@ -1,5 +1,5 @@
 from models.containers import Extra, Season, Show, MediaLibrary
-from models.media import Media, Movie, Episode
+from models.media import Media, Episode
 from models.identifiable import Identifiable
 from classes.watchinglist import WatchingList
 from metafinder.anidb import AniDB
@@ -154,17 +154,17 @@ def scan(
     return scanned
 
 
-def _identify(db, identifiable, media_type):
+def _identify(identifiable, media_source, media_type):
     from metafinder.identifier import Identifier
 
-    anidb_id = Identifier(AniDB).guess_id(
-        db,
+    ext_id = Identifier().guess_id(
+        media_source,
         identifiable.title(),
         identifiable.year(),
         media_type
     )
 
-    return anidb_id
+    return ext_id
 
 
 def container_identify(db, container_id):
@@ -175,12 +175,16 @@ def container_identify(db, container_id):
     if container and isinstance(container, Identifiable):
         found = True
 
-        anidb_id = _identify(db, container, AniDB.TV_SHOW)
+        from metafinder.metasource import MetaSource
 
-        if anidb_id:
-            container.ext_ids()[AniDB.KEY] = anidb_id
-            db.update_containers([container])
-            identified = True
+        for source in MetaSource.sources():
+            ext_id = _identify(container, source, source.TV_SHOW)
+
+            if ext_id:
+                container.ext_ids()[source.KEY] = ext_id
+                db.update_containers([container])
+                identified = True
+                break
 
     return found, identified
 
@@ -192,12 +196,17 @@ def media_identify(db, media_id):
 
     if media and isinstance(media, Identifiable):
         found = True
-        anidb_id = _identify(db, media, AniDB.MOVIE)
 
-        if anidb_id:
-            media.ext_ids()[AniDB.KEY] = anidb_id
-            db.update_media([media])
-            identified = True
+        from metafinder.metasource import MetaSource
+
+        for source in MetaSource.sources():
+            ext_id = _identify(media, source, source.MOVIE)
+
+            if ext_id:
+                media.ext_ids()[source.KEY] = ext_id
+                db.update_media([media])
+                identified = True
+                break
 
     return found, identified
 
@@ -265,9 +274,14 @@ def _get_info(db, identifiable):
     if (
         identifiable and
         isinstance(identifiable, Identifiable) and
-        AniDB.KEY in identifiable.ext_ids()
+        len(identifiable.ext_ids())
     ):
-        meta = AniDB.get_meta_getter().get(identifiable.ext_ids()[AniDB.KEY])
+        from metafinder.metasource import MetaSource
+
+        for source in MetaSource.sources():
+            if source.KEY in identifiable.ext_ids():
+                meta = source.get_meta(identifiable.ext_ids()[source.KEY])
+                break
 
         if meta:
             db.update_meta([meta])
@@ -413,26 +427,18 @@ def add_media_library(db, media_library_path):
         if scanned is not None:
             media_library = db.get_container(media_library.id())
 
-            try:
-                test_movie = Movie("/foo", "bar", False)
-                _identify(db, test_movie, None)
-                print('exists')
-            except sqlite3.OperationalError:
-                import metafinder.generate_ext_title_to_id_dbs
-                metafinder.generate_ext_title_to_id_dbs.generate_table(
-                    db, AniDB
-                )
-                print('generated')
-
+            from metafinder.metasource import MetaSource
             updated_containers = []
             for c in media_library.containers:
                 if isinstance(c, Identifiable):
                     con = db.get_container(c.id())
-                    anidb_id = _identify(db, con, AniDB.TV_SHOW)
-                    if anidb_id:
-                        con.ext_ids()[AniDB.KEY] = anidb_id
-                        _get_info(db, con)
-                        updated_containers.append(con)
+                    for source in MetaSource.sources():
+                        ext_id = _identify(con, source, source.TV_SHOW)
+                        if ext_id:
+                            con.ext_ids()[source.KEY] = ext_id
+                            _get_info(db, con)
+                            updated_containers.append(con)
+                            break
 
             if len(updated_containers):
                 db.update_containers(updated_containers)
@@ -440,11 +446,13 @@ def add_media_library(db, media_library_path):
             updated_media = []
             for m in media_library.media:
                 if isinstance(m, Identifiable):
-                    anidb_id = _identify(db, m, AniDB.MOVIE)
-                    if anidb_id:
-                        m.ext_ids()[AniDB.KEY] = anidb_id
-                        _get_info(db, m)
-                        updated_media.append(m)
+                    for source in MetaSource.sources():
+                        ext_id = _identify(m, source, source.MOVIE)
+                        if ext_id:
+                            m.ext_ids()[source.KEY] = ext_id
+                            _get_info(db, m)
+                            updated_media.append(m)
+                            break
 
             if len(updated_media):
                 db.update_media(updated_media)

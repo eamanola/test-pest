@@ -1,32 +1,16 @@
 import re
-from db.db import DB
 
 debug = True
 debug = False
 
 
 class Identifier(object):
-    def __init__(self, ext_api):
+    def __init__(self):
         super(Identifier, self).__init__()
-        self.ext_api = ext_api
-
-    def search_db(self, db, show_name, year):
-        re_search = Identifier.compile_re_search(
-            show_name,
-            exact_match=False,
-            year=year
-        )
-        print('Searching for:', re_search) if debug else ""
-
-        matches = db.get_ext_ids(self.ext_api.TITLE_TO_ID_TABLE, re_search)
-
-        Identifier.print_result(matches) if debug else ""
-
-        return matches
 
     def guess_id(
         self,
-        db,
+        metasource,
         show_name,
         year,
         media_type
@@ -34,9 +18,17 @@ class Identifier(object):
         print("Showname: '{}'".format(show_name)) if debug else ""
         ext_id = None
 
-        matches = self.search_db(db, show_name, year=year)
+        matches = metasource.search(
+            show_name, year=year, media_type=media_type
+        )
         if len(matches) == 0:
-            matches = self.search_db(db, show_name, year=None)
+            matches = metasource.search(
+                show_name, year=None, media_type=media_type
+            )
+        if len(matches) == 0:
+            matches = metasource.search(
+                show_name, year=None, media_type=None
+            )
 
         ext_id = matches[0][0] if len(matches) == 1 else None
 

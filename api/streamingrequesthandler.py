@@ -106,7 +106,7 @@ class StreamingRequestHandler(FileRequestHandler):
                     headers["Cache-Control"] = self.CACHE_ONE_WEEK
                 else:
                     cmd = stream
-                    self.headers["Cache-Control"] = MUST_REVALIDATE
+                    self.headers["Cache-Control"] = self.MUST_REVALIDATE
             else:
                 code = 404
 

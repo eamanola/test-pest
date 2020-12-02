@@ -53,8 +53,6 @@ class Scanner(object):
 
                 current_container = show
 
-                # identify(db, show, show_name, year, Ext_api.TV_SHOW)
-
                 if season_number:
                     season = Season(
                         root_container.path(),
@@ -133,7 +131,7 @@ class Scanner(object):
                     media = existing
                 else:
                     current_container.media.append(media)
-                # identify(db, media, show_name, year, Ext_api.MOVIE)
+
                 if _show_name in subtitle_cache.keys():
                     media.subtitles.append(subtitle_cache.pop(_show_name))
 

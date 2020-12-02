@@ -86,19 +86,26 @@ class Images(object):
 
         return poster
 
-    def download_poster(host, path, poster_filename, rewrite=False):
+    def download_poster(
+        host, path, poster_filename, rewrite=False, https=False
+    ):
         full_dest_filename = os.path.join(
             sys.path[0],
             os.sep.join(Images.POSTER_FOLDER),
             poster_filename
         )
 
-        return Images.download(host, path, full_dest_filename, rewrite=rewrite)
+        return Images.download(
+            host, path, full_dest_filename, rewrite=rewrite, https=https
+        )
 
-    def download(host, path, dest_full_path, rewrite=False):
+    def download(host, path, dest_full_path, rewrite=False, https=False):
         import http.client
         if rewrite or not os.path.exists(dest_full_path):
-            conn = http.client.HTTPConnection(host)
+            if https:
+                conn = http.client.HTTPSConnection(host)
+            else:
+                conn = http.client.HTTPConnection(host)
             conn.request("GET", path)
             response = conn.getresponse()
             data = response.read()

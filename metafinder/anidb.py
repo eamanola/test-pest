@@ -1,41 +1,48 @@
 import re
-from metafinder.ext_api import Ext_api
-from metafinder.ext_title_to_id_file_parser import Ext_title_to_id_file_parser
-from metafinder.ext_meta_getter import Ext_Meta_Getter
+from metafinder.metasource import MetaSource
 
 
-class AniDB(Ext_api):
+class AniDB(MetaSource):
     KEY = "anidb"
     TV_SHOW = None
     MOVIE = None
-    TITLE_TO_ID_TABLE = "title_to_{}_id".format(KEY)
+
     # From https://wiki.anidb.net/API#Data_Dumps
-    TITLE_TO_ID_FILE_PATH = "./external/anidb-titles-nightly-20200913"
+    DATA_DUMP_FILE_PATH = "./external/anidb-titles-nightly-20200913"
+    DATABASE = "ani.db"
+    TITLE_TO_ID_TABLE = "title_to_{}_id".format(KEY)
+    META_ID_PREFIX = IMAGE_PREFIX = KEY
 
-    title_to_id_file_parser = None
+    def search(show_name, year, media_type=None):
+        from metafinder.identifier import Identifier
+        from db.db import get_db
+        import sqlite3
 
-    def __init__(self):
-        super(AniDB, self).__init__()
+        matches = None
 
-    @staticmethod
-    def get_title_to_id_file_parser():
-        if AniDB.title_to_id_file_parser is None:
-            AniDB.title_to_id_file_parser = Anidb_title_to_id_file_parser()
+        re_search = Identifier.compile_re_search(
+            show_name,
+            exact_match=False,
+            year=year
+        )
+        try:
+            db = get_db()
+            db.connect(database=AniDB.DATABASE)
 
-        return AniDB.title_to_id_file_parser
+            try:
+                matches = db.get_ext_ids(AniDB.TITLE_TO_ID_TABLE, re_search)
+            except sqlite3.OperationalError:
+                print('generating anidb table')
 
-    @staticmethod
-    def get_meta_getter():
-        return AniDB_Meta_Getter
+                AniDB._generate_search_table(db)
+                matches = db.get_ext_ids(AniDB.TITLE_TO_ID_TABLE, re_search)
 
+        finally:
+            db.close()
 
-class AniDB_Meta_Getter(Ext_Meta_Getter):
-    IMAGE_PREFIX = META_ID_PREFIX = AniDB.KEY
+        return matches
 
-    def __init__(self, anidb_id):
-        super(AniDB_Meta_Getter, self).__init__(anidb_id)
-
-    def get(anidb_id):
+    def get_meta(anidb_id):
         TEST = False
         import os
         import sys
@@ -43,7 +50,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         META_FOLDER = os.path.join(sys.path[0], "meta")
 
         gzip = os.path.join(
-            META_FOLDER, f'{AniDB_Meta_Getter.META_ID_PREFIX}_{anidb_id}.gz'
+            META_FOLDER, f'{AniDB.META_ID_PREFIX}_{anidb_id}.gz'
         )
 
         if (
@@ -52,7 +59,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         ):
             print('meta from file')
             with open(gzip, "rb") as f:
-                meta = AniDB_Meta_Getter.parse(f.read())
+                meta = AniDB._parse(f.read())
 
         else:
             print('meta from server')
@@ -77,8 +84,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
                 time.sleep(3)  # avoid bann from anidb
 
             try:
-                meta = AniDB_Meta_Getter.parse(data)
-
+                meta = AniDB._parse(data)
                 from pathlib import Path
                 Path(gzip).parent.mkdir(parents=True, exist_ok=True)
 
@@ -89,7 +95,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
 
         return meta
 
-    def parse(data):
+    def _parse(data):
         import gzip
         import xml.etree.ElementTree
         from models.meta import Meta, Episode_Meta
@@ -132,7 +138,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
         _image_name = root.find("./picture").text
         image_host = 'cdn.anidb.net'
         image_path = f'/images/main/{_image_name}'
-        image_name = AniDB_Meta_Getter.IMAGE_PREFIX + _image_name
+        image_name = AniDB.IMAGE_PREFIX + _image_name
         Images.download_poster(image_host, image_path, image_name)
 
         description_node = root.find("./description")
@@ -142,7 +148,7 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
             description = ""
 
         return Meta(
-            f"{AniDB_Meta_Getter.META_ID_PREFIX}:::{anidb_id}",
+            f"{AniDB.META_ID_PREFIX}:::{anidb_id}",
             title,
             rating,
             image_name,
@@ -150,24 +156,51 @@ class AniDB_Meta_Getter(Ext_Meta_Getter):
             description
         )
 
+    def _generate_search_table(db):
+        table = AniDB.TITLE_TO_ID_TABLE
+        file_path = AniDB.DATA_DUMP_FILE_PATH
+        results = AniDB._parse_data_dump_file(file_path)
+        db.populate_title_to_ext_id_table(table, results)
 
-class Anidb_title_to_id_file_parser(Ext_title_to_id_file_parser):
-    def __init__(self):
-        super(Anidb_title_to_id_file_parser, self).__init__()
+    def _parse_data_dump_file(file_path):
+        results = []
 
-    @staticmethod
-    def parse_title_from_line(line):
+        try:
+            file = open(file_path, "r")
+            line = file.readline()
+
+            while line:
+                title = AniDB._parse_title_from_line(line)
+                ext_id = AniDB._parse_id_from_line(line)
+                year = AniDB._parse_year_from_line(line)
+                media_type = AniDB._parse_media_type_from_line(line)
+
+                result = (
+                    ext_id if ext_id else "",
+                    title if title else "",
+                    year if year else 0,
+                    media_type if media_type else ""
+                )
+
+                results.append(result)
+
+                line = file.readline()
+
+        finally:
+            file.close()
+
+        return results
+
+    def _parse_title_from_line(line):
         parts = line.strip().split("|")
         return parts[len(parts) - 1]
 
-    @staticmethod
-    def parse_id_from_line(line):
+    def _parse_id_from_line(line):
         parts = line.strip().split("|")
         return parts[0]
 
-    @staticmethod
-    def parse_year_from_line(line):
-        title = Anidb_title_to_id_file_parser.parse_title_from_line(line)
+    def _parse_year_from_line(line):
+        title = AniDB._parse_title_from_line(line)
         year_re = re.compile(r'.*\((\d{4})\).*')
         year_group = year_re.match(title)
         if year_group:
@@ -177,6 +210,5 @@ class Anidb_title_to_id_file_parser(Ext_title_to_id_file_parser):
 
         return year
 
-    @staticmethod
-    def parse_media_type_from_line(line):
+    def _parse_media_type_from_line(line):
         return None

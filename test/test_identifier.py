@@ -4,37 +4,6 @@ from metafinder.identifier import Identifier
 
 class TestIdentifier(unittest.TestCase):
 
-    def test_search_db(self):
-        from db.sqlite import Sqlite
-        from metafinder.ext_api import Ext_api
-        db = Sqlite()
-        db.connect(database=":memory:")
-
-        ext_api = Ext_api()
-        ext_api.TITLE_TO_ID_TABLE = "randomtable"
-
-        data = [
-            ('ext_id',  "foo",             2000, 'media_type'),
-            ('ext_id',  "foobar",          1999, 'media_type2'),
-            ('ext_id',  "foobar (2000)",   2000, 'media_type'),
-            ('ext_id1', "foobar (2001)",   2001, 'media_type')
-        ]
-
-        db.populate_title_to_ext_id_table(ext_api.TITLE_TO_ID_TABLE, data)
-
-        identifier = Identifier(ext_api)
-
-        matches = identifier.search_db(db, "foo (2000)", year=None)
-        self.assertEqual(len(matches), 4)
-
-        matches = identifier.search_db(db, "foobar (2001)", year=None)
-        self.assertEqual(len(matches), 3)
-
-        matches = identifier.search_db(db, "foobar (2001)", year=2001)
-        self.assertEqual(len(matches), 1)
-
-        db.close()
-
     def test_compile_re_search(self):
         show_name = """
             !!! foo !! (2000) !!...
