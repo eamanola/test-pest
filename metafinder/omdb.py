@@ -35,7 +35,7 @@ class OMDB(MetaSource):
                 params["type"] = media_type
             if year:
                 params["y"] = year
-            print(params)
+            # print(params)
 
             try:
                 conn = http.client.HTTPConnection("www.omdbapi.com")
@@ -53,7 +53,7 @@ class OMDB(MetaSource):
 
         import json
         data_obj = json.loads(data)
-        print(data_obj)
+        # print(data_obj)
 
         if data_obj['Response'] == 'False':
             print('not found')
@@ -71,29 +71,38 @@ class OMDB(MetaSource):
         return ret
 
     def get_meta(ext_id):
-        import http.client
-        import urllib
-
         TEST = False
 
         if TEST:
             data = TEST_META_RESPONSE
         else:
-            params = {
-                "apikey": "3bcf5854",
-                "i": ext_id,
-                "r": "json",
-                "plot": "short"
-            }
+            from metafinder.metacache import MetaCache
 
-            try:
-                conn = http.client.HTTPConnection("www.omdbapi.com")
-                conn.request("GET", '/?' + urllib.parse.urlencode(params))
+            data = MetaCache.load(f'{OMDB.META_ID_PREFIX}_{ext_id}')
 
-                response = conn.getresponse()
-                data = response.read()
-            finally:
-                conn.close()
+            if data is None:
+                import http.client
+                import urllib
+
+                print('meta from server')
+
+                params = {
+                    "apikey": "3bcf5854",
+                    "i": ext_id,
+                    "r": "json",
+                    "plot": "short"
+                }
+
+                try:
+                    conn = http.client.HTTPConnection("www.omdbapi.com")
+                    conn.request("GET", '/?' + urllib.parse.urlencode(params))
+
+                    response = conn.getresponse()
+                    data = response.read()
+                finally:
+                    conn.close()
+
+                MetaCache.save(f'{OMDB.META_ID_PREFIX}_{ext_id}', data)
 
         meta = OMDB._parse_meta(data)
 
@@ -114,7 +123,7 @@ class OMDB(MetaSource):
 
         import json
         data_obj = json.loads(data)
-        print(data_obj)
+        # print(data_obj)
 
         if "Title" in data_obj.keys() and data_obj["Title"] != 'N/A':
             title = data_obj["Title"]
@@ -150,14 +159,14 @@ class OMDB(MetaSource):
         show_meta = json.loads(show_meta_data)
 
         if "imdbID" not in show_meta.keys():
-            print('IMDB._get_episodes: No id')
+            print('OMDB._get_episodes: No id')
             return []
 
         if (
             "Type" not in show_meta.keys()
             or show_meta["Type"] != OMDB.TV_SHOW
         ):
-            print('IMDB._get_episodes: Not a show')
+            print('OMDB._get_episodes: Not a show')
             return []
 
         if (
@@ -165,19 +174,11 @@ class OMDB(MetaSource):
             or show_meta["totalSeasons"] == 'N/A'
             or int(show_meta["totalSeasons"]) <= 0
         ):
-            print('IMDB._get_episodes: no season info')
+            print('OMDB._get_episodes: no season info')
             return []
-
-        import http.client
-        import urllib
 
         seasons_meta_data = []
         seasons = range(1, int(show_meta["totalSeasons"]) + 1)
-        params = {
-            "apikey": "3bcf5854",
-            "i": show_meta["imdbID"],
-            "r": "json"
-        }
 
         TEST = False
 
@@ -185,31 +186,55 @@ class OMDB(MetaSource):
             seasons_meta_data.append(TEST_SEASON_RESPONSE)
 
         else:
-            import time
+            from metafinder.metacache import MetaCache
 
-            try:
-                conn = http.client.HTTPConnection("www.omdbapi.com")
+            ext_id = show_meta["imdbID"]
+            data = MetaCache.load(f'{OMDB.META_ID_PREFIX}_{ext_id}_seasons')
 
-                for s in seasons:
-                    conn.request("GET", '/?' + urllib.parse.urlencode(
-                        {**params, "Season": s}
-                    ))
-                    seasons_meta_data.append(conn.getresponse().read())
-                    print(seasons_meta_data[-1])
-                    time.sleep(3)
-            finally:
-                conn.close()
+            if data:
+                print('Seasons from file')
+                seasons_meta_data = json.loads(data)
+            else:
+                import time
+                import http.client
+                import urllib
+
+                print('Seasons from server')
+
+                params = {
+                    "apikey": "3bcf5854",
+                    "i": ext_id,
+                    "r": "json"
+                }
+
+                try:
+                    conn = http.client.HTTPConnection("www.omdbapi.com")
+
+                    for s in seasons:
+                        conn.request("GET", '/?' + urllib.parse.urlencode(
+                            {**params, "Season": s}
+                        ))
+                        seasons_meta_data.append(json.loads(
+                            conn.getresponse().read()
+                        ))
+                        # print(seasons_meta_data[-1])
+                        time.sleep(1)
+                finally:
+                    conn.close()
+
+                MetaCache.save(
+                    f'{OMDB.META_ID_PREFIX}_{ext_id}_seasons',
+                    bytes(json.dumps(seasons_meta_data), "utf8")
+                )
 
         return OMDB._parse_episodes(seasons_meta_data)
 
-    def _parse_episodes(seasons_meta_data):
-        import json
+    def _parse_episodes(seasons_meta):
         from models.meta import Episode_Meta
 
         meta_episodes = []
 
-        for season_meta_data in seasons_meta_data:
-            season_meta = json.loads(season_meta_data)
+        for season_meta in seasons_meta:
 
             if season_meta["Response"] == "False":
                 continue

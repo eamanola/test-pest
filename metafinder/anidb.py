@@ -47,62 +47,49 @@ class AniDB(MetaSource):
         import os
         import sys
         import time
-        META_FOLDER = os.path.join(sys.path[0], "meta")
 
-        gzip = os.path.join(
-            META_FOLDER, f'{AniDB.META_ID_PREFIX}_{anidb_id}.gz'
-        )
+        from metafinder.metacache import MetaCache
 
-        if (
-            os.path.exists(gzip)
-            and time.time() - int(os.path.getmtime(gzip)) < 24 * 60 * 60
-        ):
-            print('meta from file')
-            with open(gzip, "rb") as f:
-                meta = AniDB._parse(f.read())
-
-        else:
+        data = MetaCache.load(f'{AniDB.META_ID_PREFIX}_{anidb_id}')
+        if data is None:
+            import gzip
             print('meta from server')
             if TEST:
-                with open("data.gz", "rb") as f:
+                with gzip.open("data.gz", "rb") as f:
                     data = f.read()
             else:
                 import http.client
-                conn = http.client.HTTPConnection("api.anidb.net:9001")
-                conn.request("GET", ''.join([
-                    "/httpapi",
-                    "?request=anime",
-                    "&client=testpest",
-                    "&clientver=1",
-                    "&protover=1",
-                    f"&aid={anidb_id}"
-                ]))
-                response = conn.getresponse()
-                data = response.read()
-                conn.close()
+                try:
+                    conn = http.client.HTTPConnection("api.anidb.net:9001")
+                    conn.request("GET", ''.join([
+                        "/httpapi",
+                        "?request=anime",
+                        "&client=testpest",
+                        "&clientver=1",
+                        "&protover=1",
+                        f"&aid={anidb_id}"
+                    ]))
+                    data = gzip.decompress(conn.getresponse().read())
+                finally:
+                    conn.close()
+
+                MetaCache.save(f'{AniDB.META_ID_PREFIX}_{anidb_id}', data)
 
                 time.sleep(3)  # avoid bann from anidb
 
-            try:
-                meta = AniDB._parse(data)
-                from pathlib import Path
-                Path(gzip).parent.mkdir(parents=True, exist_ok=True)
-
-                with open(gzip, "wb") as f:
-                    f.write(data)
-            except Exception:
-                meta = None
+        try:
+            meta = AniDB._parse(data)
+        except Exception:
+            meta = None
 
         return meta
 
     def _parse(data):
-        import gzip
         import xml.etree.ElementTree
         from models.meta import Meta, Episode_Meta
         from api.images import Images
 
-        uncompressed = gzip.decompress(data)
-        root = xml.etree.ElementTree.fromstring(uncompressed)
+        root = xml.etree.ElementTree.fromstring(data)
 
         anidb_id = root.attrib['id']
 
