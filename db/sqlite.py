@@ -358,7 +358,7 @@ class Sqlite(DB):
             ON containers.id = identifiables.id
             LEFT OUTER JOIN meta
             ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
-            WHERE containers.id=?
+            WHERE containers.id=? GROUP BY containers.id
             """
         cur.execute(sql, [container_id])
 
@@ -385,7 +385,7 @@ class Sqlite(DB):
             ON media.id = media_states.media_id
             LEFT OUTER JOIN meta
             ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
-            WHERE media.id=?
+            WHERE media.id=? GROUP BY media.id
             """
         cur.execute(sql, [media_id])
 
@@ -674,7 +674,7 @@ class Sqlite(DB):
             ON containers.id = identifiables.id
             LEFT OUTER JOIN meta
             ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
-            WHERE containers.id=?
+            WHERE containers.id=? GROUP BY containers.id
             """
         cur.execute(sql, [parent_id])
 
@@ -713,7 +713,7 @@ class Sqlite(DB):
                 ON containers.id = identifiables.id
                 LEFT OUTER JOIN meta
                 ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
-                WHERE {}
+                WHERE {} GROUP BY containers.id
                 """.format(where)
             cur.execute(sql, container_ids)
 
@@ -743,7 +743,7 @@ class Sqlite(DB):
                 ON media.id = media_states.media_id
                 LEFT OUTER JOIN meta
                 ON identifiables.ext_ids LIKE '%' || meta.meta_id || '---%'
-                WHERE {}
+                WHERE {} GROUP BY media.id
                 """.format(where)
             cur.execute(sql, media_ids)
 
