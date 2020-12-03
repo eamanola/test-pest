@@ -39,14 +39,27 @@ function media_img(media) {
   ].join("")
 }
 
-function anidb_link(container) {
+function anidb_link(item) {
   var ret = ""
 
-  if (container.anidb_id)
+  if (item.anidb_id)
     ret = [
-      '<a href="https://anidb.net/anime/', container.anidb_id, '" ',
+      '<a href="https://anidb.net/anime/', item.anidb_id, '" ',
         'target="_blank" rel="noopener noreferrer" class="external-link ',
         'js-external-link">aniDB</a>'
+    ].join("")
+
+  return ret
+}
+
+function omdb_link(item) {
+  var ret = ""
+
+  if (item.omdb_id)
+    ret = [
+      '<a href="https://www.imdb.com/title/', item.omdb_id, '/" ',
+        'target="_blank" rel="noopener noreferrer" class="external-link ',
+        'js-external-link">IMDb</a>'
     ].join("")
 
   return ret
@@ -146,6 +159,7 @@ function container_page(container) {
           identify_link(container, false),
           get_info_link(container, false),
           anidb_link(container),
+          omdb_link(container),
         '</div>',
       '</span>',
     '</div>'
@@ -240,6 +254,7 @@ function media_page(media) {
           identify_link(media, false),
           get_info_link(media, false),
           anidb_link(media),
+          omdb_link(media),
         '</div>',
       '</span>',
     '</div>'

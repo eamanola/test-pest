@@ -91,6 +91,10 @@ def _identifiable_dict(identifiable):
     if anidb_id:
         ret['anidb_id'] = anidb_id
 
+    omdb_id = _omdb_id(identifiable)
+    if omdb_id:
+        ret['omdb_id'] = omdb_id
+
     rating = _rating(identifiable)
     if rating:
         ret['rating'] = rating
@@ -118,6 +122,17 @@ def _anidb_id(identifiable):
         anidb_id = None
 
     return anidb_id
+
+
+def _omdb_id(identifiable):
+    from metafinder.omdb import OMDB
+
+    if OMDB.KEY in identifiable.ext_ids():
+        omdb_id = identifiable.ext_ids()[OMDB.KEY]
+    else:
+        omdb_id = None
+
+    return omdb_id
 
 
 def _rating(identifiable):
