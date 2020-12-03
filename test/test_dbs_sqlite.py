@@ -112,6 +112,7 @@ def create_test_meta():
         [
             Episode_Meta(
                 5,
+                0,
                 "meta episode5 title",
                 "meta episode5 summary"
             )
@@ -127,7 +128,35 @@ def create_test_meta():
         [],
         'movie meta description')
 
-    return [show1_meta, show2_meta, movie_meta]
+    episode_season_meta = Meta(
+        'TestID:::4',
+        'meta show4 title',
+        4.1,
+        'show4_poster',
+        [
+            Episode_Meta(
+                1,
+                -1,
+                "meta episode1 no season -1 title",
+                "meta episode1 summary"
+            ),
+            Episode_Meta(
+                1,
+                0,
+                "meta episode1 no season 0 title",
+                "meta episode1 summary"
+            ),
+            Episode_Meta(
+                1,
+                1,
+                "meta episode1 season1 title",
+                "meta episode1 summary"
+            )
+        ],
+        'meta show4 description'
+        )
+
+    return [show1_meta, show2_meta, movie_meta, episode_season_meta]
 
 
 def table_count(db, table_name, table_schema=""):
@@ -951,6 +980,7 @@ class TestSqlite(unittest.TestCase):
                 ';;;'.join(
                     [':::'.join([
                         str(e.episode_number()),
+                        str(e.season_number()),
                         e.title(),
                         e.summary()
                     ]) for e in m.episodes()]

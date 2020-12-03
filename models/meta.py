@@ -29,11 +29,20 @@ class Meta(object):
         return self._description
 
     def get_episode(self, episode):
+        from models.containers import Season
         meta = None
 
-        if episode.episode_number():
-            for episode_meta in self.episodes():
-                if episode_meta.episode_number() == episode.episode_number():
+        for episode_meta in self.episodes():
+            if episode.episode_number():
+                if (
+                    episode_meta.season_number() <= 0
+                    or (episode.parent()
+                        and isinstance(episode.parent(), Season)
+                        and episode.parent().season_number() ==
+                        episode_meta.season_number())
+                ) and (
+                    episode_meta.episode_number() == episode.episode_number()
+                ):
                     meta = episode_meta
                     break
 
@@ -42,15 +51,19 @@ class Meta(object):
 
 class Episode_Meta(object):
 
-    def __init__(self, episode_number, title, summary):
+    def __init__(self, episode_number, season_number, title, summary):
         super(Episode_Meta, self).__init__()
 
         self._episode_number = episode_number
+        self._season_number = season_number
         self._title = title
         self._summary = summary
 
     def episode_number(self):
         return self._episode_number
+
+    def season_number(self):
+        return self._season_number
 
     def title(self):
         return self._title

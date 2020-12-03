@@ -24,7 +24,7 @@ class OMDB(MetaSource):
         search_str = OMDB._clean_name(title)
 
         if TEST:
-            data = TEST_SEARCH_RESPONCE
+            data = TEST_SEARCH_RESPONSE
         else:
             params = {
                 "apikey": "3bcf5854",
@@ -95,7 +95,13 @@ class OMDB(MetaSource):
             finally:
                 conn.close()
 
-        return OMDB._parse_meta(data)
+        meta = OMDB._parse_meta(data)
+
+        episode_meta = OMDB._get_episodes(data)
+        for em in episode_meta:
+            meta.episodes().append(em)
+
+        return meta
 
     def _parse_meta(data):
         from models.meta import Meta
@@ -138,8 +144,92 @@ class OMDB(MetaSource):
             description
         )
 
+    def _get_episodes(show_meta_data):
+        import json
 
-TEST_SEARCH_RESPONCE = ''.join([
+        show_meta = json.loads(show_meta_data)
+
+        if "imdbID" not in show_meta.keys():
+            print('IMDB._get_episodes: No id')
+            return []
+
+        if (
+            "Type" not in show_meta.keys()
+            or show_meta["Type"] != OMDB.TV_SHOW
+        ):
+            print('IMDB._get_episodes: Not a show')
+            return []
+
+        if (
+            "totalSeasons" not in show_meta.keys()
+            or show_meta["totalSeasons"] == 'N/A'
+            or int(show_meta["totalSeasons"]) <= 0
+        ):
+            print('IMDB._get_episodes: no season info')
+            return []
+
+        import http.client
+        import urllib
+
+        seasons_meta_data = []
+        seasons = range(1, int(show_meta["totalSeasons"]) + 1)
+        params = {
+            "apikey": "3bcf5854",
+            "i": show_meta["imdbID"],
+            "r": "json"
+        }
+
+        TEST = False
+
+        if TEST:
+            seasons_meta_data.append(TEST_SEASON_RESPONSE)
+
+        else:
+            import time
+
+            try:
+                conn = http.client.HTTPConnection("www.omdbapi.com")
+
+                for s in seasons:
+                    conn.request("GET", '/?' + urllib.parse.urlencode(
+                        {**params, "Season": s}
+                    ))
+                    seasons_meta_data.append(conn.getresponse().read())
+                    print(seasons_meta_data[-1])
+                    time.sleep(3)
+            finally:
+                conn.close()
+
+        return OMDB._parse_episodes(seasons_meta_data)
+
+    def _parse_episodes(seasons_meta_data):
+        import json
+        from models.meta import Episode_Meta
+
+        meta_episodes = []
+
+        for season_meta_data in seasons_meta_data:
+            season_meta = json.loads(season_meta_data)
+
+            if season_meta["Response"] == "False":
+                continue
+
+            season_number = int(season_meta["Season"])
+
+            for episode in season_meta["Episodes"]:
+                meta_episodes.append(
+                    Episode_Meta(
+                        int(episode["Episode"]),
+                        season_number,
+                        episode["Title"],
+                        ""
+                    )
+                )
+
+        return meta_episodes
+
+
+TEST_SEARCH_RESPONSE = ''.join([
     '{"Search":[{"Title":"The Big Bang Theory","Year":"2007–2019"',
     ',"imdbID":"tt0898266","Type":"series","Poster":"https://m.me',
     'dia-amazon.com/images/M/MV5BY2FmZTY5YTktOWRlYy00NmIyLWE0ZmQt',
@@ -164,4 +254,35 @@ TEST_META_RESPONSE = ''.join([
     ' Database","Value":"8.5/10"}],"Metascore":"N/A","imdbRating"',
     ':"8.5","imdbVotes":"90,736","imdbID":"tt9561862","Type":"ser',
     'ies","totalSeasons":"2","Response":"True"}'
+])
+
+TEST_SEASON_RESPONSE = ''.join([
+    '{"Title":"Love, Death & Robots","Season":"1","totalSeasons":"',
+    '2","Episodes":[{"Title":"Sonnie\'s Edge","Released":"2019-03-',
+    '15","Episode":"1","imdbRating":"8.3","imdbID":"tt9781722"},{"',
+    'Title":"Suits","Released":"2019-03-15","Episode":"4","imdbRat',
+    'ing":"7.8","imdbID":"tt9788490"},{"Title":"Sucker of Souls","',
+    'Released":"2019-03-15","Episode":"5","imdbRating":"6.5","imdb',
+    'ID":"tt9788492"},{"Title":"When the Yogurt Took Over","Releas',
+    'ed":"2019-03-15","Episode":"6","imdbRating":"6.9","imdbID":"t',
+    't9788494"},{"Title":"Beyond the Aquila Rift","Released":"2019',
+    '-03-15","Episode":"7","imdbRating":"8.6","imdbID":"tt9788496"',
+    '},{"Title":"The Dump","Released":"2019-03-15","Episode":"9","',
+    'imdbRating":"6.3","imdbID":"tt9788500"},{"Title":"Shape-Shift',
+    'ers","Released":"2019-03-15","Episode":"10","imdbRating":"7.5',
+    '","imdbID":"tt9788502"},{"Title":"Helping Hand","Released":"',
+    '2019-03-15","Episode":"11","imdbRating":"7.7","imdbID":"tt978',
+    '8504"},{"Title":"Fish Night","Released":"2019-03-15","Episode',
+    '":"12","imdbRating":"6.4","imdbID":"tt9788506"},{"Title":"Luc',
+    'ky 13","Released":"2019-03-15","Episode":"13","imdbRating":"8',
+    '.0","imdbID":"tt9788508"},{"Title":"Zima Blue","Released":"20',
+    '19-03-15","Episode":"14","imdbRating":"8.3","imdbID":"tt97885',
+    '10"},{"Title":"Blind Spot","Released":"2019-03-15","Episode":',
+    '"15","imdbRating":"6.4","imdbID":"tt9788512"},{"Title":"Ice A',
+    'ge","Released":"2019-03-15","Episode":"16","imdbRating":"7.4"',
+    ',"imdbID":"tt9788514"},{"Title":"Alternate Histories","Releas',
+    'ed":"2019-03-15","Episode":"17","imdbRating":"6.4","imdbID":"',
+    'tt9788516"},{"Title":"The Secret War","Released":"2019-03-15"',
+    ',"Episode":"18","imdbRating":"8.1","imdbID":"tt9788518"}],"Re',
+    'sponse":"True"}'
 ])

@@ -459,6 +459,7 @@ class Sqlite(DB):
                 ';;;'.join(
                     [':::'.join([
                         str(e.episode_number()),
+                        str(e.season_number()),
                         e.title(),
                         e.summary()
                     ]) for e in m.episodes()]
@@ -820,7 +821,9 @@ class Sqlite(DB):
                 result_row['meta_image_name'],
                 sorted([
                     (lambda x:
-                        Episode_Meta(int(x[0]), x[1], x[2]))(m.split(":::"))
+                        Episode_Meta(
+                            int(x[0]), int(x[1]), x[2], x[3]
+                        ))(m.split(":::"))
                     for m in result_row['meta_episodes'].split(";;;")
                 ], key=lambda x: x.episode_number())
                 if result_row['meta_episodes'] else [],
@@ -882,7 +885,9 @@ class Sqlite(DB):
                 result_row['meta_image_name'],
                 sorted([
                     (lambda x:
-                        Episode_Meta(int(x[0]), x[1], x[2]))(m.split(":::"))
+                        Episode_Meta(
+                            int(x[0]), int(x[1]), x[2], x[3]
+                        ))(m.split(":::"))
                     for m in result_row['meta_episodes'].split(";;;")
                 ], key=lambda x: x.episode_number())
                 if result_row['meta_episodes'] else [],

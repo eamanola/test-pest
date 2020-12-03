@@ -127,6 +127,7 @@ class AniDB(MetaSource):
 
             episodes.append(Episode_Meta(
                 episode_num,
+                -1,
                 episode_title,
                 episode_summary
             ))
