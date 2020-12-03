@@ -136,10 +136,10 @@ class AniDB(MetaSource):
         rating = temp_rating if temp_rating > perm_rating else perm_rating
 
         _image_name = root.find("./picture").text
-        image_host = 'cdn.anidb.net'
-        image_path = f'/images/main/{_image_name}'
+        image_url = f'http://cdn.anidb.net/images/main/{_image_name}'
+
         image_name = AniDB.IMAGE_PREFIX + _image_name
-        Images.download_poster(image_host, image_path, image_name)
+        Images.download_poster(image_url, image_name)
 
         description_node = root.find("./description")
         if description_node is not None:

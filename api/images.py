@@ -86,36 +86,34 @@ class Images(object):
 
         return poster
 
-    def download_poster(
-        host, path, poster_filename, rewrite=False, https=False
-    ):
+    def download_poster(url, poster_filename, rewrite=False):
         full_dest_filename = os.path.join(
             sys.path[0],
             os.sep.join(Images.POSTER_FOLDER),
             poster_filename
         )
 
-        return Images.download(
-            host, path, full_dest_filename, rewrite=rewrite, https=https
-        )
+        return Images.download(url, full_dest_filename, rewrite=rewrite)
 
-    def download(host, path, dest_full_path, rewrite=False, https=False):
-        import http.client
+    def download(url, dest_full_path, rewrite=False):
         if rewrite or not os.path.exists(dest_full_path):
-            if https:
-                conn = http.client.HTTPSConnection(host)
-            else:
-                conn = http.client.HTTPConnection(host)
-            conn.request("GET", path)
-            response = conn.getresponse()
-            data = response.read()
-            conn.close()
+            import http.client
+            from urllib.parse import urlparse
+            parsed_url = urlparse(url)
 
-            if not os.path.exists(os.path.dirname(dest_full_path)):
-                os.makedirs(os.path.dirname(dest_full_path))
+            try:
+                if parsed_url.scheme == "https":
+                    conn = http.client.HTTPSConnection(parsed_url.netloc)
+                else:
+                    conn = http.client.HTTPConnection(parsed_url.netloc)
+                conn.request("GET", parsed_url.path)
+                data = conn.getresponse().read()
+            finally:
+                conn.close()
 
-            f = open(dest_full_path, 'wb')
-            f.write(data)
-            f.close()
+            if len(data):
+                if not os.path.exists(os.path.dirname(dest_full_path)):
+                    os.makedirs(os.path.dirname(dest_full_path))
 
-        return 0
+                with open(dest_full_path, 'wb') as f:
+                    f.write(data)

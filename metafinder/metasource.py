@@ -13,4 +13,4 @@ class MetaSource(object):
     def sources():
         from metafinder.anidb import AniDB
         from metafinder.omdb import OMDB
-        return (OMDB, AniDB)
+        return (AniDB, OMDB)

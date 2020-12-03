@@ -190,7 +190,7 @@ class File_name_parser(object):
             if has_episode:
                 episode = has_episode.group(1)
 
-                # check if number is related to the movie
+                # check if number is related to a movie
                 has_episode_folder = File_name_parser.re_episode2.search(
                     File_name_parser.clean_show_name(parts[1])
                 )
