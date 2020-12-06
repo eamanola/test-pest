@@ -21,10 +21,6 @@ class Identifier(object):
         matches = metasource.search(
             show_name, year=year, media_type=media_type
         )
-        if len(matches) == 0:
-            matches = metasource.search(
-                show_name, year=None, media_type=media_type
-            )
 
         ext_id = matches[0][0] if len(matches) == 1 else None
 

@@ -13,6 +13,19 @@ class AniDB(MetaSource):
     TITLE_TO_ID_TABLE = "title_to_{}_id".format(KEY)
     META_ID_PREFIX = IMAGE_PREFIX = KEY
 
+    def _clean_name(title, year):
+        import re
+        re_search_str = title
+        re_search_str = re.sub(r'[^A-Za-z]+', ".+", re_search_str)
+        re_search_str = re_search_str.strip('.+')
+
+        if year:
+            re_search_str = fr'{re_search_str}.+\({year}\)'
+
+        re_search_str = "(?:^|.*)" + re_search_str + "(?:.*|$)"
+
+        return re.compile(re_search_str, re.IGNORECASE)
+
     def search(show_name, year, media_type=None):
         from metafinder.identifier import Identifier
         from db.db import get_db
@@ -20,11 +33,7 @@ class AniDB(MetaSource):
 
         matches = None
 
-        re_search = Identifier.compile_re_search(
-            show_name,
-            exact_match=False,
-            year=year
-        )
+        re_search = AniDB._clean_name(show_name, year)
         try:
             db = get_db()
             db.connect(database=AniDB.DATABASE)
@@ -35,6 +44,10 @@ class AniDB(MetaSource):
                 print('generating anidb table')
 
                 AniDB._generate_search_table(db)
+                matches = db.get_ext_ids(AniDB.TITLE_TO_ID_TABLE, re_search)
+
+            if len(matches) == 0 and year is not None:
+                re_search = AniDB._clean_name(show_name, None)
                 matches = db.get_ext_ids(AniDB.TITLE_TO_ID_TABLE, re_search)
 
         finally:

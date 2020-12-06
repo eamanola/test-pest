@@ -18,6 +18,7 @@ class OMDB(MetaSource):
     def search(title, year=None, media_type=None):
         import http.client
         import urllib
+        import json
 
         TEST = False
 
@@ -41,8 +42,20 @@ class OMDB(MetaSource):
                 conn = http.client.HTTPConnection("www.omdbapi.com")
                 conn.request("GET", '/?' + urllib.parse.urlencode(params))
 
-                response = conn.getresponse()
-                data = response.read()
+                data = conn.getresponse().read()
+
+                result = json.loads(data)
+                if (
+                    "y" in params
+                    and (
+                        "Search" not in result.keys()
+                        or len(result["Search"]) == 0
+                    )
+                ):
+                    del params["y"]
+                    conn.request("GET", '/?' + urllib.parse.urlencode(params))
+
+                    data = conn.getresponse().read()
             finally:
                 conn.close()
 
