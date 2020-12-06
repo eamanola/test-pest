@@ -20,7 +20,10 @@ class FileRequestHandler(ApiRequestHandler):
     def webclient(self, db, request):
         code, headers, file_path = None, {}, None
         client_file_path = os.path.join(
-            sys.path[0], "html", os.sep.join(self.path[1:].split("/"))
+            sys.path[0],
+            "reference-ui",
+            "web",
+            os.sep.join(self.path[1:].split("/"))
         )
 
         code = self.revalidate_client_cache(file_path=client_file_path)
