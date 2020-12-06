@@ -38,6 +38,7 @@ class Images(object):
 
                 cmd = [
                     'ffmpeg',
+                    '-hide_banner',
                     '-ss', '00:04:00.000',
                     '-i', input,
                     '-vf', 'scale=240:-1',

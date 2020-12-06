@@ -515,6 +515,9 @@ function connect(parent) {
   for (var i = 0, il = navigation_items.length; i < il; i++) {
     navigation_items[i].addEventListener('click', onNavigationClick, false)
   }
+  if (/js-navigation/.test(parent.className)) {
+    parent.addEventListener('click', onNavigationClick, false)
+  }
 
   var scan_items = parent.querySelectorAll('.js-scan')
   for (var i = 0, il = scan_items.length; i < il; i++) {

@@ -206,6 +206,8 @@ class RequestHandler(socketserver.StreamRequestHandler):
             if 'Range' in self.headers and response_code == 200:
                 response_code = 206
 
+                # print('r:', self.headers["Range"], self.path)
+
                 start = re.compile(r'^bytes=(\d+)-').search(
                     self.headers['Range']
                 )
@@ -226,11 +228,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
                     response_headers["Content-Range"] = (
                         f"bytes {start_1}-{end}/{file_size}"
                     )
-                    print(
-                        'cr:',
-                        response_headers["Content-Range"],
-                        self.path
-                    )
+                    print('cr:', response_headers["Content-Range"], self.path)
 
         # should be null?
         response_headers["Access-Control-Allow-Origin"] = "*"
