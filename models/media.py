@@ -127,10 +127,7 @@ class Movie(Media, Identifiable):
         return self._title
 
     def thumbnail(self):
-        if self.year():
-            thumbnail = f"{self.title()} ({self.year()})"
-        else:
-            thumbnail = self.title()
+        thumbnail = self.title()
 
         thumbnail = thumbnail.replace(" ", ".")
 
