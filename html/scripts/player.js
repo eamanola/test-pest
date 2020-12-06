@@ -762,23 +762,37 @@ var create_player = (function() {
 
       this.overlay().style.cursor = ""
     },
-    restart_fullscreen_hide_ui_timeout: function() {
+    restart_fullscreen_hide_ui_timeout: function(e) {
       this.fullscreen_show_ui()
 
-      if (this.fullscreen_hide_ui_timeout) {
-        clearTimeout(this.fullscreen_hide_ui_timeout)
-      }
+      this.clear_fullscreen_hide_ui_timeout()
 
       this.fullscreen_hide_ui_timeout = setTimeout(
         this.fullscreen_hide_ui.bind(this),
         this.FULLSCREEN_HIDE_UI_TIMEOUT
       )
     },
+    clear_fullscreen_hide_ui_timeout: function(e) {
+      if (e) {
+        e.stopPropagation()
+      }
+
+      if (this.fullscreen_hide_ui_timeout) {
+        clearTimeout(this.fullscreen_hide_ui_timeout)
+      }
+    },
     on_fullscreen_changed: function(e) {
       var overlay = this.overlay()
+      var controls = this.controls()
 
       if (document.fullscreen) {
         this.restart_fullscreen_hide_ui_timeout()
+
+        controls.addEventListener(
+          "mousemove",
+          this.clear_fullscreen_hide_ui_timeout.bind(this),
+          false
+        )
 
         overlay.addEventListener(
           "mousemove",
@@ -786,9 +800,15 @@ var create_player = (function() {
           false
         )
       } else {
-        var controls = this.controls()
-        if (controls)
-          controls.style.display = ""
+        if (controls) {
+            controls.style.display = ""
+
+            controls.removeEventListener(
+              "mousemove",
+              this.clear_fullscreen_hide_ui_timeout.bind(this),
+              false
+            )
+        }
 
         if (overlay) {
           overlay.style.cursor = ""
