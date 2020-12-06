@@ -61,10 +61,8 @@ function onAddMediaLibraryClick(e) {
 ////////////////////////////////////////////////////////////////////////////////
 
 var player = localStorage.getItem("player") || "web"
-function onTogglePlayClick(e) {
-  e.preventDefault();
-  e.stopPropagation();
 
+function toggle_player(){
   var new_text = null
   if (player === "vlc") {
     player = "web"
@@ -77,6 +75,15 @@ function onTogglePlayClick(e) {
   localStorage.setItem("player", player)
   document.getElementById('toggle-player').innerHTML = new_text
 }
+
+function onTogglePlayClick(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  toggle_player()
+}
+
+toggle_player()
 
 ////////////////////////////////////////////////////////////////////////////////
 

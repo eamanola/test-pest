@@ -1,13 +1,13 @@
 import os
 import sys
-import time
-import gzip
 
 
 class MetaCache(object):
     META_FOLDER = os.path.join(sys.path[0], "meta")
 
     def load(key, max_age=7*24*60*60):
+        import time
+        import gzip
         meta = None
 
         file_path = os.path.join(MetaCache.META_FOLDER, f'{key}.gz')

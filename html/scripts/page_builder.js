@@ -231,9 +231,9 @@ function container_line(container) {
       '</span>',
       '<span class="right">',
         '<span class="info-line">',
-          get_info_link(container, true),
           '<a href="#" class="action js-scan">Scan</a>',
           identify_link(container, true),
+          get_info_link(container, true),
         '</span>',
       '</span>',
     '</div>'].join("")

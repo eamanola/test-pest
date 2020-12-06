@@ -347,7 +347,6 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
     stream_lines = [line for line in _get_stream_info(file_path) if (
         "Stream" in line and "Video" in line
     )]
-    w, h = _get_width_height(stream_lines, width, height)
 
     if not codec:
         is_h264 = "Video: h264" in stream_lines[0]
@@ -364,7 +363,7 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
 
         dst_path = os.path.join(
             CTMP_DIR, f'{media.id()}-{start_time}-video{mime}'
-            )
+        )
 
         if not os.path.exists(dst_path):
             os.makedirs(os.path.dirname(dst_path), exist_ok=True)
@@ -373,6 +372,7 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
 
         stream, mime = dst_path, mime
     else:
+        w, h = _get_width_height(stream_lines, width, height)
         stream, mime = _video_stream(
             file_path, codec, w, h, subtitle_index
         )
@@ -408,20 +408,21 @@ def get_audio_stream(media, stream_index, codec, start_time):
             is_flac = "Audio: flac" in line
             is_opus = "Audio: opus" in line
             is_vorbis = "Audio: vorbis" in line
-            break
 
-        if is_aac:
-            mime = ".aac"
-            format = "adts"
-        elif is_flac:
-            mime = ".flac"
-            format = "flac"
-        elif is_opus:
-            mime = ".opus"
-            format = "opus"
-        elif is_vorbis:
-            mime = ".vorbis"
-            format = "oga"
+            if is_aac:
+                mime = ".aac"
+                format = "adts"
+            elif is_flac:
+                mime = ".flac"
+                format = "flac"
+            elif is_opus:
+                mime = ".opus"
+                format = "opus"
+            elif is_vorbis:
+                mime = ".vorbis"
+                format = "oga"
+
+            break
 
         if not mime:
             return None, None
@@ -510,10 +511,7 @@ def get_subtitle(media, type, index, start_time):
 
 def get_font(media, font_name):
     dst_path = os.path.join(
-        CTMP_DIR,
-        media.id(),
-        "fonts",
-        font_name
+        CTMP_DIR, media.id(), "fonts", font_name
     )
 
     if os.path.exists(dst_path):
@@ -603,10 +601,8 @@ def trim(media, start_time):
 
     cmd = cmd + ['-map', '0']
 
-    index = 1
-    for subtitle in media.subtitles:
-        cmd = cmd + ['-map', str(index)]
-        index = index + 1
+    for index in range(0, len(media.subtitles)):
+        cmd = cmd + ['-map', str(index + 1)]
 
     cmd = cmd + ['-c:a', 'copy', '-c:v', 'copy', '-c:s', 'ass', '-copyts']
     cmd = cmd + [dst_path]
@@ -657,7 +653,7 @@ def get_streams(media, width, height, decoders, start_time):
         print(line)
 
     if ALWAYS_TRANSCODE_VIDEO:
-        transcode = "vp9"
+        transcode = "vp9" if "vp9" in decoders else "vp8"
 
     if CFFMPEG_STREAM:
         streams.append(f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm")
@@ -709,7 +705,7 @@ def get_streams(media, width, height, decoders, start_time):
             print(line)
 
         if ALWAYS_TRANSCODE_AUDIO:
-            transcode = "opus"
+            transcode = "opus" if "opus" in decoders else "vorbis"
 
         sources = []
         audio_url = f"/audio/{stream_index}/{media_id}?start={start_time}"
