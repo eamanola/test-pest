@@ -400,10 +400,11 @@ function onIdentifyClick(e) {
     e.preventDefault();
     e.stopPropagation();
 
+    var metasource = document.getElementById('metasource-select').value
     ajax(
       [
         base_url, '/identify', '/', type.substring(0, 1), '/', data_id
-      ].join(""),
+      ].join("") + "?source=" + metasource,
       onIdentifyCompleted,
       (
         function (data_id) {

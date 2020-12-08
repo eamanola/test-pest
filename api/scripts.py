@@ -2,7 +2,6 @@ from models.containers import Extra, Season, Show, MediaLibrary
 from models.media import Media, Episode
 from models.identifiable import Identifiable
 from classes.watchinglist import WatchingList
-from metafinder.anidb import AniDB
 
 
 def get_container(db, container_id):
@@ -167,7 +166,21 @@ def _identify(identifiable, media_source, media_type):
     return ext_id
 
 
-def container_identify(db, container_id):
+def _get_sources(source):
+    if source == "anidb":
+        from metafinder.anidb import AniDB
+        sources = (AniDB,)
+    elif source == "omdb":
+        from metafinder.omdb import OMDB
+        sources = (OMDB,)
+    else:
+        from metafinder.metasource import MetaSource
+        sources = MetaSource.sources()
+
+    return sources
+
+
+def container_identify(db, container_id, source=None):
     found, identified = False, False
 
     container = db.get_container(container_id)
@@ -175,12 +188,13 @@ def container_identify(db, container_id):
     if container and isinstance(container, Identifiable):
         found = True
 
-        from metafinder.metasource import MetaSource
+        sources = _get_sources(source)
 
-        for source in MetaSource.sources():
+        for source in sources:
             ext_id = _identify(container, source, source.TV_SHOW)
 
             if ext_id:
+                container.ext_ids().clear()
                 container.ext_ids()[source.KEY] = ext_id
                 db.update_containers([container])
                 identified = True
@@ -189,7 +203,7 @@ def container_identify(db, container_id):
     return found, identified
 
 
-def media_identify(db, media_id):
+def media_identify(db, media_id, source=None):
     found, identified = False, False
 
     media = db.get_media(media_id)
@@ -197,12 +211,13 @@ def media_identify(db, media_id):
     if media and isinstance(media, Identifiable):
         found = True
 
-        from metafinder.metasource import MetaSource
+        sources = _get_sources(source)
 
-        for source in MetaSource.sources():
+        for source in sources:
             ext_id = _identify(media, source, source.MOVIE)
 
             if ext_id:
+                media.ext_ids().clear()
                 media.ext_ids()[source.KEY] = ext_id
                 db.update_media([media])
                 identified = True

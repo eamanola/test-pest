@@ -120,20 +120,27 @@ class ApiRequestHandler(RequestHandler):
         code, json = 400, None
         api_params = request["api_params"]
 
+        optional_params = request["optional_params"]
+
         is_container = api_params[1] == "c"
         is_media = api_params[1] == "m"
         item_id = api_params[-1]
 
+        if "source" in optional_params.keys():
+            source = optional_params["source"][0]
+        else:
+            source = None
+
         if item_id and len(api_params) == 3 and (is_media or is_container):
             if is_container:
-                found, identified = api.container_identify(db, item_id)
+                found, identified = api.container_identify(db, item_id, source)
                 if identified:
                     item_dict = DictContainer.dict(
                         api.get_container(db, item_id)
                     )
 
             if is_media:
-                found, identified = api.media_identify(db, item_id)
+                found, identified = api.media_identify(db, item_id, source)
                 if identified:
                     item_dict = DictMedia.dict(api.get_media(db, item_id))
 
