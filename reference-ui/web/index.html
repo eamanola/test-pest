@@ -8,7 +8,11 @@
   <body class="grid">
     <a class="action" href="#" onclick="return home()">Home</a>
     <a class="action" href="#" id="toggle-grid">Lines</a>
-    <a class="action" href="#" id="toggle-player">Play in Browser</a>
+    <label for="player-select">Play in</label>
+    <select id="player-select">
+      <option value="vlc">VLC</option>
+      <option value="browser">Browser</option>
+    </select>
     <input id="add-media-library-path" placeholder="Add Media Library" />
     <a class="action" href="#" id="add-media-library">Add</a>
     <!--{media_library}-->

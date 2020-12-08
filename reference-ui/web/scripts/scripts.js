@@ -60,33 +60,6 @@ function onAddMediaLibraryClick(e) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-var player = localStorage.getItem("player") || "web"
-
-function toggle_player(){
-  var new_text = null
-  if (player === "vlc") {
-    player = "web"
-    new_text = "Play in VLC"
-  } else {
-    player = "vlc"
-    new_text = "Play in Browser"
-  }
-
-  localStorage.setItem("player", player)
-  document.getElementById('toggle-player').innerHTML = new_text
-}
-
-function onTogglePlayClick(e) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  toggle_player()
-}
-
-toggle_player()
-
-////////////////////////////////////////////////////////////////////////////////
-
 function onToggleGridClick(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -312,6 +285,11 @@ function onPlayedChange(e) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+function onPlayerSelectChange(e) {
+  var player = document.getElementById('player-select').value
+  localStorage.setItem("player", player)
+}
+
 function onStreamsReceived(responseText) {
   console.log(responseText)
 
@@ -321,7 +299,7 @@ function onStreamsReceived(responseText) {
 }
 
 function onPlayConfirmed(responseText) {
-  console.log(responseText.replace(/\s+/g, " "))
+  console.log(responseText)
 }
 
 function onPlaySingleClick(e) {
@@ -332,9 +310,10 @@ function onPlaySingleClick(e) {
       e.preventDefault();
       e.stopPropagation();
     }
+    var player = document.getElementById('player-select').value
     if (player === "vlc")
       ajax(base_url + '/play/' + data_id, onPlayConfirmed)
-    else if (player === "web") {
+    else if (player === "browser") {
       var resume_str = localStorage.getItem('resume')
       var resume = JSON.parse(resume_str) || {}
       var start_time = 0
@@ -903,10 +882,12 @@ var decoders = [];
   toggle_grid_button
     .addEventListener('click', onToggleGridClick, false)
 
-  var toggle_player_button =
-    document.getElementById('toggle-player')
-  toggle_player_button
-    .addEventListener('click', onTogglePlayClick, false)
+  var player_select =
+    document.getElementById('player-select')
+  player_select.value =
+    localStorage.getItem("player") || "vlc"
+  player_select
+    .addEventListener('change', onPlayerSelectChange, false)
 
   var add_media_library_button =
     document.getElementById('add-media-library')
@@ -940,13 +921,19 @@ var decoders = [];
 
   console.log(decoders)
 
-  if (decoders.length > 0) {
-    document.getElementById("toggle-player").display = 'none'
-  } else {
-    if (player === "vlc") {
-      document.getElementById("toggle-player").innerHTML = "Play in Browser"
-    } else if (player === "web") {
-      document.getElementById("toggle-player").innerHTML = "Play in VLC"
+  if (decoders.length === 0) {
+    var browser_option = document.querySelector(
+      '#player-select option[value="browser"]'
+    )
+    if (browser_option) {
+      browser_option.parentNode.removeChild(browser_option)
+    }
+
+    if (document.querySelectorAll('#player-select').length < 2) {
+      document.getElementById("player-select")
+        .style.display = 'none'
+      document.querySelector('label[for="player-select"]')
+        .style.display = 'none'
     }
   }
 })()

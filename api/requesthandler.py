@@ -12,7 +12,8 @@ class RequestHandler(socketserver.StreamRequestHandler):
     CACHE_ONE_WEEK = f"private, max-age={7 * 24 * 60 * 60}"
     MUST_REVALIDATE = "private, must-revalidate, max-age=0"
     MAX_BYTES_PER_CHUNK_CONN = 1024 * 1024 * 8
-    CHUNK_SIZE = 1024 * 512
+    CMD_CHUNK_SIZE = 1024 * 8
+    FILE_CHUNK_SIZE = CMD_CHUNK_SIZE  # 1024 * 1024 * 1
 
     def epoch_to_httptime(self, secs):
         from datetime import datetime, timezone
@@ -262,7 +263,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
     def send_chunks(self, file_path):
         NEW_LINE = bytes("\r\n", "utf-8")
         MAX_SIZE = self.MAX_BYTES_PER_CHUNK_CONN
-        CHUNK_SIZE = self.CHUNK_SIZE  # 1024 * 1024 * 1
+        CHUNK_SIZE = self.FILE_CHUNK_SIZE  # 1024 * 1024 * 1
 
         with open(file_path, "rb") as f:
             if 'Range' in self.headers:
@@ -305,7 +306,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
             import time
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
-            CHUNK_SIZE = 8 * 1024  # self.CHUNK_SIZE
+            CHUNK_SIZE = self.CMD_CHUNK_SIZE
 
             chunk = proc.stdout.read(CHUNK_SIZE)
             while chunk:
