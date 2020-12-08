@@ -19,6 +19,7 @@ var create_player = (function() {
     wrapper.appendChild(this.create_video())
     wrapper.appendChild(this.create_loading())
     wrapper.appendChild(this.create_overlay())
+    wrapper.appendChild(this.create_volume_display())
 
     var controls = this.create_controls()
     controls.appendChild(this.create_close_btn())
@@ -48,6 +49,8 @@ var create_player = (function() {
     BUFFER_TIME: 1000 * 2,
     fullscreen_hide_ui_timeout: null,
     FULLSCREEN_HIDE_UI_TIMEOUT: 5 * 1000,
+    hide_volume_timeout: null,
+    HIDE_VOLUME_TIMEOUT: 5 * 1000,
     ENABLE_SEEK: true,
     start_time: 0,
     _can_play: [],
@@ -113,6 +116,9 @@ var create_player = (function() {
     },
     play_position_time: function() {
       return this.wrapper.querySelector(".video-position-time")
+    },
+    volume_display: function() {
+      return this.wrapper.querySelector(".volume-display")
     },
 
     create_video: function() {
@@ -208,10 +214,16 @@ var create_player = (function() {
           else if (new_volume > 1)  new_volume = 1
 
           current_audio.volume = new_volume
+          this.show_volume_display()
         }
       }.bind(this), false)
 
       return overlay
+    },
+    create_volume_display: function() {
+      var span = document.createElement('span')
+      span.className = "volume-display black-text-stroke"
+      return span
     },
     create_controls: function() {
       var controls = document.createElement('div')
@@ -653,6 +665,23 @@ var create_player = (function() {
 
 
       this.wrapper.appendChild(chrome_transcode)
+    },
+    show_volume_display: function() {
+      var current_audio = this.current_audio
+      if (current_audio) {
+        var volume_display = this.volume_display()
+        volume_display.innerHTML = Math.round(current_audio.volume * 100) + '%'
+        volume_display.style.display = "initial"
+
+        if (this.hide_volume_timeout) {
+          clearTimeout(this.hide_volume_timeout)
+        }
+
+        this.hide_volume_timeout = setTimeout(function() {
+          var volume_display = this.volume_display()
+          volume_display.style.display = ""
+        }.bind(this), this.HIDE_VOLUME_TIMEOUT)
+      }
     },
     close: function() {
       var video = this.wrapper.querySelector("video")
