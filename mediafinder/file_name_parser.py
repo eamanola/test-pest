@@ -19,10 +19,12 @@ class File_name_parser(object):
     re_ova = re.compile(r_ova)
 
     r_episode = r"(?:episode|e|ep)"
-    r_episode2 = r"(?:^|[^a-zA-Z0-9]+)(?:\s*)(\d{1,3})(?:[^a-zA-Z0-9]+|$)"
+    r_episode2 = (
+        r"(?:^|[^a-zA-Z0-9]+)(?:\s*)(\d{1,3})(?:v\d+)?(?:[^a-zA-Z0-9]+|$)"
+    )
 
     r_episode_prefix = r"(?:^|[^a-zA-Z]+)"
-    r_episode_num = r"(?:\s*|\.)(\d+)"
+    r_episode_num = r"(?:\s*|\.)(\d+)(?:v\d+)?"
     r_episode_postfix = r"(?:$|\s|\.)"
 
     r_season_prefix = r"(?:^|[^a-zA-Z0-9]+)"
