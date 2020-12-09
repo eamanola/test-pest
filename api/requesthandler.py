@@ -6,14 +6,11 @@ from db.db import get_db
 
 class RequestHandler(socketserver.StreamRequestHandler):
 
-    NOT_FOUND_REPLY = {'code': 404, 'message': 'Not found'}
-    INVALID_REQUEST_REPLY = {'code': 400, 'message': 'Invalid request'}
-    OK_REPLY = {'code': 200, 'message': 'Ok'}
     CACHE_ONE_WEEK = f"private, max-age={7 * 24 * 60 * 60}"
     MUST_REVALIDATE = "private, must-revalidate, max-age=0"
     MAX_BYTES_PER_CHUNK_CONN = 1024 * 1024 * 8
+    FILE_CHUNK_SIZE = 1024 * 1024 * 1
     CMD_CHUNK_SIZE = 1024 * 8
-    FILE_CHUNK_SIZE = CMD_CHUNK_SIZE  # 1024 * 1024 * 1
 
     def epoch_to_httptime(self, secs):
         from datetime import datetime, timezone
@@ -121,7 +118,6 @@ class RequestHandler(socketserver.StreamRequestHandler):
             break
 
         self.wfile.write(bytes(self.header_str, "utf8"))
-        self.wfile.flush()
 
     def router(self, db, request):
         print('ignore', self.path)
@@ -172,11 +168,11 @@ class RequestHandler(socketserver.StreamRequestHandler):
             and response_json is None
         ):
             if response_code in (200, 304):
-                response_json = self.OK_REPLY
+                response_json = {'code': 200, 'message': 'Ok'}
             elif response_code == 400:
-                response_json = self.INVALID_REQUEST_REPLY
+                response_json = {'code': 400, 'message': 'Invalid request'}
             elif response_code == 404:
-                response_json = self.NOT_FOUND_REPLY
+                response_json = {'code': 404, 'message': 'Not found'}
 
         if "Content-type" not in response_headers.keys():
             if response_json is not None:
@@ -258,12 +254,11 @@ class RequestHandler(socketserver.StreamRequestHandler):
 
     def send_body(self, body):
         self.wfile.write(body)
-        self.wfile.flush()
 
     def send_chunks(self, file_path):
         NEW_LINE = bytes("\r\n", "utf-8")
         MAX_SIZE = self.MAX_BYTES_PER_CHUNK_CONN
-        CHUNK_SIZE = self.FILE_CHUNK_SIZE  # 1024 * 1024 * 1
+        CHUNK_SIZE = self.FILE_CHUNK_SIZE
 
         with open(file_path, "rb") as f:
             if 'Range' in self.headers:
@@ -292,7 +287,6 @@ class RequestHandler(socketserver.StreamRequestHandler):
                         )
 
                     self.wfile.write(post)
-                    self.wfile.flush()
 
                     # print(sent, '/', MAX_SIZE, self.path)
 
@@ -316,7 +310,6 @@ class RequestHandler(socketserver.StreamRequestHandler):
                 del len_chunk
 
                 self.wfile.write(chunk)
-                self.wfile.flush()
                 del chunk
 
                 chunk = proc.stdout.read(CHUNK_SIZE)

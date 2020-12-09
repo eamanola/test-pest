@@ -120,13 +120,17 @@ class TestMedia(unittest.TestCase):
         self.assertEqual(movie.title(), "title of movie")
 
         self.assertIsNone(movie.year())
-        thumbnail = movie.title()
-        self.assertEqual(movie.thumbnail(), thumbnail.replace(" ", "."))
+        self.assertEqual(
+            movie.thumbnail(),
+            movie.title().replace(" ", ".")
+        )
 
         movie.set_year(2000)
         self.assertIsNotNone(movie.year())
-        thumbnail = f"{movie.title()} ({movie.year()})"
-        self.assertEqual(movie.thumbnail(), thumbnail.replace(" ", "."))
+        self.assertEqual(
+            movie.thumbnail(),
+            movie.title().replace(" ", ".")
+        )
 
 
 if __name__ == '__main__':

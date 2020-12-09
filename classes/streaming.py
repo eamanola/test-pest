@@ -658,7 +658,7 @@ def get_streams(media, width, height, decoders, start_time):
     if CFFMPEG_STREAM:
         streams.append(f"http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm")
         cmd, mime = get_video_stream(
-            media, width, height, "vp9", None
+            media, width, height, "vp9", None, None
         )
         print(' '.join(cmd))
         subprocess.Popen(cmd)

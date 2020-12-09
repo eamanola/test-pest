@@ -9,9 +9,10 @@
     <a class="action" href="#" onclick="return home()">Home</a>
     <a class="action" href="#" id="toggle-grid">Lines</a>
     <label for="player-select">Play in</label>
-    <select id="player-select">
+    <select id="player-select" title="Note: playey in browser is heavy on cpu, if trancoding required">
       <option value="vlc">VLC</option>
-      <option value="browser">Browser</option>
+      <!-- heavy on cpu, if trancoding required -->
+      <option value="browser">!!Browser</option>
     </select>
     <label for="metasource-select">Meta source</label>
     <select id="metasource-select">
@@ -32,10 +33,10 @@
       <div id="play-next-list-content">
       </div>
       <div>
-        <a class="action" href="#" id="refresh-play-next-list-button">
+        <a class="action" href="#" title="TODO: should update content" id="refresh-play-next-list-button">
           <!-- TODO: should update content -->
           <!-- alt: call update page -->
-          !Refresh!
+          !!Refresh
         </a>
         <a class="action" href="#" id="clear-play-next-list-button">Clear</a>
       </div>
