@@ -214,6 +214,7 @@ var create_player = (function() {
           else if (new_volume > 1)  new_volume = 1
 
           current_audio.volume = new_volume
+          sessionStorage.setItem('volume', new_volume)
           this.show_volume_display()
         }
       }.bind(this), false)
@@ -610,6 +611,9 @@ var create_player = (function() {
       if (current_audio !== null) {
         current_audio.pause()
         current_volume = current_audio.volume
+      } else {
+        var volume = sessionStorage.getItem('volume')
+        current_volume = volume ? +volume : current_volume
       }
 
       var audio_el = this.wrapper.querySelector(
