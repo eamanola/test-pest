@@ -13,7 +13,9 @@
 }
 
 .media.line:hover,
-.container:hover
+.media.line.hover,
+.container.line:hover,
+.container.line.hover
 {
   border: 1px solid #ddd
 }

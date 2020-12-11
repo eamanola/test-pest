@@ -165,6 +165,8 @@ function container_page(container) {
     '</div>'
   ]
 
+  ret.push('<div>') // child container
+
   container.containers.sort(function(a, b) {
     if (a.unplayed_count == 0 && b.unplayed_count != 0)
       return 1
@@ -210,6 +212,8 @@ function container_page(container) {
 
   for (var i = 0, il = container.media.length; i < il; i++)
     ret.push(media_line(container.media[i]))
+
+  ret.push('</div>')  // end child container
 
   return ret.join('')
 }
