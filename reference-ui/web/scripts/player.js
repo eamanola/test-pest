@@ -32,7 +32,11 @@ var create_player = (function() {
       false
     );
 
-    document.body.prepend(wrapper)
+    try {
+      document.body.prepend(wrapper)
+    } catch(e) {
+      document.body.appendChild(wrapper)
+    }
 
     ajax(
       streams_url,

@@ -544,8 +544,13 @@ function set_page(page_html, restore_scroll) {
   page_el.innerHTML = page_html
   connect(page_el)
 
-  if (restore_scroll === true)
-    scrollTo({ top: get_scroll() })
+  if (restore_scroll === true) {
+    try {
+      scrollTo({ top: get_scroll() })
+    } catch(e) {
+      scrollTo(0, get_scroll())
+    }
+  }
 
   if (history.state !== null)
     visibile_state_index = history.state.index

@@ -1,3 +1,7 @@
+body {
+  background-color: #fff;
+}
+
 .js-navigation, .js-played
 {
   cursor: pointer;
@@ -255,7 +259,8 @@
   width: 100%;
   height: 100%;
   z-index: 1;
-  background: #000000f1;
+  background-color: #000000;
+  background-color: #000000f1;
 }
 
 .video-wrapper video, .video-wrapper .video-overlay {
