@@ -60,7 +60,7 @@ class Images(object):
 
                 # video shorter than 4 min
                 if not os.path.exists(thumbnail_path):
-                    cmd[2] = "00:00:10.000"
+                    cmd[3] = "00:00:10.000"
                     subprocess.run(
                         cmd,
                         stdout=stdout,
