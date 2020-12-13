@@ -3,6 +3,9 @@ import os
 import subprocess
 import re
 import time
+
+from classes.ffmpeg import FFMpeg
+
 from CONFIG import (
     CFFMPEG_STREAM, CFFMPEG_HOST, CFFMPEG_PORT, CFFMPEG_LEGLEVEL, CTMP_DIR
 )
@@ -16,7 +19,7 @@ ALWAYS_TRANSCODE_VIDEO = ALWAYS_TRANSCODE
 
 
 def _get_stream_info(file_path):
-    cmd = ('ffmpeg', '-hide_banner', '-i', file_path)
+    cmd = FFMpeg().log(loglevel=None).input(file_path).cmd
 
     ffmpeg_info = subprocess.Popen(
         cmd,
@@ -52,7 +55,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def _video_stream(file_path, codec, width, height, subtitle_index):
+def _video_stream(file_path, vcodec, width, height, subtitle_index):
     cmd, mime = None, None
 
     try:
@@ -62,142 +65,26 @@ def _video_stream(file_path, codec, width, height, subtitle_index):
 
     max_threads = max_threads if max_threads > 0 else 1
 
-    if codec is None:
-        print("Return copy")
-
-    if codec in ("vp8", "vp9"):
-        mime = ".webm"
-        cmd = [
-            'ffmpeg', '-y', '-hide_banner',
-            '-loglevel', CFFMPEG_LEGLEVEL  # , '-stats'
-        ]
-
-        if not CFFMPEG_STREAM:
-            cmd = cmd + ['-re']
-
-        cmd = cmd + [
-            '-i', file_path,
-            '-r', '30', '-g', '90',
-            '-quality', 'realtime',
-            '-qmin', '4', '-qmax', '48',
-            '-f', 'webm',
-            '-speed', '10',
-            '-an', '-sn', '-dn', '-map', '-0:t?'
-        ]
-
-        if not CFFMPEG_STREAM:
-            cmd = cmd + ['-bufsize', '1M']
-
-        if codec == "vp9":
-            cmd = cmd + ['-c:v', 'vp9', '-row-mt', '1']
-        elif codec == "vp8":
-            cmd = cmd + ['-c:v', 'libvpx']
+    if vcodec in ("vp8", "vp9"):
+        _cmd = FFMpeg().y().log(stats=True) \
+            .input(file_path, re=(not CFFMPEG_STREAM)) \
+            .webm(vcodec, width=width, height=height, max_threads=max_threads)
 
         if subtitle_index is None:
-            cmd = cmd + ['-map', '0:v:0']
+            _cmd.map('0:v:0')
         else:
-            cmd = cmd + [
-                '-filter_complex',
-                f'[0:v:0][0:{subtitle_index}]overlay[v]', '-map', '[v]'
+            _cmd.cmd = [
+                c for c in _cmd.cmd if c != "-vf" and not c.startswith("scale")
             ]
+            _cmd.filter_complex(f'[0:v:0][0:{subtitle_index}]overlay[v]')
+            _cmd.map('[v]')
 
-        if width <= 426 and height <= 240:
-            cmd = cmd + [
-                '-vf',
-                'scale=w=426:h=240:force_original_aspect_ratio=decrease',
-                # '-speed', '8',
-                '-threads', str(2 if 2 <= max_threads else max_threads),
-                '-b:v', '365k'
-            ]
-            if codec == "vp9":
-                cmd = cmd + [
-                    '-tile-columns', '0', '-frame-parallel', '0'
-                ]
-
-        elif width <= 640 and height <= 360:
-            cmd = cmd + [
-                '-vf',
-                'scale=w=640:h=360:force_original_aspect_ratio=decrease',
-                # '-speed', '7',
-                '-threads', str(4 if 4 <= max_threads else max_threads),
-                '-b:v', '730k'
-            ]
-            if codec == "vp9":
-                cmd = cmd + [
-                    '-tile-columns', '1', '-frame-parallel', '0'
-                ]
-
-        elif width <= 854 and height <= 480:
-            cmd = cmd + [
-                '-vf',
-                'scale=w=854:h=480:force_original_aspect_ratio=decrease',
-                # '-speed', '6',
-                '-threads', str(4 if 4 <= max_threads else max_threads),
-                '-b:v', '1800k'
-            ]
-            if codec == "vp9":
-                cmd = cmd + [
-                    '-tile-columns', '1', '-frame-parallel', '1'
-                ]
-
-        elif width <= 1280 and height <= 720:
-            cmd = cmd + [
-                '-vf',
-                'scale=w=1280:h=720:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
-                '-threads', str(8 if 8 <= max_threads else max_threads),
-                '-b:v', '3000k'
-            ]
-            if codec == "vp9":
-                cmd = cmd + [
-                    '-tile-columns', '2', '-frame-parallel', '1'
-                ]
-
-        elif width <= 1920 and height <= 1080:
-            cmd = cmd + [
-                '-vf',
-                'scale=w=1920:h=1080:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
-                '-threads', str(8 if 8 <= max_threads else max_threads),
-                '-b:v', '4500k'
-            ]
-            if codec == "vp9":
-                cmd = cmd + [
-                    '-tile-columns', '2', '-frame-parallel', '1'
-                ]
-
-        elif width <= 2560 and height <= 1440:
-            cmd = cmd + [
-                '-vf',
-                'scale=w=2560:h=1440:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
-                '-threads', str(16 if 16 <= max_threads else max_threads),
-                '-b:v', '6000k'
-            ]
-            if codec == "vp9":
-                cmd = cmd + [
-                    '-tile-columns', '3', '-frame-parallel', '1'
-                ]
-
-        elif width <= 3840 and height <= 2160:
-            cmd = cmd + [
-                '-vf',
-                'scale=w=3840:h=2160:force_original_aspect_ratio=decrease',
-                # '-speed', '5',
-                '-threads', str(16 if 16 <= max_threads else max_threads),
-                '-b:v', '7800k'
-            ]
-            if codec == "vp9":
-                cmd = cmd + [
-                    '-tile-columns', '3', '-frame-parallel', '1'
-                ]
-
-        cmd.append('pipe:1')
-
-        if subtitle_index is not None:
-            cmd = [c for c in cmd if c != "-vf" and not c.startswith("scale")]
+        cmd = _cmd.cmd
+        mime = ".webm"
 
     if cmd:
+        cmd.append('pipe:1')
+
         cmd_test = subprocess.Popen(
             cmd,
             stderr=subprocess.PIPE,
@@ -225,18 +112,14 @@ def _video_stream(file_path, codec, width, height, subtitle_index):
                 f'http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/video.webm'
             ]
 
-        print('Video:')  # , ' '.join(cmd))
+        print('Video:', ' '.join(cmd))
 
-        return cmd, mime
+    return cmd, mime
 
 
 def _video_dump(file_path, dst_path):
-    cmd = (
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-i', file_path,
-        '-an', '-sn', '-dn', '-map', '-0:t?', '-map', '0:v:0',
-        '-c', 'copy', dst_path
-    )
+    cmd = FFMpeg().y().log().input(file_path) \
+        .map('0:v:0').vcodec('copy').output(dst_path).cmd
 
     print('Dump video:')  # , ' '.join(cmd))
     proc = subprocess.Popen(cmd)
@@ -247,12 +130,9 @@ def _video_dump(file_path, dst_path):
 
 
 def _audio_stream(file_path, stream_index, format, audio_codec):
-    cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-i', file_path,
-        '-map', f'0:{stream_index}',
-        '-c:a', audio_codec, '-f', format, 'pipe:1'
-    ]
+    cmd = FFMpeg().y().log().input(file_path) \
+        .map(f'0:{stream_index}').acodec(audio_codec).format(format) \
+        .output('pipe:1').cmd
 
     cmd_test = subprocess.Popen(
         cmd,
@@ -287,12 +167,9 @@ def _audio_stream(file_path, stream_index, format, audio_codec):
 
 
 def _audio_dump(file_path, stream_index, format, dst_path):
-    cmd = (
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-i', file_path,
-        '-vn', '-sn', '-dn', '-map', '-0:t?', '-map', f'0:{stream_index}',
-        '-c', 'copy', '-f', format, dst_path
-    )
+    cmd = FFMpeg().y().log().input(file_path) \
+        .map(f'0:{stream_index}').acodec('copy').format(format) \
+        .output(dst_path).cmd
 
     print('Dump audio:')  # , ' '.join(cmd))
     proc = subprocess.Popen(cmd)
@@ -303,27 +180,20 @@ def _audio_dump(file_path, stream_index, format, dst_path):
 
 
 def _subtitle(file_path, stream_index, format):
-    cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-i', file_path,
-        '-f', format
-    ]
+    cmd = FFMpeg().y().log().input(file_path).format(format)
 
     if stream_index is not None:
-        cmd = cmd + ['-map', f'0:{stream_index}']
+        cmd.map(f'0:{stream_index}')
 
-    cmd.append('pipe:1')
+    cmd.output('pipe:1')
 
     print('Subtitle:')  # , ' '.join(cmd))
 
-    return cmd
+    return cmd.cmd
 
 
 def _dump_attachments(file_path, dst_dir):
-    cmd = (
-        'ffmpeg', '-n', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL,
-        '-dump_attachment:t', '', '-i', file_path
-    )
+    cmd = FFMpeg().n().log().dump_attachment().input(file_path).cmd
 
     print('Attachment dump:')  # , ' '.join(cmd))
 
@@ -584,32 +454,23 @@ def trim(media, start_time):
 
     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
 
-    cmd = [
-        'ffmpeg', '-y', '-hide_banner', '-loglevel', CFFMPEG_LEGLEVEL, '-stats'
-    ]
-
-    cmd = cmd + [
-        '-ss', str(start_time),
-        '-i', file_path
-    ]
+    cmd = FFMpeg().y().log(stats=True).input(file_path, ss=start_time)
 
     for subtitle in media.subtitles:
-        cmd = cmd + [
-            '-ss', str(start_time),
-            '-i', os.path.join(media.parent().path(), subtitle)
-        ]
+        cmd.input(
+            os.path.join(media.parent().path(), subtitle), ss=start_time
+        )
 
-    cmd = cmd + ['-map', '0']
+    cmd.map('0')
 
     for index in range(0, len(media.subtitles)):
-        cmd = cmd + ['-map', str(index + 1)]
+        cmd.map(str(index + 1))
 
-    cmd = cmd + ['-c:a', 'copy', '-c:v', 'copy', '-c:s', 'ass', '-copyts']
-    cmd = cmd + [dst_path]
+    cmd.acodec('copy').vcodec('copy').scodec('ass').copyts().output(dst_path)
 
-    print('Trim:', ' '.join(cmd))
+    print('Trim:', ' '.join(cmd.cmd))
 
-    proc = subprocess.Popen(cmd)
+    proc = subprocess.Popen(cmd.cmd)
     proc.wait()
 
     return dst_path
@@ -738,6 +599,7 @@ def get_streams(media, width, height, decoders, start_time):
             "Subtitle: hdmv_pgs_subtitle" in line
         ])
         if is_bitmap:
+            print('Discard bitmap sub')
             continue
             pass
 
