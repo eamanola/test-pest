@@ -65,7 +65,7 @@
       if (window._player) {
         window._player.close()
       }
-    } else if (e.keyCode == 460 || e.keyCode == 403) {  //remote subtitle | red
+    } else if (e.keyCode == 460 || e.keyCode == 404) {  //remote subtitle | green
       var subtitle_select = window._player.subtitle_select()
       if (subtitle_select) {
         var s_options = subtitle_select.querySelectorAll("option")
@@ -76,7 +76,7 @@
         subtitle_select.selectedIndex = next
         window._player.set_subtitle(subtitle_select.value)
       }
-    } else if (e.keyCode == 404) {  //remote green
+    } else if (e.keyCode == 403) {  //remote red
       var audio_select = window._player.audio_select()
       if (audio_select) {
         var a_options = audio_select.querySelectorAll("option")

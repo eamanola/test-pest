@@ -16,6 +16,10 @@ var create_player = (function() {
     var wrapper = this.wrapper = this.create_wrapper()
     this.set_state("buffering")
 
+    if (this.MERGE_ALL_AUDIO) {
+      this.MERGE_FIRST_AUDIO = true
+    }
+
     wrapper.appendChild(this.create_video())
     wrapper.appendChild(this.create_loading())
     wrapper.appendChild(this.create_overlay())
@@ -56,7 +60,9 @@ var create_player = (function() {
     hide_volume_timeout: null,
     HIDE_VOLUME_TIMEOUT: 5 * 1000,
     ENABLE_SEEK: true,
+    MERGE_ALL_AUDIO: (/Web0S/i.test(navigator.userAgent)),
     MERGE_FIRST_AUDIO: true,
+    V_AUDIO: null,
     start_time: 0,
     _can_play: [],
     create_wrapper: function() {
@@ -81,23 +87,27 @@ var create_player = (function() {
 
       var min_audio = this.MERGE_FIRST_AUDIO ? 1 : 0
       if (streams_obj.audio.length > min_audio) {
-        this.create_audio(streams_obj.audio)
         if (streams_obj.audio.length > 1) {
           this.controls()
             .appendChild(this.create_audio_select(streams_obj.audio))
         }
-        this.sync_audio()
-      }
-      var selected_audio;
-      if (streams_obj.audio.length > 1) {
-        selected_audio = this.audio_select().value
-      } else if (streams_obj.audio.length == 1) {
-        selected_audio = this.MERGE_FIRST_AUDIO ? "" : streams_obj.audio[0].id
-      }
-      if (selected_audio !== undefined){
-        this.set_audio(selected_audio)
-      }
 
+        if (!this.MERGE_ALL_AUDIO) {
+          this.create_audio(streams_obj.audio)
+          this.sync_audio()
+        }
+      }
+      if (!this.MERGE_ALL_AUDIO) {
+        var selected_audio;
+        if (streams_obj.audio.length > 1) {
+          selected_audio = this.audio_select().value
+        } else if (streams_obj.audio.length == 1) {
+          selected_audio = streams_obj.audio[0].id
+        }
+        if (selected_audio !== undefined){
+          this.set_audio(selected_audio)
+        }
+      }
 
       // create after sources, in case default subtitle requires re-transcoding
       if (streams_obj.subtitles.length > 0) {
@@ -154,7 +164,7 @@ var create_player = (function() {
       // v.muted = true
       video.autoplay = false
       video.preload = "auto"
-      video.muted = true
+      video.muted = !this.MERGE_FIRST_AUDIO
 
       video.addEventListener("error", console.error, false)
 
@@ -377,23 +387,7 @@ var create_player = (function() {
         this.set_audio(audio_select.value)
       }.bind(this), false)
 
-
-      var audio_option;
-
-      if (this.MERGE_FIRST_AUDIO) {
-        audio_option = document.createElement('option')
-        audio_option.setAttribute("value", "")
-        audio_option.innerHTML = (audio_obj[0].lang || "Unknown")
-          + (audio_obj[0].forced ? " (forced)" : "")
-          + (audio_obj[0].default ? " (default)" : "")
-        audio_option.setAttribute("selected", "selected")
-
-        audio_select.appendChild(audio_option);
-      }
-
-      var discard_audio = this.MERGE_FIRST_AUDIO ? 1 : 0
-
-      for (var i = discard_audio, il = audio_obj.length; i < il; i++) {
+      for (var i = 0, il = audio_obj.length; i < il; i++) {
         audio_option = document.createElement('option')
         audio_option.setAttribute("value", audio_obj[i].id)
         audio_option.innerHTML = (audio_obj[i].lang || "Unknown")
@@ -474,7 +468,9 @@ var create_player = (function() {
 
       if (this.MERGE_FIRST_AUDIO) {
         var audio_track = stream_obj.audio[0]
-        src.push("&a=", audio_track.id)
+        this.V_AUDIO = audio_track.id
+
+        src.push("&a=", this.V_AUDIO)
 
         var acodec = null
         var audioEl = document.createElement("audio")
@@ -718,6 +714,10 @@ var create_player = (function() {
       }
     },
     set_audio: function(audio_id) {
+      if (this.MERGE_ALL_AUDIO) {
+        return this.merge_audio(audio_id)
+      }
+
       var current_audio = this.current_audio
       var video = this.video()
       var current_volume = 1
@@ -736,7 +736,7 @@ var create_player = (function() {
         }
       }
 
-      if (audio_id != "") {
+      if (audio_id != this.V_AUDIO) {
         var audio_el = this.wrapper.querySelector(
           'audio[data-audio-id="' + audio_id + '"]'
         )
@@ -756,6 +756,39 @@ var create_player = (function() {
         this.current_audio = video
         video.muted = false
       }
+    },
+    merge_audio: function(audio_id) {
+      var video = this.video()
+
+      var source = video.querySelector("source")
+      var params = get_params(source.src)
+
+      if (params.get("a") == audio_id) {
+        return
+      }
+
+      video.pause()
+      this.set_state("buffering")
+
+      var v = params.get("v")
+      var vcodec = params.get("cv")
+      var acodec = params.get("ca")
+      var current_time = Math.floor(this.current_time())
+      var start = current_time > 10 ? current_time : 0
+
+      this.start_time = start
+
+      var new_src = "/av/" + this.media_id
+        + "?a=" + audio_id
+        + (v ? ("&v=" + v) : "")
+        + "&w=" + screen.width
+        + "&h=" + screen.height
+        + (vcodec ? ("&cv=" + vcodec) : "")
+        + (acodec ? ("&ca=" + acodec) : "")
+        + (start ? ("&start=" + start) : "")
+
+      source.setAttribute("src", new_src)
+      video.load()
     },
     toggleFullscreen: function(e) {
       var fullscreen_button = this.wrapper.querySelector(".fullscreen-button")
