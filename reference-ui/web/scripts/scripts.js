@@ -891,7 +891,7 @@ var decoders = [];
   var player_select =
     document.getElementById('player-select')
   player_select.value =
-    localStorage.getItem("player") || "vlc"
+    localStorage.getItem("player") || "browser"
   player_select
     .addEventListener('change', onPlayerSelectChange, false)
 

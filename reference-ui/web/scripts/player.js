@@ -56,6 +56,7 @@ var create_player = (function() {
     hide_volume_timeout: null,
     HIDE_VOLUME_TIMEOUT: 5 * 1000,
     ENABLE_SEEK: true,
+    MERGE_FIRST_AUDIO: true,
     start_time: 0,
     _can_play: [],
     create_wrapper: function() {
@@ -70,11 +71,16 @@ var create_player = (function() {
 
       this.media_id = streams_obj.id
       this.duration = streams_obj.duration
-      this.start_time = streams_obj.start_time
 
-      this.create_sources(streams_obj.streams)
+      var resume_str = localStorage.getItem('resume')
+      var resume = JSON.parse(resume_str) || {}
+      if (resume[this.media_id] && typeof(resume[this.media_id]) === "number")
+        this.start_time = resume[this.media_id]
 
-      if (streams_obj.audio.length > 0) {
+      this.create_sources(streams_obj)
+
+      var min_audio = this.MERGE_FIRST_AUDIO ? 1 : 0
+      if (streams_obj.audio.length > min_audio) {
         this.create_audio(streams_obj.audio)
         if (streams_obj.audio.length > 1) {
           this.controls()
@@ -82,6 +88,16 @@ var create_player = (function() {
         }
         this.sync_audio()
       }
+      var selected_audio;
+      if (streams_obj.audio.length > 1) {
+        selected_audio = this.audio_select().value
+      } else if (streams_obj.audio.length == 1) {
+        selected_audio = this.MERGE_FIRST_AUDIO ? "" : streams_obj.audio[0].id
+      }
+      if (selected_audio !== undefined){
+        this.set_audio(selected_audio)
+      }
+
 
       // create after sources, in case default subtitle requires re-transcoding
       if (streams_obj.subtitles.length > 0) {
@@ -123,6 +139,12 @@ var create_player = (function() {
     },
     volume_display: function() {
       return this.wrapper.querySelector(".volume-display")
+    },
+    audio_select: function() {
+      return this.wrapper.querySelector(".audio-select")
+    },
+    subtitle_select: function() {
+      return this.wrapper.querySelector(".subtitle-select")
     },
 
     create_video: function() {
@@ -349,54 +371,49 @@ var create_player = (function() {
     },
     create_audio_select: function(audio_obj) {
       var audio_select = document.createElement('select')
+      audio_select.className = "audio-select"
 
       audio_select.addEventListener("change", function() {
         this.set_audio(audio_select.value)
       }.bind(this), false)
 
-      for (var i = 0, il = audio_obj.length; i < il; i++) {
+
+      var audio_option;
+
+      if (this.MERGE_FIRST_AUDIO) {
+        audio_option = document.createElement('option')
+        audio_option.setAttribute("value", "")
+        audio_option.innerHTML = (audio_obj[0].lang || "Unknown")
+          + (audio_obj[0].forced ? " (forced)" : "")
+          + (audio_obj[0].default ? " (default)" : "")
+        audio_option.setAttribute("selected", "selected")
+
+        audio_select.appendChild(audio_option);
+      }
+
+      var discard_audio = this.MERGE_FIRST_AUDIO ? 1 : 0
+
+      for (var i = discard_audio, il = audio_obj.length; i < il; i++) {
         audio_option = document.createElement('option')
         audio_option.setAttribute("value", audio_obj[i].id)
         audio_option.innerHTML = (audio_obj[i].lang || "Unknown")
           + (audio_obj[i].forced ? " (forced)" : "")
           + (audio_obj[i].default ? " (default)" : "")
 
-        if (audio_obj[i].default === true) {
+        audio_select.appendChild(audio_option);
+
+        if (audio_obj[i].default == true) {
           audio_option.setAttribute("selected", "selected")
         }
-
-        audio_select.appendChild(audio_option);
       }
 
       return audio_select
     },
     create_subtitle_select: function(subtitles) {
       var subtitle_select = document.createElement("select")
+      subtitle_select.className = "subtitle-select"
 
       subtitle_select.addEventListener("change", function() {
-        var video = this.video()
-        var old_tracks = video.querySelectorAll("track")
-        for (var i = 0, il = old_tracks.length; i < il; i ++) {
-          video.removeChild(old_tracks[i])
-        }
-
-        if (this.ass_renderer !== null) {
-          try {
-            this.ass_renderer.freeTrack()
-          } catch (e) {
-            console.log('ass render', e)
-          }
-        }
-
-        var hardcoded_sub = /si=\d+$/.test(video.currentSrc)
-        if (hardcoded_sub) {
-          var new_sub_needs_hard_code = /\.tra$/.test(subtitle_select.value)
-          if (!new_sub_needs_hard_code) {
-              // remove old hard code
-              this.request_transcoding()
-          }
-        }
-
         this.set_subtitle(subtitle_select.value)
       }.bind(this), false)
 
@@ -429,29 +446,77 @@ var create_player = (function() {
       return subtitle_select
     },
 
-    create_sources: function(streams) {
+    create_sources: function(stream_obj) {
+      var src = ["/av/", this.media_id, "?v=0"]
+
+      var vcodec = null
+      if (!MediaSource.isTypeSupported(stream_obj.video[0].type)) {
+        if (/Web0S/i.test(navigator.userAgent)) {
+          vcodec = "vp8"
+        } else if (MediaSource.isTypeSupported('video/webm; codecs="vp9"')) {
+          vcodec = "vp9"
+        } else {
+          vcodec = "vp8"
+        }
+      }
+      if (vcodec) {
+        src.push("&cv=" + vcodec)
+      }
+
+      if (this.start_time) {
+        src.push("&start=" + this.current_time())
+      }
+
+      if (screen){
+        src.push("&w=" + screen.width)
+        src.push("&h=" + screen.height)
+      }
+
+      if (this.MERGE_FIRST_AUDIO) {
+        var audio_track = stream_obj.audio[0]
+        src.push("&a=", audio_track.id)
+
+        var acodec = null
+        var audioEl = document.createElement("audio")
+        if (!audioEl.canPlayType(audio_track.type)) {
+          if (audioEl.canPlayType('audio/ogg; codecs=opus')){
+            acodec = "opus"
+          } else {
+            acodec = "vorbis"
+          }
+        }
+        if (acodec) {
+          src.push("&ca=" + acodec)
+        }
+      }
+
       var video = this.video()
       var error_count = 0
-      var src = null
-      for (var i = 0, il = streams.length; i < il; i ++) {
-        src = document.createElement('source')
-        //src.setAttribute("type", "video/webm")
-        src.setAttribute("src", streams[i])
-        src.addEventListener("error", function(e) {
-          error_count = error_count + 1
-          var source_length = video.querySelectorAll('source').length
-          console.log(error_count + '/' + source_length, e)
-          if (error_count == source_length) {
-            this.request_transcoding()
-          }
-        }.bind(this), false)
+      var source = document.createElement('source')
+      source.setAttribute("src", src.join(""))
+      source.addEventListener("error", function(e) {
+        error_count = error_count + 1
+        var source_length = video.querySelectorAll('source').length
+        console.log(error_count + '/' + source_length, e)
+        if (error_count == source_length) {
+          this.request_transcoding()
+        }
+      }.bind(this), false)
 
-        video.appendChild(src)
-      }
+      video.appendChild(source)
     },
     create_audio: function(audio_obj) {
       var audio = null, source = null
-      for (var i = 0, il = audio_obj.length; i < il; i++) {
+
+      var audioEl = document.createElement("audio"), acodec = null
+      if (audioEl.canPlayType('audio/ogg; codecs=opus'))
+        acodec = "opus"
+      else
+        acodec = "vorbis"
+
+      var discard_audio = this.MERGE_FIRST_AUDIO ? 1 : 0
+
+      for (var i = discard_audio, il = audio_obj.length; i < il; i++) {
         audio = document.createElement('audio')
         // audio.setAttribute("type", "audio/ogg")
         audio.setAttribute("data-audio-id", audio_obj[i].id)
@@ -460,18 +525,37 @@ var create_player = (function() {
         audio.autoplay = false
         audio.style.display = "none"
 
+        source = document.createElement("source")
+
+        var src = [
+          "/av/", this.media_id,
+          "?a=", audio_obj[i].id,
+          "&start=", this.start_time
+        ]
+        if (!audioEl.canPlayType(audio_obj[i].type)) {
+          src.push("&ca=", acodec)
+        }
+        source.setAttribute("src", src.join(""))
+
+        source.addEventListener("error", console.error, false)
+        audio.appendChild(source)
+
+        /*
         for (var j = 0, jl = audio_obj[i].src.length; j < jl; j++) {
           source = document.createElement("source")
           source.setAttribute("src", audio_obj[i].src[j])
           source.addEventListener("error", console.error, false)
           audio.appendChild(source)
         }
+        */
 
         this.wrapper.appendChild(audio);
 
+        /*
         if (audio_obj[i].default === true) {
           this.set_audio(audio_obj[i].id)
         }
+        */
       }
     },
 
@@ -529,83 +613,108 @@ var create_player = (function() {
       }.bind(this), false)
     },
     set_subtitle: function(src) {
-      var src_path = src.split("?")[0]
-      if (/\.ass$/.test(src_path)) {
+      var video = this.video()
+      var old_tracks = video.querySelectorAll("track")
+      for (var i = 0, il = old_tracks.length; i < il; i ++) {
+        video.removeChild(old_tracks[i])
+      }
+
+      if (this.ass_renderer !== null) {
         try {
-          if (this.ass_renderer === null) {
-            this.ass_renderer = new SubtitlesOctopus({
-              video: this.video(),
-              subUrl: src,
-              fonts: this.fonts,
-              workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js',
-              legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js'
-            })
-          } else {
-            this.ass_renderer.setTrackByUrl(src)
-          }
+          this.ass_renderer.freeTrack()
         } catch (e) {
           console.log('ass render', e)
         }
-      } else if (/\.tra$/.test(src_path)) {
-        var parts = src.split("/")
-        if (parts.length > 4) {
-          var stream_index = parts[3]
-          this.request_transcoding(stream_index)
+      }
+
+      var hardcoded_sub = /si=\d+$/.test(video.currentSrc)
+      if (hardcoded_sub) {
+        var new_sub_needs_hard_code = /\.tra$/.test(subtitle_select.value)
+        if (!new_sub_needs_hard_code) {
+            // remove old hard code
+            this.request_transcoding()
         }
-      } else {
-        var video = this.video()
-        var track = document.createElement('track')
+      }
 
-        track.setAttribute('src', src)
-        track.setAttribute("kind", "subtitles")
-        track.addEventListener("load", function(e) {
-          var cues = e.target.track.cues
-          for (var i = 0, il = cues.length; i < il; i++) {
-            cues[i].line = 100 // bottom of screen, but not default -1
-          }
-        }, false)
-        /*
-        if (this.start_time) {
-          var offset = this.start_time
-          track.addEventListener("load", function(e) {
-            // TODO: find a better way to clear activeCues list
-            var cue_cache = []
-
-            var cues = e.target.track.cues
-            var currentTime = video.currentTime
-            var new_start_time = new_end_time = null
-
-            for (var i = 0, il = cues.length; i < il; i++) {
-              new_start_time = cues[i].startTime - offset
-              new_end_time = cues[i].endTime - offset
-
-              cues[i].startTime = new_start_time
-              cues[i].endTime = new_end_time
-
-              if (
-                new_start_time < currentTime
-                || new_end_time < currentTime
-              ) {
-                e.target.track.removeCue(cues[i])
-                cue_cache.push(cues[i])
-                i = i - 1
-                il = cues.length
-              }
+      if (src) {
+        var src_path = src.split("?")[0]
+        if (/\.ass$/.test(src_path)) {
+          try {
+            if (this.ass_renderer === null) {
+              this.ass_renderer = new SubtitlesOctopus({
+                video: this.video(),
+                subUrl: src + "?start=" + this.start_time,
+                fonts: this.fonts,
+                workerUrl: '/scripts/octopus-ass/subtitles-octopus-worker.js',
+                legacyWorkerUrl: '/scripts/octopus-ass/subtitles-octopus-worker-legacy.js'
+              })
+            } else {
+              this.ass_renderer.setTrackByUrl(src + "?start=" + this.start_time)
             }
+          } catch (e) {
+            console.log('ass render', e)
+          }
+        } else if (/\.tra$/.test(src_path)) {
+          var parts = src.split("/")
+          if (parts.length > 4) {
+            var stream_index = parts[3]
+            this.request_transcoding(stream_index)
+          }
+        } else {
+          var video = this.video()
+          var track = document.createElement('track')
 
-            if (cue_cache.length) {
-              setTimeout((function(textTrack, cue_cache) {
-                return function() {
-                  for (var i = 0, il = cue_cache.length; i < il; i ++)
-                    textTrack.addCue(cue_cache[i])
-                }
-              })(e.target.track, cue_cache), 0)
+          track.setAttribute('src', src + "?start=" + this.start_time)
+          track.setAttribute("kind", "subtitles")
+          track.addEventListener("load", function(e) {
+            var cues = e.target.track.cues
+            for (var i = 0, il = cues.length; i < il; i++) {
+              cues[i].line = 100 // bottom of screen, but not default -1
             }
           }, false)
-        }*/
+          /*
+          if (this.start_time) {
+            var offset = this.start_time
+            track.addEventListener("load", function(e) {
+              // TODO: find a better way to clear activeCues list
+              var cue_cache = []
 
-        video.appendChild(track)
-        video.textTracks[0].mode = "showing"
+              var cues = e.target.track.cues
+              var currentTime = video.currentTime
+              var new_start_time = new_end_time = null
+
+              for (var i = 0, il = cues.length; i < il; i++) {
+                new_start_time = cues[i].startTime - offset
+                new_end_time = cues[i].endTime - offset
+
+                cues[i].startTime = new_start_time
+                cues[i].endTime = new_end_time
+
+                if (
+                  new_start_time < currentTime
+                  || new_end_time < currentTime
+                ) {
+                  e.target.track.removeCue(cues[i])
+                  cue_cache.push(cues[i])
+                  i = i - 1
+                  il = cues.length
+                }
+              }
+
+              if (cue_cache.length) {
+                setTimeout((function(textTrack, cue_cache) {
+                  return function() {
+                    for (var i = 0, il = cue_cache.length; i < il; i ++)
+                      textTrack.addCue(cue_cache[i])
+                  }
+                })(e.target.track, cue_cache), 0)
+              }
+            }, false)
+          }*/
+
+          video.appendChild(track)
+          video.textTracks[0].mode = "showing"
+        }
       }
     },
     set_audio: function(audio_id) {
@@ -613,27 +722,40 @@ var create_player = (function() {
       var video = this.video()
       var current_volume = 1
       if (current_audio !== null) {
-        current_audio.pause()
         current_volume = current_audio.volume
       } else {
         var volume = sessionStorage.getItem('volume')
         current_volume = volume ? +volume : current_volume
       }
 
-      var audio_el = this.wrapper.querySelector(
-        'audio[data-audio-id="' + audio_id + '"]'
-      )
-      audio_el.volume = current_volume
-      if (!video.paused) {
-        audio_el.play().catch(
-          (function(audio) {
-            return function(error) {
-              this.on_audio_play_error(error, audio)
-            }
-          })(audio_el).bind(this)
-        )
+      if (current_audio !== null) {
+        if (current_audio != video) {
+          current_audio.pause()
+        } else {
+          video.muted = true
+        }
       }
-      this.current_audio = audio_el
+
+      if (audio_id != "") {
+        var audio_el = this.wrapper.querySelector(
+          'audio[data-audio-id="' + audio_id + '"]'
+        )
+        audio_el.volume = current_volume
+        if (!video.paused) {
+          audio_el.play().catch(
+            (function(audio) {
+              return function(error) {
+                this.on_audio_play_error(error, audio)
+              }
+            })(audio_el).bind(this)
+          )
+        }
+        this.current_audio = audio_el
+      } else {
+        video.volume = current_volume
+        this.current_audio = video
+        video.muted = false
+      }
     },
     toggleFullscreen: function(e) {
       var fullscreen_button = this.wrapper.querySelector(".fullscreen-button")
@@ -754,6 +876,12 @@ var create_player = (function() {
       var sources = video.querySelectorAll('source')
       var streams = []
       var source = source_src = null
+      var updated  = false
+      var vcodec = "vp9"
+      var acodec = "opus"
+      if (/Web0S/i.test(navigator.userAgent)) {
+        vcodec = "vp8"
+      }
 
       for (var i = 0, il = sources.length; i < il; i++) {
         source = sources[i]
@@ -763,21 +891,37 @@ var create_player = (function() {
         if (
           params == null
           || (
-            params.get("transcode") !== "vp9"
+            params.get("cv") !== vcodec
+            || params.get("ca") !== acodec
             || subtitle_index !== params.get("si")
           )
         ) {
+          var v = params.get("v")
+          var a = params.get("a")
+
+          new_src = source_src.split("?")[0]
+            + "?cv=" + vcodec + "&ca=" + acodec + "&start=" + this.start_time
+            + (v ? ("&v=" + v) : "")
+            + (a ? ("&a=" + a) : "")
+            + "&w=" + screen.width
+            + "&h=" + screen.height
+            + (subtitle_index !== null ? ("&si=" + subtitle_index) : "")
+
+          source.setAttribute("src", new_src)
+
+          /*
           new_src = source_src.split("?")[0]
             + "?transcode=vp9&start="
             + Math.floor(this.current_time())
             + (subtitle_index !== null ? ("&si=" + subtitle_index) : "")
           streams.push(new_src)
+          */
+          updated = true
         }
-        video.removeChild(source)
+        //video.removeChild(source)
       }
 
-      if (streams.length) {
-        this.create_sources(streams)
+      if (updated) {
         video.load()
         console.log('transcoding video')
       }
@@ -909,6 +1053,6 @@ var create_player = (function() {
 
   return function (streams_obj) {
     console.log('Create player')
-    new Player(streams_obj)
+    window._player = new Player(streams_obj)
   }
 })()

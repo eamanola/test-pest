@@ -77,6 +77,67 @@ class StreamingRequestHandler(FileRequestHandler):
             "cmd": cmd
         }
 
+    def av(self, db, request):
+        code, headers, file_path, redirect, cmd = 400, {}, None, None, None
+        api_params, params = request["api_params"], request["optional_params"]
+
+        media_id = api_params[1]
+
+        video_index = (
+            int(params['v'][0]) if "v" in params.keys() else None
+        )
+        audio_index = (
+            int(params['a'][0]) if "a" in params.keys() else None
+        )
+        vcodec = (
+            params['cv'][0] if "cv" in params.keys() else None
+        )
+        acodec = (
+            params['ca'][0] if "ca" in params.keys() else None
+        )
+        start_time = (
+            int(params['start'][0]) if "start" in params.keys() else None
+        )
+        width = (
+            int(params['w'][0]) if "w" in params.keys() else None
+        )
+        height = (
+            int(params['h'][0]) if "h" in params.keys() else None
+        )
+        subtitle_index = (
+            int(params['si'][0]) if "si" in params.keys() else None
+        )
+
+        stream, mime = api.av(
+            db, media_id, video_index, vcodec, audio_index, acodec,
+            start_time, width, height, subtitle_index
+        )
+
+        if stream:
+            code = 200
+
+            if isinstance(stream, str):
+                if stream.startswith("http"):
+                    code = 302
+                    redirect = stream
+                else:
+                    file_path = stream
+                    headers["Cache-Control"] = self.CACHE_ONE_WEEK
+            else:
+                cmd = stream
+                headers["Content-type"] = self.mime_type(mime)
+                headers["Cache-Control"] = self.MUST_REVALIDATE
+        else:
+            code = 404
+
+        return {
+            "code": code,
+            "headers": headers,
+            "redirect": redirect,
+            "file_path": file_path,
+            "cmd": cmd
+        }
+
     def audio(self, db, request):
         code, headers, file_path, cmd = 400, {}, None, None
         api_params, params = request["api_params"], request["optional_params"]
@@ -157,7 +218,9 @@ class StreamingRequestHandler(FileRequestHandler):
 
         api_params = self.path[1:].split("/")
         media_id = api_params[1]
-        font_name = api_params[2]
+
+        from urllib.parse import unquote
+        font_name = unquote(api_params[2])
 
         if (media_id and font_name and len(api_params) == 3):
             font_path = api.get_font(db, media_id, font_name)
@@ -188,5 +251,8 @@ class StreamingRequestHandler(FileRequestHandler):
 
         elif self.path.startswith("/fonts/"):
             response = self.fonts(db, request)
+
+        elif self.path.startswith("/av/"):
+            response = self.av(db, request)
 
         return super().router(db, request) if response is None else response

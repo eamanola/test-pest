@@ -126,6 +126,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
     def do_GET(self):
         response_code, response_headers = None, {}
         response_json, response_file_path, response_cmd = None, None, None
+        response_redirect = None
 
         try:
             db = get_db()
@@ -155,6 +156,8 @@ class RequestHandler(socketserver.StreamRequestHandler):
                 response_file_path = response["file_path"]
             if "cmd" in response.keys():
                 response_cmd = response["cmd"]
+            if "redirect" in response.keys():
+                response_redirect = response["redirect"]
 
         else:
             response_code = 400
@@ -166,13 +169,16 @@ class RequestHandler(socketserver.StreamRequestHandler):
             response_cmd is None
             and response_file_path is None
             and response_json is None
+            and response_redirect is None
         ):
             if response_code in (200, 304):
-                response_json = {'code': 200, 'message': 'Ok'}
+                response_json = {'code': response_code, 'message': 'Ok'}
             elif response_code == 400:
                 response_json = {'code': 400, 'message': 'Invalid request'}
             elif response_code == 404:
                 response_json = {'code': 404, 'message': 'Not found'}
+            elif response_code == 302:
+                response_json = {'code': 302, 'message': 'Found'}
 
         if "Content-type" not in response_headers.keys():
             if response_json is not None:
@@ -226,6 +232,10 @@ class RequestHandler(socketserver.StreamRequestHandler):
                         f"bytes {start_1}-{end}/{file_size}"
                     )
                     print('cr:', response_headers["Content-Range"], self.path)
+
+        if response_redirect is not None:
+            print("Redirect:", response_redirect)
+            response_headers["Location"] = response_redirect
 
         # should be null?
         response_headers["Access-Control-Allow-Origin"] = "*"

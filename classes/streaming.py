@@ -332,10 +332,7 @@ def get_subtitle(media, type, index, start_time):
 
     if type == "internal":
         if start_time:
-            file_path = os.path.join(
-                CTMP_DIR,
-                f'trimmed-{start_time}-{media.id()}.mkv'
-            )
+            file_path = trim(media, start_time)
         else:
             file_path = os.path.join(
                 media.parent().path(), media.file_path()
@@ -387,9 +384,9 @@ def get_font(media, font_name):
     if os.path.exists(dst_path):
         return dst_path
 
-    if "%20" in dst_path:
-        if os.path.exists(dst_path.replace("%20", " ")):
-            return dst_path.replace("%20", " ")
+    # if "%20" in dst_path:
+    #    if os.path.exists(dst_path.replace("%20", " ")):
+    #        return dst_path.replace("%20", " ")
 
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
@@ -403,9 +400,9 @@ def get_font(media, font_name):
     if os.path.exists(dst_path):
         return dst_path
 
-    if "%20" in dst_path:
-        if os.path.exists(dst_path.replace("%20", " ")):
-            return dst_path.replace("%20", " ")
+    # if "%20" in dst_path:
+    #    if os.path.exists(dst_path.replace("%20", " ")):
+    #        return dst_path.replace("%20", " ")
 
     return None
 
@@ -439,6 +436,260 @@ def __get_previous_iframe_time(file_path, start_time):
         return math.ceil(previous_i_frame_time)
 
     return start_time
+
+
+def get_video_info(file_path):
+    stream_lines = [line for line in _get_stream_info(file_path) if (
+        "Stream" in line and "Video" in line
+    )]
+
+    if "Video: h264" in stream_lines[0]:
+        mime = ".mp4"
+        format = "mp4"
+    elif "Video: vp8" in stream_lines[0] or "Video: vp9" in stream_lines[0]:
+        mime = ".webm"
+        format = "webm"
+    else:
+        mime = None
+        format = None
+
+    return mime, format
+
+
+def get_audio_info(file_path, stream_index):
+    stream_lines = _get_stream_info(file_path)
+    re_sub_audio = re.compile(R_SUB_AUDIO)
+
+    for line in [line for line in stream_lines if "Audio" in line]:
+        info = re_sub_audio.search(line)
+        _stream_index = info.group(1) if info else None
+        if _stream_index != str(stream_index):
+            continue
+
+        if "Audio: aac" in line:
+            mime = ".aac"
+            format = "adts"
+        elif "Audio: flac" in line:
+            mime = ".flac"
+            format = "flac"
+        elif "Audio: opus" in line:
+            mime = ".opus"
+            format = "opus"
+        elif "Audio: vorbis" in line:
+            mime = ".vorbis"
+            format = "oga"
+        else:
+            mime = None
+            format = None
+
+        break
+
+    return mime, format
+
+
+def av(
+    media, video_index, vcodec, audio_index, acodec,
+    start_time, width, height, subtitle_index
+):
+    if start_time:
+        file_path = trim(media, start_time)
+    else:
+        file_path = os.path.join(
+            media.parent().path(), media.file_path()
+        )
+
+    if not os.path.exists(file_path):
+        return None, None
+
+    if video_index is None and audio_index is None:
+        return None, None
+
+    ###########################################################################
+
+    cmd, mime = None, None
+
+    use_re = vcodec is None and acodec is None
+
+    cmd = FFMpeg().y().log() \
+        .input(file_path, re=use_re)
+
+    ###########################################################################
+
+    if video_index is not None:
+        if subtitle_index is None:
+            cmd.map(f'0:v:{video_index}')
+        else:
+            cmd.cmd = [
+                c for c in _cmd.cmd if (
+                    c != "-vf" and not c.startswith("scale")
+                )
+            ]
+            cmd.filter_complex(f'[0:v:0][0:{subtitle_index}]overlay[v]')
+            cmd.map('[v]')
+
+        if vcodec is None:
+            mime, format = get_video_info(file_path)
+            cmd.vcodec('copy')
+            cmd.format(format)
+
+        elif vcodec in ("vp8", "vp9"):
+            mime = ".webm"
+            try:
+                max_threads = int(len(os.sched_getaffinity(0)) / 2)
+            except Exception:
+                max_threads = int(os.cpu_count() / 2)
+            cmd.webm(
+                vcodec, width=width, height=height, max_threads=max_threads
+            )
+        else:
+            print("AV: Unsupported video codec", vcodec)
+
+    ###########################################################################
+
+    if audio_index is not None:
+        cmd.map(f'0:{audio_index}')
+
+        if mime == ".webm":
+            cmd.acodec("libopus")
+
+        elif acodec is None:
+            _mime, _format = get_audio_info(file_path, audio_index)
+            cmd.acodec('copy')
+
+        elif acodec == "vorbis":
+            _mime = ".vorbis"
+            _format = "oga"
+            cmd.acodec("libvorbis")
+
+        elif acodec == "opus":
+            _mime = ".opus"
+            _format = "opus"
+            cmd.acodec("libopus")
+
+        else:
+            print("AV: Unsupported video codec", vcodec)
+
+        if video_index is None:
+            cmd.format(_format)
+            mime = _mime
+
+    ###########################################################################
+
+    dst_file = "-".join([
+        media.id(),
+        str(start_time),
+        str(video_index),
+        str(audio_index),
+        str(vcodec),
+        str(acodec)
+    ]) + mime
+    dst_path = os.path.join(CTMP_DIR, dst_file)
+
+    if vcodec is None and acodec is None:
+        if os.path.exists(dst_path):
+            return dst_path, mime
+
+    ###########################################################################
+
+    success, cmd.cmd = test_cmd(cmd.cmd)
+    if not success:
+        return None, None
+
+    ###########################################################################
+
+    ret = None
+
+    if vcodec is None and acodec is None:
+        if not os.path.exists(dst_path):
+            os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+            cmd.output(dst_path)
+
+            dump_proc = subprocess.Popen(
+                cmd.cmd,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.DEVNULL
+            )
+            dump_proc.wait()
+        ret = dst_path
+
+    elif CFFMPEG_STREAM:
+        stream_url = f'http://{CFFMPEG_HOST}:{CFFMPEG_PORT}/{dst_file}'
+        cmd.cmd = cmd.cmd + [
+            '-listen', '1',
+            '-headers',
+            'Cache-Control: private, must-revalidate, max-age=0',
+            '-reconnect_streamed', '1',
+            stream_url
+        ]
+
+        stream_proc = subprocess.Popen(cmd.cmd)
+
+        ret = stream_url
+    else:
+        cmd.output('pipe:1')
+
+        ret = cmd.cmd
+
+    print("AV:")  # , " ".join(cmd.cmd))
+
+    return ret, mime
+
+
+def test_cmd(cmd):
+    passed = False
+
+    import uuid
+
+    tmp_file = os.path.join(
+        CTMP_DIR, str(uuid.uuid1())
+    )
+    os.makedirs(os.path.dirname(tmp_file), exist_ok=True)
+
+    cmd_test = subprocess.Popen(
+        cmd + [tmp_file],
+        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL
+    )
+    time.sleep(0.5)
+
+    if cmd_test.poll() is not None and cmd_test.returncode == 1:
+        stderr_str = cmd_test.stderr.read().decode("utf-8")
+
+        # http://trac.ffmpeg.org/ticket/5718
+        if any((
+            "libopus" in line
+            and "Invalid channel layout 5.1(side)" in line
+        ) for line in stderr_str.split("\n")):
+            print('Mapping channels manually')
+
+            cmd.append("-af")
+            cmd.append('aformat=channel_layouts=5.1|stereo')
+
+            os.remove(tmp_file)
+            return test_cmd(cmd)
+
+        if any((
+            "in MP4 support is experimental" in line
+        ) for line in stderr_str.split("\n")):
+            print("Adding -strict experimental")
+            cmd.append('-strict')
+            cmd.append('experimental')
+
+            os.remove(tmp_file)
+            return test_cmd(cmd)
+
+        else:
+            print("##################################################")
+            print('Cmd test fail')
+            print(" ".join(cmd))
+            print("##################################################")
+            print(stderr_str)
+    else:
+        cmd_test.terminate()
+        passed = True
+
+    os.remove(tmp_file)
+    return passed, cmd
 
 
 def trim(media, start_time):
@@ -476,7 +727,163 @@ def trim(media, start_time):
     return dst_path
 
 
-def get_streams(media, width, height, decoders, start_time):
+def get_streams(media):
+    file_path = os.path.join(media.parent().path(), media.file_path())
+    if not os.path.exists(file_path):
+        return None
+
+    video = []
+    audio = []
+    subtitles = []
+    fonts = []
+
+    media_id = media.id()
+
+    stream_lines = _get_stream_info(file_path)
+
+    ###########################################################################
+
+    for line in [line for line in stream_lines if "Video" in line]:
+        if "Video: h264" in line:
+            type = 'video/mp4; codecs="avc1.42E01E"'
+        elif "Video: vp8" in line:
+            type = 'video/webm; codecs="vp8"'
+        elif "Video: vp9" in line:
+            type = 'video/webm; codecs="vp9"'
+        else:
+            type = "Unsupported"
+            print("Unsupported video type:\n", line)
+
+    video.append({
+        "type": type
+    })
+
+    ###########################################################################
+
+    re_sub_audio = re.compile(R_SUB_AUDIO)
+
+    for line in [line for line in stream_lines if "Audio" in line]:
+        info = re_sub_audio.search(line)
+        stream_index = info.group(1) if info else None
+        if not stream_index:
+            continue
+
+        lang = info.group(2) if info else None
+
+        is_default = "(default)" in line
+        is_forced = "(forced)" in line
+        if "Audio: aac" in line:
+            type = 'audio/aac'
+        elif "Audio: flac" in line:
+            type = 'audio/ogg; codecs=flac'
+        elif "Audio: opus" in line:
+            type = 'audio/ogg; codecs=opus'
+        elif "Audio: vorbis" in line:
+            type = 'audio/ogg; codecs="vorbis"'
+        else:
+            type = "Unsupported"
+            print("Unsupported audio type:\n", line)
+
+        _audio = {
+            'id': stream_index,
+            'lang': lang,
+            'is_forced': is_forced,
+            'default': is_default,
+            'type': type
+        }
+
+        if is_default:
+            audio.insert(0, _audio)
+        else:
+            audio.append(_audio)
+
+    if len(audio) and audio[0]['default'] is not True:
+        audio[0]['default'] = True
+
+    ###########################################################################
+
+    for line in [line for line in stream_lines if "Subtitle" in line]:
+        is_bitmap = any([
+            "Subtitle: dvd_subtitle" in line,
+            "Subtitle: hdmv_pgs_subtitle" in line
+        ])
+        if is_bitmap:
+            print('Discard bitmap sub')
+            continue
+            pass
+
+        is_default = "(default)" in line
+        is_forced = "(forced)" in line
+        is_ass = "Subtitle: ass" in line
+
+        info = re_sub_audio.search(line)
+        stream_index = info.group(1) if info else None
+        lang = info.group(2) if info else "Unknown"
+        src = f'/subtitle/internal/{stream_index}/{media_id}'
+
+        if is_ass:
+            src = f"{src}.ass"
+        elif is_bitmap:
+            src = f"{src}.tra"
+        else:
+            src = f"{src}.vtt"
+
+        subtitle = {
+            'src': src,
+            'lang': lang,
+            'default': is_default,
+            'forced': is_forced,
+            'requires_transcode': is_bitmap
+        }
+
+        if stream_index:
+            subtitles.append(subtitle)
+
+    for i in range(len(media.subtitles)):
+        src = f'/subtitle/external/{i}/{media_id}'
+        is_ass = media.subtitles[i].endswith(".ass")
+        src = src + (".ass" if is_ass else ".vtt")
+        subtitles.append({
+            'src': src,
+            'lang': "External",
+            'default': False,
+            'forced': False
+        })
+
+    duration = 0
+    for line in stream_lines:
+        if "Duration" in line:
+            d = re.compile(R_DURATION).search(line)
+            if d:
+                duration = (
+                    int(d.group(1)) * 3600
+                    + int(d.group(2)) * 60
+                    + int(d.group(3))
+                )
+            break
+
+    re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
+    for line in [
+        line for line in stream_lines if (
+            line.strip().startswith("filename")
+            and line.strip().endswith((".otf", ".OTF", ".ttf", ".TTF"))
+        )
+    ]:
+        filename = re_attachment_names.search(line)
+        if filename:
+            fonts.append(f"/fonts/{media_id}/{filename.group(1)}")
+
+    return {
+        'id': media_id,
+        'video': video,
+        'audio': audio,
+        'subtitles': subtitles,
+        'duration': duration,
+        'fonts': fonts
+    }
+
+
+def __get_streams(media, width, height, decoders, start_time):
     file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None

@@ -339,14 +339,33 @@ def get_streams(db, media_id, width, height, decoders, start_time=0):
     if media:
         import classes.streaming as streaming
 
-        streams = streaming.get_streams(
-            media, width, height, decoders, start_time
-        )
+        # streams = streaming.__get_streams(
+        #    media, width, height, decoders, start_time
+        # )
+        streams = streaming.get_streams(media)
 
         if streams:
             WatchingList.started_play(db, [media])
 
     return streams
+
+
+def av(
+    db, media_id, video_index, vcodec, audio_index, acodec,
+    start_time, width, height, subtitle_index
+):
+    stream, mime = None, None
+    media = db.get_media(media_id)
+
+    if media:
+        import classes.streaming as streaming
+
+        stream, mime = streaming.av(
+            media, video_index, vcodec, audio_index, acodec,
+            start_time, width, height, subtitle_index
+        )
+
+    return stream, mime
 
 
 def get_video_stream(

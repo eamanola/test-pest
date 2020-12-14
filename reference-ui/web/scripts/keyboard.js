@@ -50,6 +50,45 @@
     return false
   }
 
+  function video_handler(e) {
+    if (e.keyCode == 415) { //remote play
+      var video = document.querySelector("video")
+      if (video) {
+        video.play()
+      }
+    } else if (e.keyCode == 19) { //remote pause
+      var video = document.querySelector("video")
+      if (video) {
+        video.pause()
+      }
+    } else if (e.keyCode == 413) { //remote stop
+      if (window._player) {
+        window._player.close()
+      }
+    } else if (e.keyCode == 460 || e.keyCode == 403) {  //remote subtitle | red
+      var subtitle_select = window._player.subtitle_select()
+      if (subtitle_select) {
+        var s_options = subtitle_select.querySelectorAll("option")
+
+        var next = subtitle_select.selectedIndex + 1
+        if (next == s_options.length) next = 0
+
+        subtitle_select.selectedIndex = next
+        window._player.set_subtitle(subtitle_select.value)
+      }
+    } else if (e.keyCode == 404) {  //remote green
+      var audio_select = window._player.audio_select()
+      if (audio_select) {
+        var a_options = audio_select.querySelectorAll("option")
+
+        var next = audio_select.selectedIndex + 1
+        if (next == a_options.length) next = 0
+
+        audio_select.selectedIndex = next
+        window._player.set_audio(audio_select.value)
+      }
+    }
+  }
 
   window.addEventListener("keydown", function(e) {
     var next_item = null
@@ -63,6 +102,12 @@
       set_hover(hoverables[0])
       return
     }
+
+    var video = document.querySelector("video")
+    if (video) {
+      return video_handler(e)
+    }
+    console.log(e.key, e.keyCode);
 
     var index = index_of(hover, hoverables)
 
@@ -109,6 +154,7 @@
         next_item = hoverables[index + (siblings.length - 1 - sib_index) + 1]
       }
     } else if (e.key === "Enter") {
+      if (video) return
       e.preventDefault();
       e.stopPropagation();
 
