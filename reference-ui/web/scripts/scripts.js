@@ -283,6 +283,28 @@ function onPlayedChange(e) {
   return false
 }
 
+function toggle_played(data_id, force) {
+  console.log("//TODO: set_played update all models")
+
+  if (data_id) {
+    var els = document.querySelectorAll(
+      '[data-id="' + data_id + '"] .js-played input'
+    )
+    for (var i = 0, il = els.length; i < il; i++) {
+      if (force === undefined)
+        els[i].checked = !els[i].checked
+      else
+        els[i].checked = force
+
+      onPlayedChange( { target: els[i] } )
+    }
+  }
+}
+
+function set_played(data_id) {
+  toggle_played(data_id, true)
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 function onPlayerSelectChange(e) {
@@ -850,12 +872,16 @@ if (history.scrollRestoration) {
 }
 
 window.addEventListener("popstate", function(e) {
-  if (document.querySelector(".video-wrapper")) {
+  if (player_is_open()) {
     window._player.close()
   } else {
     updatePage(e.state)
   }
 }, false);
+
+function player_is_open() {
+  return document.querySelector(".video-wrapper") !== null
+}
 
 var decoders = [];
 (function inits(){

@@ -21,7 +21,8 @@ body {
 .container.line:hover,
 .container.line.hover
 {
-  border: 1px solid #ddd
+  border: 1px solid #ddd;
+  background-color: #eee;
 }
 .media.line,
 .container.line

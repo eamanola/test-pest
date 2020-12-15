@@ -844,13 +844,7 @@ Player.prototype = {
     if (duration) {
       var watched = this.current_time() / duration
       if (watched > 0.9) {
-        var els = document.querySelectorAll(
-          '[data-id="' + this.media_id + '"] .js-played input'
-        )
-        for (var i = 0, il = els.length; i < il; i++) {
-          els[i].checked = true
-          window.onPlayedChange( { target: els[i] } )
-        }
+        set_played(this.media_id)
       } else if (watched > 0.05) {
         var resume_str = localStorage.getItem('resume')
         var resume = JSON.parse(resume_str) || {}

@@ -51,6 +51,8 @@
   }
 
   function video_handler(e) {
+    e.preventDefault()
+    e.stopPropagation()
     if (e.keyCode == 415) { //remote play
       var video = document.querySelector("video")
       if (video) {
@@ -103,8 +105,7 @@
       return
     }
 
-    var video = document.querySelector("video")
-    if (video) {
+    if (player_is_open()) {
       return video_handler(e)
     }
     console.log(e.key, e.keyCode);
@@ -131,6 +132,15 @@
       if (!next_item && (index - sib_index > 0)) {
         next_item = hoverables[index - sib_index - 1]
       }
+
+      if (!next_item) {
+        e.preventDefault()
+        e.stopPropagation()
+
+        set_hover(hoverables[0])
+        document.body.scrollIntoView({ behavior: "smooth" })
+        return
+      }
     } else if (e.key === "ArrowDown") {
       var siblings = hover.parentNode.querySelectorAll(hoverable.join(","))
       var sib_index = index_of(hover, siblings)
@@ -154,11 +164,15 @@
         next_item = hoverables[index + (siblings.length - 1 - sib_index) + 1]
       }
     } else if (e.key === "Enter") {
-      if (video) return
       e.preventDefault();
       e.stopPropagation();
 
       onEnterClicked(hover)
+    } else if (e.keyCode == 403) { // remote red
+      e.preventDefault();
+      e.stopPropagation();
+
+      toggle_played(get_data_id(hover).data_id)
     }
 
     if (next_item) {
