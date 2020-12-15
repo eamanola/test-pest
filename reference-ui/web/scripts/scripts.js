@@ -292,10 +292,6 @@ function onPlayerSelectChange(e) {
 
 function onStreamsReceived(responseText) {
   console.log(responseText)
-
-  var streams = JSON.parse(responseText);
-
-  create_player(streams);
 }
 
 function onPlayConfirmed(responseText) {
@@ -321,6 +317,7 @@ function onPlaySingleClick(e) {
         start_time = resume[data_id]
 
       create_player([base_url, 'streams', data_id].join('/'))
+      history_push_state("player", null)
     }
   }
 
@@ -853,7 +850,11 @@ if (history.scrollRestoration) {
 }
 
 window.addEventListener("popstate", function(e) {
-  updatePage(e.state)
+  if (document.querySelector(".video-wrapper")) {
+    window._player.close()
+  } else {
+    updatePage(e.state)
+  }
 }, false);
 
 var decoders = [];
