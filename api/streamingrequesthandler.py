@@ -97,9 +97,11 @@ class StreamingRequestHandler(FileRequestHandler):
             int(params['si'][0]) if "si" in params.keys() else None
         )
 
+        disable_re = True
+
         stream, mime = api.av(
             db, media_id, video_index, vcodec, audio_index, acodec,
-            start_time, width, height, subtitle_index
+            start_time, width, height, subtitle_index, disable_re
         )
 
         if stream:

@@ -91,7 +91,7 @@ class FFMpeg(object):
         self.format('webm')
         self.cmd = self.cmd + [
             '-r', '30', '-g', '90', '-quality', 'realtime',
-            '-qmin', '4', '-qmax', '48', '-speed', '10', '-bufsize', '1M'
+            '-qmin', '4', '-qmax', '48', '-speed', '10'
         ]
 
         if codec == "vp9":
@@ -106,7 +106,7 @@ class FFMpeg(object):
                 'scale=w=426:h=240:force_original_aspect_ratio=decrease',
                 # '-speed', '8',
                 '-threads', str(2 if 2 <= max_threads else max_threads),
-                '-b:v', '365k'
+                '-b:v', '365k', '-bufsize', '730k'
             ]
             if codec == "vp9":
                 self.cmd = self.cmd + [
@@ -119,7 +119,7 @@ class FFMpeg(object):
                 'scale=w=640:h=360:force_original_aspect_ratio=decrease',
                 # '-speed', '7',
                 '-threads', str(4 if 4 <= max_threads else max_threads),
-                '-b:v', '730k'
+                '-b:v', '730k', '-bufsize', '1460k'
             ]
             if codec == "vp9":
                 self.cmd = self.cmd + [
@@ -132,7 +132,7 @@ class FFMpeg(object):
                 'scale=w=854:h=480:force_original_aspect_ratio=decrease',
                 # '-speed', '6',
                 '-threads', str(4 if 4 <= max_threads else max_threads),
-                '-b:v', '1800k'
+                '-b:v', '1800k', '-bufsize', '3600k'
             ]
             if codec == "vp9":
                 self.cmd = self.cmd + [
@@ -145,7 +145,7 @@ class FFMpeg(object):
                 'scale=w=1280:h=720:force_original_aspect_ratio=decrease',
                 # '-speed', '5',
                 '-threads', str(8 if 8 <= max_threads else max_threads),
-                '-b:v', '3000k'
+                '-b:v', '3000k', '-bufsize', '6000k'
             ]
             if codec == "vp9":
                 self.cmd = self.cmd + [
@@ -158,7 +158,7 @@ class FFMpeg(object):
                 'scale=w=1920:h=1080:force_original_aspect_ratio=decrease',
                 # '-speed', '5',
                 '-threads', str(8 if 8 <= max_threads else max_threads),
-                '-b:v', '4500k'
+                '-b:v', '4500k', '-bufsize', '9000k'
             ]
             if codec == "vp9":
                 self.cmd = self.cmd + [
@@ -171,7 +171,7 @@ class FFMpeg(object):
                 'scale=w=2560:h=1440:force_original_aspect_ratio=decrease',
                 # '-speed', '5',
                 '-threads', str(16 if 16 <= max_threads else max_threads),
-                '-b:v', '6000k'
+                '-b:v', '6000k', '-bufsize', '12000k'
             ]
             if codec == "vp9":
                 self.cmd = self.cmd + [
@@ -184,7 +184,7 @@ class FFMpeg(object):
                 'scale=w=3840:h=2160:force_original_aspect_ratio=decrease',
                 # '-speed', '5',
                 '-threads', str(16 if 16 <= max_threads else max_threads),
-                '-b:v', '7800k'
+                '-b:v', '7800k', '-bufsize', '15600k'
             ]
             if codec == "vp9":
                 self.cmd = self.cmd + [

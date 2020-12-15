@@ -200,7 +200,9 @@ def _dump_attachments(file_path, dst_dir):
     return subprocess.call(cmd, cwd=dst_dir)
 
 
-def get_video_stream(media, width, height, codec, start_time, subtitle_index):
+def __get_video_stream(
+    media, width, height, codec, start_time, subtitle_index
+):
     if start_time:
         file_path = os.path.join(
             CTMP_DIR,
@@ -250,7 +252,7 @@ def get_video_stream(media, width, height, codec, start_time, subtitle_index):
     return stream, mime
 
 
-def get_audio_stream(media, stream_index, codec, start_time):
+def __get_audio_stream(media, stream_index, codec, start_time):
     if start_time:
         file_path = os.path.join(
             CTMP_DIR,
@@ -488,7 +490,7 @@ def get_audio_info(file_path, stream_index):
 
 def av(
     media, video_index, vcodec, audio_index, acodec,
-    start_time, width, height, subtitle_index
+    start_time, width, height, subtitle_index, disable_re=False
 ):
     if start_time:
         file_path = trim(media, start_time)
@@ -507,7 +509,10 @@ def av(
 
     cmd, mime = None, None
 
-    use_re = vcodec is not None or acodec is not None
+    if disable_re:
+        use_re = False
+    else:
+        use_re = vcodec is not None or acodec is not None
 
     cmd = FFMpeg().y().log() \
         .input(file_path, re=use_re)

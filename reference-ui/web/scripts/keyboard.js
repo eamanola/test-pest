@@ -9,7 +9,7 @@
     }
 
     el.className = [el.className, "hover"].join(" ")
-    el.scrollIntoView({ behavior: "smooth" })
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" })
   }
 
 

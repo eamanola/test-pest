@@ -349,7 +349,7 @@ def get_streams(db, media_id):
 
 def av(
     db, media_id, video_index, vcodec, audio_index, acodec,
-    start_time, width, height, subtitle_index
+    start_time, width, height, subtitle_index, disable_re=False
 ):
     stream, mime = None, None
     media = db.get_media(media_id)
@@ -359,7 +359,7 @@ def av(
 
         stream, mime = streaming.av(
             media, video_index, vcodec, audio_index, acodec,
-            start_time, width, height, subtitle_index
+            start_time, width, height, subtitle_index, disable_re
         )
 
     return stream, mime

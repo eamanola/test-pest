@@ -14,12 +14,6 @@ httpd = socketserver.ThreadingTCPServer(
 print(f"Server started http://{hostName}:{serverPort}")
 try:
     httpd.daemon_threads = True
-    subprocess.Popen([
-        'firefox',
-        # 'chromium',
-        # f'file:///data/tmp/Media%20Server/html/index.html?api_url=http://{hostName}:{serverPort}'
-        f'http://{hostName}:{serverPort}'
-    ])
     httpd.serve_forever()
 except KeyboardInterrupt:
     pass

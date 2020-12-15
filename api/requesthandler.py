@@ -238,6 +238,9 @@ class RequestHandler(socketserver.StreamRequestHandler):
                     )
                     print('cr:', response_headers["Content-Range"], self.path)
 
+        if response_cmd is not None:
+            response_headers["Transfer-Encoding"] = "chunked"
+
         if response_redirect is not None:
             print("Redirect:", response_redirect)
             response_headers["Location"] = response_redirect
@@ -318,18 +321,24 @@ class RequestHandler(socketserver.StreamRequestHandler):
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
             CHUNK_SIZE = self.CMD_CHUNK_SIZE
+            NEW_LINE = bytes("\r\n", "utf-8")
 
             chunk = proc.stdout.read(CHUNK_SIZE)
             while chunk:
                 len_chunk = len(chunk)
+                self.wfile.write(
+                    bytes(hex(len_chunk)[2:], "utf-8") + NEW_LINE
+                    + chunk + NEW_LINE
+                )
+                del chunk
+
                 if len_chunk < CHUNK_SIZE:
                     time.sleep(1)
                 del len_chunk
 
-                self.wfile.write(chunk)
-                del chunk
-
                 chunk = proc.stdout.read(CHUNK_SIZE)
+                if not chunk:
+                    self.wfile.write(bytes("0", "utf-8") + NEW_LINE + NEW_LINE)
 
         finally:
             proc.kill()
