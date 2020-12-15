@@ -320,15 +320,7 @@ function onPlaySingleClick(e) {
       if (resume[data_id] && typeof(resume[data_id]) === "number")
         start_time = resume[data_id]
 
-      create_player([
-        base_url,
-        'streams',
-        screen.width,
-        screen.height,
-        data_id].join('/')
-        + "?start=" + start_time
-        + "&decoders=" + decoders.join("&decoders=")
-      )
+      create_player([base_url, 'streams', data_id].join('/'))
     }
   }
 

@@ -273,9 +273,8 @@ class RequestHandler(socketserver.StreamRequestHandler):
     def send_body(self, body):
         self.wfile.write(body)
 
-    def send_chunks(self, file_path, max_bytes_per_chunk_conn):
+    def send_chunks(self, file_path, MAX_SIZE):
         NEW_LINE = bytes("\r\n", "utf-8")
-        MAX_SIZE = max_bytes_per_chunk_conn
         CHUNK_SIZE = self.FILE_CHUNK_SIZE
 
         with open(file_path, "rb") as f:

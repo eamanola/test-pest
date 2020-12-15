@@ -55,7 +55,7 @@ def _get_width_height(stream_lines, screen_w, screen_h):
     return width, height
 
 
-def _video_stream(file_path, vcodec, width, height, subtitle_index):
+def __video_stream(file_path, vcodec, width, height, subtitle_index):
     cmd, mime = None, None
 
     try:
@@ -117,7 +117,7 @@ def _video_stream(file_path, vcodec, width, height, subtitle_index):
     return cmd, mime
 
 
-def _video_dump(file_path, dst_path):
+def __video_dump(file_path, dst_path):
     cmd = FFMpeg().y().log().input(file_path) \
         .map('0:v:0').vcodec('copy').output(dst_path).cmd
 
@@ -129,7 +129,7 @@ def _video_dump(file_path, dst_path):
     return proc.returncode
 
 
-def _audio_stream(file_path, stream_index, format, audio_codec):
+def __audio_stream(file_path, stream_index, format, audio_codec):
     cmd = FFMpeg().y().log().input(file_path) \
         .map(f'0:{stream_index}').acodec(audio_codec).format(format) \
         .output('pipe:1').cmd
@@ -166,7 +166,7 @@ def _audio_stream(file_path, stream_index, format, audio_codec):
     return cmd
 
 
-def _audio_dump(file_path, stream_index, format, dst_path):
+def __audio_dump(file_path, stream_index, format, dst_path):
     cmd = FFMpeg().y().log().input(file_path) \
         .map(f'0:{stream_index}').acodec('copy').format(format) \
         .output(dst_path).cmd
@@ -508,7 +508,7 @@ def av(
 
     cmd, mime = None, None
 
-    use_re = vcodec is None and acodec is None
+    use_re = vcodec is not None or acodec is not None
 
     cmd = FFMpeg().y().log() \
         .input(file_path, re=use_re)

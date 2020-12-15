@@ -536,22 +536,7 @@ var create_player = (function() {
         source.addEventListener("error", console.error, false)
         audio.appendChild(source)
 
-        /*
-        for (var j = 0, jl = audio_obj[i].src.length; j < jl; j++) {
-          source = document.createElement("source")
-          source.setAttribute("src", audio_obj[i].src[j])
-          source.addEventListener("error", console.error, false)
-          audio.appendChild(source)
-        }
-        */
-
         this.wrapper.appendChild(audio);
-
-        /*
-        if (audio_obj[i].default === true) {
-          this.set_audio(audio_obj[i].id)
-        }
-        */
       }
     },
 
@@ -1058,20 +1043,19 @@ var create_player = (function() {
     },
     on_audio_play_error: function(error, audio) {
       if (/The element has no supported sources./.test(error)){
+        console.log("transcoding audio")
         var current_src = audio.currentSrc
         var params = get_params(current_src)
 
-        if (
-          params == null
-          || (params.get("transcode") !== "opus")
-        ) {
-          var start = params.get("start")
-          new_src = current_src.split("?")[0]
-            + "?transcode=opus"
-            + (start ? ("&start=" + start) : "")
-          audio.src = new_src
+        if (params == null || (params.get("ca") !== "opus")) {
+          audio.src = [
+            "/av/", this.media_id,
+            "?a=", params.get("a"),
+            "&start=", this.start_time,
+            "&ca=opus"
+          ].join("")
+
           audio.load()
-          console.log("transcoding audio")
         }
       } else if (/NotAllowedError: play\(\) can only be initiated by a user gesture./.test(error)) {
         this.video().pause()

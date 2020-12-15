@@ -8,21 +8,10 @@ class StreamingRequestHandler(FileRequestHandler):
         code, json = 400, None
         api_params, params = request["api_params"], request["optional_params"]
 
-        width = int(api_params[1])
-        height = int(api_params[2])
-        media_id = api_params[3]
+        media_id = api_params[1]
 
-        decoders = (
-            params['decoders'] if "decoders" in params.keys() else []
-        )
-        start_time = (
-            int(params['start'][0]) if "start" in params.keys() else 0
-        )
-
-        if (media_id and width and height and len(api_params) == 4):
-            streams = api.get_streams(
-                db, media_id, width, height, decoders, start_time
-            )
+        if media_id:
+            streams = api.get_streams(db, media_id)
             if streams:
                 code = 200
                 json = streams
@@ -31,7 +20,7 @@ class StreamingRequestHandler(FileRequestHandler):
 
         return {"code": code, "json": json}
 
-    def video(self, db, request):
+    def __video(self, db, request):
         code, headers, file_path, cmd = 400, {}, None, None
         api_params, params = request["api_params"], request["optional_params"]
 
@@ -138,7 +127,7 @@ class StreamingRequestHandler(FileRequestHandler):
             "cmd": cmd
         }
 
-    def audio(self, db, request):
+    def __audio(self, db, request):
         code, headers, file_path, cmd = 400, {}, None, None
         api_params, params = request["api_params"], request["optional_params"]
 
