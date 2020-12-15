@@ -97,7 +97,7 @@ class StreamingRequestHandler(FileRequestHandler):
             int(params['si'][0]) if "si" in params.keys() else None
         )
 
-        disable_re = True
+        disable_re = request["client"] in ("Web0S",)
 
         stream, mime = api.av(
             db, media_id, video_index, vcodec, audio_index, acodec,

@@ -19,12 +19,21 @@ class FileRequestHandler(ApiRequestHandler):
 
     def webclient(self, db, request):
         code, headers, file_path = None, {}, None
-        client_file_path = os.path.join(
+
+        client_file_path = [
             sys.path[0],
             "reference-ui",
             "web",
             os.sep.join(self.path[1:].split("/"))
-        )
+        ]
+
+        client = request["client"]
+        if client:
+            client_file_path[2] = client
+            if not os.path.exists(os.sep.join(client_file_path)):
+                client_file_path[2] = "web"
+
+        client_file_path = os.sep.join(client_file_path)
 
         code = self.revalidate_client_cache(file_path=client_file_path)
 
@@ -60,10 +69,12 @@ class FileRequestHandler(ApiRequestHandler):
                 "/images/count-down.gif",
                 "/images/loading.gif",
                 "/images/play-icon.png",
+                "/scripts/client.js",
                 "/scripts/keyboard.js",
                 "/scripts/page_builder.js",
                 "/scripts/player.js",
                 "/scripts/scripts.js",
+                "/styles/client.css",
                 "/styles/styles.css",
                 "/styles/fonts/FONTIN_SANS_0.OTF",
                 "/index.html"

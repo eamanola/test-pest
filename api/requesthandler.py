@@ -135,9 +135,15 @@ class RequestHandler(socketserver.StreamRequestHandler):
             import urllib.parse
             parsed = urllib.parse.urlparse(self.path)
 
+            if "Web0S" in self.headers["User-Agent"]:
+                client = "Web0S"
+            else:
+                client = None
+
             request = {
                 "api_params": parsed.path[1:].split("/"),
-                "optional_params": urllib.parse.parse_qs(parsed.query)
+                "optional_params": urllib.parse.parse_qs(parsed.query),
+                "client": client
             }
 
             response = self.router(db, request)
@@ -203,7 +209,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
             MAX_SIZE = self.MAX_BYTES_PER_CHUNK_CONN
 
             # doesn't support ranges
-            if "Web0S" in self.headers["User-Agent"]:
+            if request["client"] in ("Web0S",):
                 MAX_SIZE = file_size
 
             if MAX_SIZE < file_size:
