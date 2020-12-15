@@ -173,8 +173,10 @@ class StreamingRequestHandler(FileRequestHandler):
 
         type = api_params[1]
         stream_index = api_params[2]
-        media_id = api_params[3].split(".")[0]
-        is_bitmap = api_params[3].split(".")[1] == "tra"
+        parts = api_params[3].split(".")
+        media_id = parts[0]
+        format = parts[1]
+        is_bitmap = format == "tra"
 
         start_time = (
             int(params['start'][0]) if "start" in params.keys() else 0
@@ -188,7 +190,7 @@ class StreamingRequestHandler(FileRequestHandler):
             and not is_bitmap
         ):
             stream, mime = api.get_subtitle(
-                db, media_id, type, stream_index, start_time
+                db, media_id, type, stream_index, format, start_time
             )
             if stream:
                 code = 200

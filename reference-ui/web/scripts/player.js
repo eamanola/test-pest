@@ -63,6 +63,7 @@ var create_player = (function() {
     MERGE_ALL_AUDIO: (/Web0S/i.test(navigator.userAgent)),
     MERGE_FIRST_AUDIO: true,
     V_AUDIO: null,
+    FORCE_VTT: (/Web0S/i.test(navigator.userAgent)),
     start_time: 0,
     _can_play: [],
     create_wrapper: function() {
@@ -618,6 +619,10 @@ var create_player = (function() {
       }
 
       if (src) {
+        if (this.FORCE_VTT) {
+          src = src.slice(0, -3) + "vtt"
+        }
+
         var src_path = src.split("?")[0]
         if (/\.ass$/.test(src_path)) {
           try {

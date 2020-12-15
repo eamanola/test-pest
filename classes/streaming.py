@@ -326,52 +326,51 @@ def get_audio_stream(media, stream_index, codec, start_time):
     return ffmpeg_cmd, mime
 
 
-def get_subtitle(media, type, index, start_time):
+def get_subtitle(media, type, index, format, start_time):
     if type not in ("internal", "external"):
         return None, None
 
-    if type == "internal":
-        if start_time:
-            file_path = trim(media, start_time)
-        else:
-            file_path = os.path.join(
-                media.parent().path(), media.file_path()
-            )
-    elif type == "external":
-        file_path = os.path.join(
-            media.parent().path(), media.subtitles[int(index)]
-        )
+    ##########################################################################
 
+    file_path = os.path.join(media.parent().path(), media.file_path())
     if not os.path.exists(file_path):
         return None, None
 
-    stream_index = None
-    is_ass = False
+    ##########################################################################
 
-    if type == "internal":
-        stream_lines = _get_stream_info(file_path)
-        re_sub_audio = re.compile(R_SUB_AUDIO)
+    if start_time:
+        if type == "external":
+            stream_lines = _get_stream_info(file_path)
+            internal_sub_len = len([
+                line for line in stream_lines if "Subtitle" in line
+            ])
 
-        for line in [line for line in stream_lines if "Subtitle" in line]:
-            info = re_sub_audio.search(line)
-            if info and info.group(1) == index:
-                is_ass = "Subtitle: ass" in line
-                break
+            type = "internal"
+            index = int(index) + internal_sub_len
 
-        stream_index = index
+        file_path = trim(media, start_time)
 
-    elif type == "external":
-        is_ass = file_path.endswith(".ass")
-        stream_index = None
+    ##########################################################################
 
-    if is_ass:
+    if type == "external":
+        file_path = os.path.join(
+            media.parent().path(), media.subtitles[int(index)]
+        )
+        if not os.path.exists(file_path):
+            return None, None
+
+        index = None
+
+    ##########################################################################
+
+    if format == "ass":
         mime = ".ass"
-        format = "ass"
-    else:
+        _format = "ass"
+    else:  # elif format == "vtt":
         mime = ".vtt"
-        format = "webvtt"
+        _format = "webvtt"
 
-    ffmpeg_cmd = _subtitle(file_path, stream_index, format)
+    ffmpeg_cmd = _subtitle(file_path, index, _format)
 
     return ffmpeg_cmd, mime
 
@@ -665,7 +664,6 @@ def test_cmd(cmd):
             cmd.append("-af")
             cmd.append('aformat=channel_layouts=5.1|stereo')
 
-            os.remove(tmp_file)
             return test_cmd(cmd)
 
         if any((
@@ -675,7 +673,6 @@ def test_cmd(cmd):
             cmd.append('-strict')
             cmd.append('experimental')
 
-            os.remove(tmp_file)
             return test_cmd(cmd)
 
         else:
@@ -688,7 +685,6 @@ def test_cmd(cmd):
         cmd_test.terminate()
         passed = True
 
-    os.remove(tmp_file)
     return passed, cmd
 
 
@@ -717,7 +713,7 @@ def trim(media, start_time):
     for index in range(0, len(media.subtitles)):
         cmd.map(str(index + 1))
 
-    cmd.acodec('copy').vcodec('copy').scodec('ass').copyts().output(dst_path)
+    cmd.acodec('copy').vcodec('copy').scodec('copy').copyts().output(dst_path)
 
     print('Trim:', ' '.join(cmd.cmd))
 
