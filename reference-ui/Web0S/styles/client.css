@@ -1,0 +1,23 @@
+::cue {
+  font-size: 1.3em;
+}
+
+.action.js-scan,
+.action.js-identify,
+.action.js-get-info,
+.external-link,
+.action.js-add-to-play,
+#home,
+#toggle-grid,
+#player-select, label[for="player-select"],
+#metasource-select, label[for="metasource-select"],
+#add-media-library-path,
+#add-media-library,
+#add-to-play-list,
+#play-button,
+#clear-add-to-play-list-button,
+#refresh-play-next-list-button,
+#clear-play-next-list-button
+{
+  display: none !important;
+}
