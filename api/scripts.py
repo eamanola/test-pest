@@ -365,42 +365,6 @@ def av(
     return stream, mime
 
 
-def __get_video_stream(
-    db,
-    media_id,
-    width,
-    height,
-    codec,
-    start_time=0,
-    subtitle_index=None
-):
-    stream, mime = None, None
-    media = db.get_media(media_id)
-
-    if media:
-        import classes.streaming as streaming
-
-        stream, mime = streaming.get_video_stream(
-            media, width, height, codec, start_time, subtitle_index
-        )
-
-    return stream, mime
-
-
-def __get_audio_stream(db, media_id, stream_index, codec, start_time=0):
-    stream = None
-    media = db.get_media(media_id)
-
-    if media:
-        import classes.streaming as streaming
-
-        stream, mime = streaming.get_audio_stream(
-            media, stream_index, codec, start_time
-        )
-
-    return stream, mime
-
-
 def get_subtitle(db, media_id, type, stream_index, format, start_time):
     stream, mime = None, None
     media = db.get_media(media_id)

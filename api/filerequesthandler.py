@@ -69,6 +69,7 @@ class FileRequestHandler(ApiRequestHandler):
                 "/images/count-down.gif",
                 "/images/loading.gif",
                 "/images/play-icon.png",
+                "/scripts/ass.js/ass.js",
                 "/scripts/client.js",
                 "/scripts/keyboard.js",
                 "/scripts/page_builder.js",
