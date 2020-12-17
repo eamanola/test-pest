@@ -64,8 +64,11 @@
         video.pause()
       }
     } else if (e.keyCode == 413) { //remote stop
-      if (window._player) {
-        window._player.close()
+      // if (window._player) {
+      //  window._player.close()
+      //}
+      if (player_is_open()) {
+        history.go(-1)
       }
     } else if (e.keyCode == 460 || e.keyCode == 404) {  //remote subtitle | green
       var subtitle_select = window._player.subtitle_select()

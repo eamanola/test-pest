@@ -188,7 +188,10 @@ Player.prototype = {
     video.addEventListener("error", console.error, false)
 
     // ? check effect tonight
-    video.addEventListener("ended", this.close.bind(this), false)
+    video.addEventListener("ended", function() {
+      //this.close.bind(this)
+      history.go(-1)
+    }, false)
 
     var player = this
     video.addEventListener("progress", function() {
@@ -289,7 +292,10 @@ Player.prototype = {
   },
   create_close_btn: function() {
     var close_button = document.createElement('button')
-    close_button.addEventListener("click", this.close.bind(this), false)
+    close_button.addEventListener("click", function() {
+      // this.close.bind(this)
+      history.go(-1)
+    }, false)
     close_button.innerHTML = "Close"
 
     return close_button
@@ -1110,4 +1116,5 @@ Player.prototype = {
 function create_player(streams_obj) {
   console.log('Create player')
   window._player = new Player(streams_obj)
+  history_push_state("player", null)
 }

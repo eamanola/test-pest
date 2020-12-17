@@ -339,7 +339,6 @@ function onPlaySingleClick(e) {
         start_time = resume[data_id]
 
       create_player([base_url, 'streams', data_id].join('/'))
-      history_push_state("player", null)
     }
   }
 
@@ -872,6 +871,7 @@ if (history.scrollRestoration) {
 }
 
 window.addEventListener("popstate", function(e) {
+  console.log(history.state)
   if (player_is_open()) {
     window._player.close()
   } else {
