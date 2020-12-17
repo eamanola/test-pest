@@ -64,7 +64,7 @@ Player.prototype = {
   HIDE_VOLUME_TIMEOUT: 5 * 1000,
   ENABLE_SEEK: true,
   MERGE_ALL_AUDIO: false,
-  MERGE_FIRST_AUDIO: true,
+  MERGE_FIRST_AUDIO: false,
   V_AUDIO: null,
   FORCE_VTT: false,
   FORCE_VCODEC: null,
@@ -466,55 +466,10 @@ Player.prototype = {
   },
 
   create_sources: function(stream_obj) {
-    var src = ["/av/", this.media_id, "?v=0"]
-
-    var vcodec = null
-    if (!MediaSource.isTypeSupported(stream_obj.video[0].type)) {
-      if (this.FORCE_VCODEC) {
-        vcodec = this.FORCE_VCODEC
-      } else if (MediaSource.isTypeSupported('video/webm; codecs="vp9"')) {
-        vcodec = "vp9"
-      } else {
-        vcodec = "vp8"
-      }
-    }
-    if (vcodec) {
-      src.push("&cv=" + vcodec)
-    }
-
-    if (this.start_time) {
-      src.push("&start=" + this.current_time())
-    }
-
-    if (screen){
-      src.push("&w=" + screen.width)
-      src.push("&h=" + screen.height)
-    }
-
-    if (this.MERGE_FIRST_AUDIO) {
-      var audio_track = stream_obj.audio[0]
-      this.V_AUDIO = audio_track.id
-
-      src.push("&a=", this.V_AUDIO)
-
-      var acodec = null
-      var audioEl = document.createElement("audio")
-      if (!audioEl.canPlayType(audio_track.type)) {
-        if (audioEl.canPlayType('audio/ogg; codecs=opus')){
-          acodec = "opus"
-        } else {
-          acodec = "vorbis"
-        }
-      }
-      if (acodec) {
-        src.push("&ca=" + acodec)
-      }
-    }
-
     var video = this.video()
     var error_count = 0
     var source = document.createElement('source')
-    source.setAttribute("src", src.join(""))
+
     source.addEventListener("error", function(e) {
       error_count = error_count + 1
       var source_length = video.querySelectorAll('source').length
@@ -525,6 +480,41 @@ Player.prototype = {
     }.bind(this), false)
 
     video.appendChild(source)
+
+    var cv = null
+    if (!MediaSource.isTypeSupported(stream_obj.video[0].type)) {
+      if (this.FORCE_VCODEC) {
+        cv = this.FORCE_VCODEC
+      } else if (MediaSource.isTypeSupported('video/webm; codecs="vp9"')) {
+        cv = "vp9"
+      } else {
+        cv = "vp8"
+      }
+    }
+
+    var a = null, ca = null;
+    if (this.MERGE_FIRST_AUDIO) {
+      var audio_track = stream_obj.audio[0]
+      a = audio_track.id
+      this.V_AUDIO = a
+
+      var audioEl = document.createElement("audio")
+      if (!audioEl.canPlayType(audio_track.type)) {
+        if (audioEl.canPlayType('audio/ogg; codecs=opus')){
+          ca = "opus"
+        } else {
+          ca = "vorbis"
+        }
+      }
+    }
+
+    var pvideo = { v: "0", cv: cv }
+    var paudio = null
+    if (a || ca)
+      paudio = { a: a, ca: ca }
+    var psubtitle = null
+
+    this.set_video(pvideo, paudio, psubtitle)
   },
   create_audio: function(audio_obj) {
     var audio = null, source = null
@@ -641,6 +631,10 @@ Player.prototype = {
     }.bind(this), false)
   },
   set_subtitle: function(src) {
+    if (src && this.FORCE_VTT) {
+      src = src.slice(0, -3) + "vtt"
+    }
+
     var video = this.video()
     var old_tracks = video.querySelectorAll("track")
     for (var i = 0, il = old_tracks.length; i < il; i ++) {
@@ -661,7 +655,7 @@ Player.prototype = {
 
     var hardcoded_sub = /si=\d+$/.test(video.currentSrc)
     if (hardcoded_sub) {
-      var new_sub_needs_hard_code = /\.tra$/.test(subtitle_select.value)
+      var new_sub_needs_hard_code = /\.tra$/.test(src)
       if (!new_sub_needs_hard_code) {
           // remove old hard code
           this.request_transcoding()
@@ -669,10 +663,6 @@ Player.prototype = {
     }
 
     if (src) {
-      if (this.FORCE_VTT) {
-        src = src.slice(0, -3) + "vtt"
-      }
-
       var src_path = src.split("?")[0]
       if (/\.ass$/.test(src_path)) {
         try {
@@ -710,7 +700,7 @@ Player.prototype = {
         var parts = src.split("/")
         if (parts.length > 4) {
           var stream_index = parts[3]
-          this.request_transcoding(stream_index)
+          this.set_video(null, null, { s: stream_index })
         }
       } else {
         var video = this.video()
@@ -813,38 +803,54 @@ Player.prototype = {
       video.muted = false
     }
   },
-  merge_audio: function(audio_id) {
+  set_video: function(pvideo, paudio, psubtitle) {
+    console.log('set_video')
     var video = this.video()
 
     var source = video.querySelector("source")
     var params = get_params(source.src)
+    var v, cv, a, ca, s;
+    var v = pvideo && pvideo.v ? pvideo.v : params.get("v")
+    var cv = pvideo && pvideo.cv ? pvideo.cv : params.get("cv")
+    var a = paudio && paudio.a ? paudio.a : params.get("a")
+    var ca = paudio && paudio.ca ? paudio.ca : params.get("ca")
+    var s = psubtitle && psubtitle.s ? psubtitle.s : params.get("s")
 
-    if (params.get("a") == audio_id) {
+    if (
+      v == params.get("v")
+      && cv == params.get("cv")
+      && a == params.get("a")
+      && ca == params.get("ca")
+      && s == params.get("s")
+    ) {
+      console.log('skip')
       return
     }
 
     video.pause()
     this.set_state("buffering")
 
-    var v = params.get("v")
-    var vcodec = params.get("cv")
-    var acodec = params.get("ca")
     var current_time = Math.floor(this.current_time())
     var start = current_time > 10 ? current_time : 0
 
     this.start_time = start
 
     var new_src = "/av/" + this.media_id
-      + "?a=" + audio_id
-      + (v ? ("&v=" + v) : "")
+      + "?v=0"
+      + (cv != null ? ("&cv=" + cv) : "")
+      + (a != null ? ("&a=" + a) : "")
+      + (ca != null ? ("&ca=" + ca) : "")
+      + (s != null ? ("&s=" + s) : "")
       + "&w=" + screen.width
       + "&h=" + screen.height
-      + (vcodec ? ("&cv=" + vcodec) : "")
-      + (acodec ? ("&ca=" + acodec) : "")
       + (start ? ("&start=" + start) : "")
 
+    console.log(new_src)
     source.setAttribute("src", new_src)
     video.load()
+  },
+  merge_audio: function(audio_id) {
+    this.set_video(null, { a: audio_id }, null)
   },
   toggleFullscreen: function(e) {
     var fullscreen_button = this.wrapper.querySelector(".fullscreen-button")
@@ -957,6 +963,8 @@ Player.prototype = {
     document.body.removeChild(this.wrapper)
   },
   request_transcoding: function(subtitle_index) {
+    console.log('transcoding video')
+
     this.set_state("buffering")
     if (this.current_audio !== null)
       this.current_audio.pause()
@@ -964,59 +972,11 @@ Player.prototype = {
     if (subtitle_index === undefined)
       subtitle_index = null
 
-    var video = this.video()
-    var sources = video.querySelectorAll('source')
-    var streams = []
-    var source = source_src = null
-    var updated  = false
-    var vcodec = "vp9"
-    var acodec = "opus"
-    if (this.FORCE_VCODEC) {
-      vcodec = this.FORCE_VCODEC
-    }
+    var video = { v: null, cv: this.FORCE_VCODEC ? this.FORCE_VCODEC : "vp9" }
+    var audio = { a: null, ca: "opus" }
+    var subtitle = subtitle_index ? { s: subtitle_index } : null
 
-    for (var i = 0, il = sources.length; i < il; i++) {
-      source = sources[i]
-      source_src = source.getAttribute("src")
-      var params = get_params(source_src)
-
-      if (
-        params == null
-        || (
-          params.get("cv") !== vcodec
-          || params.get("ca") !== acodec
-          || subtitle_index !== params.get("si")
-        )
-      ) {
-        var v = params.get("v")
-        var a = params.get("a")
-
-        new_src = source_src.split("?")[0]
-          + "?cv=" + vcodec + "&ca=" + acodec + "&start=" + this.start_time
-          + (v ? ("&v=" + v) : "")
-          + (a ? ("&a=" + a) : "")
-          + "&w=" + screen.width
-          + "&h=" + screen.height
-          + (subtitle_index !== null ? ("&si=" + subtitle_index) : "")
-
-        source.setAttribute("src", new_src)
-
-        /*
-        new_src = source_src.split("?")[0]
-          + "?transcode=vp9&start="
-          + Math.floor(this.current_time())
-          + (subtitle_index !== null ? ("&si=" + subtitle_index) : "")
-        streams.push(new_src)
-        */
-        updated = true
-      }
-      //video.removeChild(source)
-    }
-
-    if (updated) {
-      video.load()
-      console.log('transcoding video')
-    }
+    this.set_video(video, audio, subtitle)
   },
 
   fullscreen_hide_ui: function() {
@@ -1126,7 +1086,7 @@ Player.prototype = {
       var current_src = audio.currentSrc
       var params = get_params(current_src)
 
-      if (params == null || (params.get("ca") !== "opus")) {
+      if (params.get("ca") !== "opus") {
         audio.src = [
           "/av/", this.media_id,
           "?a=", params.get("a"),

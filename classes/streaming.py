@@ -217,17 +217,6 @@ def av(
     ###########################################################################
 
     if video_index is not None:
-        if subtitle_index is None:
-            cmd.map(f'0:v:{video_index}')
-        else:
-            cmd.cmd = [
-                c for c in _cmd.cmd if (
-                    c != "-vf" and not c.startswith("scale")
-                )
-            ]
-            cmd.filter_complex(f'[0:v:0][0:{subtitle_index}]overlay[v]')
-            cmd.map('[v]')
-
         if vcodec is None:
             mime, format = get_video_info(file_path)
             cmd.vcodec('copy')
@@ -244,6 +233,16 @@ def av(
             )
         else:
             print("AV: Unsupported video codec", vcodec)
+
+        if subtitle_index is None:
+            cmd.map(f'0:v:{video_index}')
+        else:
+            cmd.cmd = [
+                c for c in cmd.cmd if (
+                    c != "-vf" and not c.startswith("scale")
+                )
+            ]
+            cmd.filter_complex(f'[0:v:0][0:{subtitle_index}]overlay')
 
     ###########################################################################
 
@@ -276,15 +275,19 @@ def av(
 
     ###########################################################################
 
-    dst_file = "-".join([
-        media.id(),
-        str(start_time),
-        str(video_index),
-        str(audio_index),
-        str(vcodec),
-        str(acodec)
-    ]) + mime
-    dst_path = os.path.join(CTMP_DIR, dst_file)
+    dst_file = [media.id()]
+    if start_time:
+        dst_file.append(str(start_time))
+    if video_index:
+        dst_file.append("v" + str(video_index))
+    if audio_index:
+        dst_file.append("a" + str(audio_index))
+    if vcodec:
+        dst_file.append("cv" + str(vcodec))
+    if acodec:
+        dst_file.append("ca" + str(acodec))
+
+    dst_path = os.path.join(CTMP_DIR, "-".join(dst_file) + mime)
 
     if vcodec is None and acodec is None:
         if os.path.exists(dst_path):
@@ -507,7 +510,7 @@ def get_streams(media):
         ])
         if is_bitmap:
             print('Discard bitmap sub')
-            continue
+            # continue
             pass
 
         is_default = "(default)" in line

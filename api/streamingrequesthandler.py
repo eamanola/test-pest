@@ -48,9 +48,11 @@ class StreamingRequestHandler(FileRequestHandler):
             int(params['h'][0]) if "h" in params.keys() else None
         )
         subtitle_index = (
-            int(params['si'][0]) if "si" in params.keys() else None
+            int(params['s'][0]) if "s" in params.keys() else None
         )
 
+
+        print(subtitle_index)
         disable_re = request["client"] in ("Web0S",)
 
         stream, mime = api.av(

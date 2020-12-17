@@ -1,20 +1,20 @@
 function get_params(url) {
-  var params = null
+  var params = {
+    params: [],
+    get: function(key) {
+      for (var i = 0, il = this.params.length; i < il; i++) {
+        if (this.params[i].startsWith(key + "="))
+          return this.params[i].split("=")[1]
+      }
+
+      return null
+    }
+  }
 
   var parts = url.split("?")
   if (parts.length == 2) {
-    var query = parts[1];
-    params = {
-      params: query.split("&"),
-      get: function(key) {
-        for (var i = 0, il = this.params.length; i < il; i++) {
-          if (this.params[i].startsWith(key + "="))
-            return this.params[i].split("=")[1]
-        }
-
-        return null
-      }
-    }
+    var query = parts[1].split("&");
+    params.params = query
   }
 
   return params
