@@ -202,6 +202,39 @@ def av(
     if video_index is None and audio_index is None:
         return None, None
 
+    if subtitle_index:
+        input = file_path
+        file_path = os.path.join(
+            CTMP_DIR,
+            media.id(),
+            "sub-included",
+            f"{subtitle_index}.mkv"
+        )
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+        prep_cmd = FFMpeg().y().log(stats=True).input(input) \
+            .filter_complex(f'[0:v:0][0:{subtitle_index}]overlay') \
+            .vcodec("h264")
+
+        vcodec = "vp9"
+
+        if audio_index:
+            prep_cmd.map(f'0:{audio_index}').acodec('copy')
+
+            audio_index = 1
+            acodec = "opus"
+
+        prep_cmd.cmd.append("-threads")
+        prep_cmd.cmd.append("2")
+        prep_cmd.cmd.append("-preset")
+        prep_cmd.cmd.append("veryfast")
+        prep_cmd.format('matroska').output(file_path)
+
+        subprocess.Popen(prep_cmd.cmd)
+        time.sleep(5)
+
+        print(" ".join(prep_cmd.cmd))
+
     ###########################################################################
 
     cmd, mime = None, None
@@ -234,15 +267,7 @@ def av(
         else:
             print("AV: Unsupported video codec", vcodec)
 
-        if subtitle_index is None:
-            cmd.map(f'0:v:{video_index}')
-        else:
-            cmd.cmd = [
-                c for c in cmd.cmd if (
-                    c != "-vf" and not c.startswith("scale")
-                )
-            ]
-            cmd.filter_complex(f'[0:v:0][0:{subtitle_index}]overlay')
+        cmd.map(f'0:v:{video_index}')
 
     ###########################################################################
 
@@ -510,7 +535,7 @@ def get_streams(media):
         ])
         if is_bitmap:
             print('Discard bitmap sub')
-            # continue
+            continue
             pass
 
         is_default = "(default)" in line
