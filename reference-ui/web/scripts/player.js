@@ -500,16 +500,18 @@ Player.prototype = {
 
     var a = null, ca = null;
     if (this.MERGE_FIRST_AUDIO) {
-      var audio_track = stream_obj.audio[0]
-      a = audio_track.id
-      this.V_AUDIO = a
+      if (stream_obj.audio.length > 0) {
+        var audio_track = stream_obj.audio[0]
+        a = audio_track.id
+        this.V_AUDIO = a
 
-      var audioEl = document.createElement("audio")
-      if (!audioEl.canPlayType(audio_track.type)) {
-        if (audioEl.canPlayType('audio/ogg; codecs=opus')){
-          ca = "opus"
-        } else {
-          ca = "vorbis"
+        var audioEl = document.createElement("audio")
+        if (!audioEl.canPlayType(audio_track.type)) {
+          if (audioEl.canPlayType('audio/ogg; codecs=opus')){
+            ca = "opus"
+          } else {
+            ca = "vorbis"
+          }
         }
       }
     }
