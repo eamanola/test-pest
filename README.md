@@ -25,5 +25,9 @@ System requirements
 Developed on linux, with FF and chrome
 - other platforms should work, but not tested
 
-Setup: run python3 server.py in root dir, and open printed address in browser. Expect crash poks
+Install
+- sudo apt get install ffmpeg python3
+- git clone https://github.com/eamanola/test-pest.git
+- cd test-pest && python3 server.py
+- open browser http://localhost:8086
 
