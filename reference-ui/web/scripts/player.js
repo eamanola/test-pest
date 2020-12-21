@@ -65,6 +65,7 @@ Player.prototype = {
   ENABLE_SEEK: true,
   MERGE_ALL_AUDIO: false,
   MERGE_FIRST_AUDIO: false,
+  ENABLE_CHAPTERS: true,
   V_AUDIO: null,
   FORCE_VTT: false,
   FORCE_VCODEC: null,
@@ -131,8 +132,12 @@ Player.prototype = {
         .appendChild(this.create_subtitle_select(streams_obj.subtitles))
     }
 
-    if (streams_obj.chapters.length) {
-      this.chapters = streams_obj.chapters
+    if (this.ENABLE_CHAPTERS) {
+      if (streams_obj.chapters.length) {
+        this.chapters = streams_obj.chapters
+        this.controls().appendChild(this.create_prev_chapter_button())
+        this.controls().appendChild(this.create_next_chapter_button())
+      }
     }
 
     this.controls().appendChild(this.create_play_position())
@@ -179,6 +184,12 @@ Player.prototype = {
   },
   subtitle_container: function() {
     return this.wrapper.querySelector(".subtitle-container")
+  },
+  prev_chapter_button: function() {
+    return this.wrapper.querySelector(".previous-chapter")
+  },
+  next_chapter_button: function() {
+    return this.wrapper.querySelector(".next-chapter")
   },
 
   create_video: function() {
@@ -493,6 +504,22 @@ Player.prototype = {
     div.className = "subtitle-container"
 
     return div
+  },
+  create_prev_chapter_button: function() {
+    var button = document.createElement("button")
+    button.className = "previous-chapter"
+    button.innerHTML = "<"
+    button.addEventListener("click", this.prev_chapter.bind(this), false)
+
+    return button
+  },
+  create_next_chapter_button: function(){
+    var button = document.createElement("button")
+    button.className = "next-chapter"
+    button.innerHTML = ">"
+    button.addEventListener("click", this.next_chapter.bind(this), false)
+
+    return button
   },
 
   create_sources: function(stream_obj) {
@@ -890,6 +917,14 @@ Player.prototype = {
     this.set_subtitle(this.subtitle_select().value)
   },
   seek: function(secs) {
+    var duration = this.duration
+    if (duration){
+      this.play_position_played().style.width =
+        this.play_position_buffered().style.width =
+          (secs / duration * 100) + "%"
+    }
+    this.play_position_time().innerHTML = format_secs(secs)
+
     this.set_video(null, null, null, secs)
 
     if (!this.MERGE_ALL_AUDIO) {
@@ -916,7 +951,7 @@ Player.prototype = {
       this.set_chapter(next_chapter)
     }
   },
-  previous_chapter: function() {
+  prev_chapter: function() {
     var current_chapter = this.current_chapter()
     var chapter_start_time = this.chapters[current_chapter].start_time
     var offset = -1
@@ -924,9 +959,9 @@ Player.prototype = {
       offset = 0
     }
 
-    var previous_chapter = current_chapter + offset
-    if (previous_chapter >= 0) {
-      this.set_chapter(previous_chapter)
+    var prev_chapter = current_chapter + offset
+    if (prev_chapter >= 0) {
+      this.set_chapter(prev_chapter)
     }
   },
   current_chapter: function() {
@@ -939,13 +974,13 @@ Player.prototype = {
     }
   },
   set_chapter: function(index) {
-    if (index < 0 || index >= this.chapters.length) {
+    if (index < 0 || index > this.chapters.length - 1) {
       return
     }
 
     var chapter = this.chapters[index]
     this.seek(chapter.start_time)
-    console.log(chapter, chapter.start_time)
+    console.log(chapter, chapter.title)
   },
 
 
