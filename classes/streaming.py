@@ -591,9 +591,9 @@ def get_streams(media):
             end_time = None
             title = ""
             if "start_time" in chapter.keys():
-                start_time = int(float(chapter["start_time"]))
+                start_time = float(chapter["start_time"])
             if "end_time" in chapter.keys():
-                end_time = int(float(chapter["end_time"]))
+                end_time = float(chapter["end_time"])
             if "tags" in chapter.keys():
                 if "title" in chapter["tags"]:
                     title = chapter["tags"]["title"]

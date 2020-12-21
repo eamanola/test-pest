@@ -225,8 +225,7 @@ Player.prototype = {
             }
 
             player.play_position_buffered().style.width =
-              Math.floor(player.start_time + buffered_end)
-              / duration * 100 + '%'
+              (player.start_time + buffered_end) / duration * 100 + '%'
           }
         }, 1000)
       }
@@ -348,36 +347,15 @@ Player.prototype = {
 
     if (this.ENABLE_SEEK)
     play_position_total.addEventListener("click", function(e) {
-      var video = this.video()
-      var current_audio = this.current_audio
       var duration = this.duration
 
-      var percent = (e.layerX / play_position_total.offsetWidth)
-      if (percent < 0.025) percent = 0
+      if (duration) {
+        var percent = (e.layerX / play_position_total.offsetWidth)
+        if (percent < 0.025) percent = 0
 
-      var new_time = percent * duration - this.start_time
-
-      var buffered_end = 0
-      if (video.buffered.length)
-        buffered_end = video.buffered.end(
-          video.buffered.length - 1
-        )
-
-      if (current_audio) {
-        if (current_audio.buffered.length) {
-          var audio_buffered_end = current_audio.buffered.end(
-            current_audio.buffered.length - 1
-          );
-          buffered_end = Math.min(buffered_end, audio_buffered_end)
-        }
+        var new_time = percent * duration
+        this.seek(new_time)
       }
-
-      if (new_time > buffered_end)
-        new_time = buffered_end
-      else if (new_time < 0)
-        new_time = 0
-
-      video.currentTime = new_time
     }.bind(this), false)
 
     play_position_total.appendChild(this.create_play_position_buffered())
@@ -891,8 +869,7 @@ Player.prototype = {
     video.pause()
     this.set_state("buffering")
 
-    var current_time = pstart != null ? pstart :
-      Math.floor(this.current_time())
+    var current_time = pstart != null ? pstart : this.current_time()
     var start = current_time > 10 ? current_time : 0
 
     this.start_time = start
@@ -916,6 +893,23 @@ Player.prototype = {
     // update start_time
     this.set_subtitle(this.subtitle_select().value)
   },
+  in_buffered: function(secs) {
+    console.log(secs, this.start_time)
+    if (secs >= this.start_time) {
+      var video = this.video()
+      var buffered = video.buffered
+      var time = secs - this.start_time
+      console.log(time)
+      for (var i = 0, il = buffered.length; i < il; i ++) {
+        console.log(buffered.start(i), buffered.end(i))
+        if (buffered.start(i) <= time && buffered.end(i) > time) {
+          return true
+        }
+      }
+    }
+
+    return false
+  },
   seek: function(secs) {
     var duration = this.duration
     if (duration){
@@ -924,6 +918,26 @@ Player.prototype = {
           (secs / duration * 100) + "%"
     }
     this.play_position_time().innerHTML = format_secs(secs)
+
+    if (this.in_buffered(secs)) {
+      console.log('in buffered')
+      this.video().currentTime = secs - this.start_time
+      return
+    }
+
+    console.log('server seek')
+
+    var video = this.video()
+    if (!video.paused) {
+      video.pause()
+      function play() {
+        video.removeEventListener("canplay", play, false)
+        video.play().catch(this.on_video_play_error.bind(this))
+        console.log('play')
+      }
+      video.addEventListener("canplay", play.bind(this), false)
+    }
+
 
     this.set_video(null, null, null, secs)
 
@@ -1052,7 +1066,7 @@ Player.prototype = {
       } else if (watched > 0.05) {
         var resume_str = localStorage.getItem('resume')
         var resume = JSON.parse(resume_str) || {}
-        resume[this.media_id] = Math.floor(this.current_time())
+        resume[this.media_id] = +this.current_time().toFixed(3)
         localStorage.setItem('resume', JSON.stringify(resume))
       }
     }

@@ -39,7 +39,7 @@ class StreamingRequestHandler(FileRequestHandler):
             params['ca'][0] if "ca" in params.keys() else None
         )
         start_time = (
-            int(params['start'][0]) if "start" in params.keys() else None
+            float(params['start'][0]) if "start" in params.keys() else None
         )
         width = (
             int(params['w'][0]) if "w" in params.keys() else None
@@ -51,8 +51,6 @@ class StreamingRequestHandler(FileRequestHandler):
             int(params['s'][0]) if "s" in params.keys() else None
         )
 
-
-        print(subtitle_index)
         disable_re = request["client"] in ("Web0S",)
 
         stream, mime = api.av(
@@ -97,7 +95,7 @@ class StreamingRequestHandler(FileRequestHandler):
         is_bitmap = format == "tra"
 
         start_time = (
-            int(params['start'][0]) if "start" in params.keys() else 0
+            float(params['start'][0]) if "start" in params.keys() else 0
         )
 
         if (
