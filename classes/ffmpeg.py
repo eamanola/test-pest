@@ -192,3 +192,83 @@ class FFMpeg(object):
                 ]
 
         return self
+
+
+class FFProbe(object):
+
+    def __init__(self):
+        super(FFProbe, self).__init__()
+        self.cmd = ['ffprobe']
+
+    def log(self, hide_banner=True, loglevel=CFFMPEG_LEGLEVEL):
+        if hide_banner:
+            self.cmd.append('-hide_banner')
+
+        if loglevel:
+            self.cmd = self.cmd + ['-loglevel', CFFMPEG_LEGLEVEL]
+
+        return self
+
+    def input(self, input):
+        self.cmd = self.cmd + ['-i', input]
+        return self
+
+    def of(self, of="json"):
+        self.cmd = self.cmd + ['-of', of]
+        return self
+
+    def show_format_entry(self, entry):
+        self.cmd = self.cmd + ['-show_format_entry', entry]
+        return self
+
+    def duration(self):
+        self.show_format_entry("duration")
+        return self
+
+    def show_entries(self, entries_str):
+        self.cmd.append("-show_entries")
+
+        if entries_str:
+            self.cmd.append(entries_str)
+
+        return self
+
+    def stream(self, entries):
+        stream_entries = "stream"
+
+        if entries:
+            stream_entries = stream_entries + "=" + ",".join(entries)
+
+        self.show_entries(stream_entries)
+
+        return self
+
+    def streams(self):
+        self.show_entries("stream")
+        return self
+
+    def stream_tags(self, tags):
+        stream_tags = "stream_tags"
+
+        if tags:
+            stream_tags = stream_tags + "=" + ",".join(tags)
+
+        self.show_entries(stream_tags)
+
+        return self
+
+    def stream_disposition(self, disposition):
+        stream_disposition = "stream_disposition"
+
+        if disposition:
+            stream_disposition = (
+                stream_disposition + "=" + ",".join(disposition)
+            )
+
+        self.show_entries(stream_disposition)
+
+        return self
+
+    def select_streams(self, selector):
+        self.cmd = self.cmd + ["-select_streams", selector]
+        return self

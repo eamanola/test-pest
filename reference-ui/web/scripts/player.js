@@ -415,7 +415,17 @@ Player.prototype = {
     for (var i = 0, il = audio_obj.length; i < il; i++) {
       audio_option = document.createElement('option')
       audio_option.setAttribute("value", audio_obj[i].id)
-      audio_option.innerHTML = (audio_obj[i].lang || "Unknown")
+      var title = audio_obj[i].title
+      var lang = audio_obj[i].lang
+      if (title) {
+        // title += lang ? (" (" + lang + ")") : ""
+      } else if (lang) {
+        title = lang
+      } else {
+        title = "Unknown"
+      }
+
+      audio_option.innerHTML = title
         + (audio_obj[i].forced ? " (forced)" : "")
         + (audio_obj[i].default ? " (default)" : "")
 
@@ -441,10 +451,19 @@ Player.prototype = {
     subtitle_option.innerHTML = "Off"
     subtitle_select.appendChild(subtitle_option)
 
-    var subtitle = null, label = null, subtitle_option = null
+    var subtitle = null, title, lang, label = null, subtitle_option = null
     for (var i = 0, il = subtitles.length; i < il; i ++) {
       subtitle = subtitles[i]
-      label = (subtitle.lang || "Unknown")
+      title = subtitle.title
+      lang = subtitle.lang
+      if (title) {
+        // title += lang ? (" (" + lang + ")") : ""
+      } else if (lang) {
+        title = lang
+      } else {
+        title = "Unknown"
+      }
+      label = title
         + (subtitle.forced ? " (forced)" : "")
         + (subtitle.requires_transcode ? " (T)" : "")
 

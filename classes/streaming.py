@@ -4,55 +4,15 @@ import subprocess
 import re
 import time
 
-from classes.ffmpeg import FFMpeg
+from classes.ffmpeg import FFMpeg, FFProbe
 
 from CONFIG import (
     CFFMPEG_STREAM, CFFMPEG_HOST, CFFMPEG_PORT, CFFMPEG_LEGLEVEL, CTMP_DIR
 )
 
-R_SUB_AUDIO = r'.*Stream\ #0:([0-9]+)(?:\(([a-zA-Z]{3})\))?.*'
-R_DURATION = r'.*Duration\:\ (\d\d)\:(\d\d)\:(\d\d).*'
-
 ALWAYS_TRANSCODE = False
 ALWAYS_TRANSCODE_AUDIO = ALWAYS_TRANSCODE
 ALWAYS_TRANSCODE_VIDEO = ALWAYS_TRANSCODE
-
-
-def _get_stream_info(file_path):
-    cmd = FFMpeg().log(loglevel=None).input(file_path).cmd
-
-    ffmpeg_info = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT
-    )
-    ffmpeg_info.wait()
-
-    # ffmpeg requires an OUTPUT file use stderr
-    return ffmpeg_info.stdout.read().decode("utf8").split("\n")
-
-
-def _get_width_height(stream_lines, screen_w, screen_h):
-    width, height = screen_w, screen_h
-
-    is_portait = height > width
-    if is_portait:
-        width, height = height, width
-
-    for line in stream_lines:
-        # first
-        if "Video" in line:
-            video_dimensions = re.compile(r'(\d+)x(\d+)').search(line)
-            if video_dimensions:
-                if int(video_dimensions.group(1)) < width:
-                    width = int(video_dimensions.group(1))
-
-                if int(video_dimensions.group(2)) < height:
-                    height = int(video_dimensions.group(2))
-
-            break
-
-    return width, height
 
 
 def _subtitle(file_path, stream_index, format):
@@ -63,17 +23,17 @@ def _subtitle(file_path, stream_index, format):
 
     cmd.output('pipe:1')
 
-    print('Subtitle:')  # , ' '.join(cmd))
+    print('Subtitle:')  # , ' '.join(cmd.cmd))
 
     return cmd.cmd
 
 
 def _dump_attachments(file_path, dst_dir):
-    cmd = FFMpeg().n().log().dump_attachment().input(file_path).cmd
+    cmd = FFMpeg().n().log().dump_attachment().input(file_path)
 
-    print('Attachment dump:')  # , ' '.join(cmd))
+    print('Attachment dump:')  # , ' '.join(cmd.cmd))
 
-    return subprocess.call(cmd, cwd=dst_dir)
+    return subprocess.call(cmd.cmd, cwd=dst_dir)
 
 
 def get_subtitle(media, type, index, format, start_time):
@@ -90,10 +50,7 @@ def get_subtitle(media, type, index, format, start_time):
 
     if start_time:
         if type == "external":
-            stream_lines = _get_stream_info(file_path)
-            internal_sub_len = len([
-                line for line in stream_lines if "Subtitle" in line
-            ])
+            internal_sub_len = len_streams(file_path)
 
             type = "internal"
             index = int(index) + internal_sub_len
@@ -137,14 +94,17 @@ def get_font(media, font_name):
 
 
 def get_video_info(file_path):
-    stream_lines = [line for line in _get_stream_info(file_path) if (
-        "Stream" in line and "Video" in line
-    )]
+    probe = FFProbe().log().of("default=noprint_wrappers=1:nokey=1") \
+        .input(file_path).stream(["codec_name"]).select_streams("v:0")
 
-    if "Video: h264" in stream_lines[0]:
+    probe_proc = subprocess.Popen(probe.cmd, stdout=subprocess.PIPE)
+    probe_proc.wait()
+    codec_name = probe_proc.stdout.read().decode("utf8").strip()
+
+    if codec_name == "h264":
         mime = ".mp4"
         format = "mp4"
-    elif "Video: vp8" in stream_lines[0] or "Video: vp9" in stream_lines[0]:
+    elif codec_name in ("vp8", "vp9"):
         mime = ".webm"
         format = "webm"
     else:
@@ -155,32 +115,29 @@ def get_video_info(file_path):
 
 
 def get_audio_info(file_path, stream_index):
-    stream_lines = _get_stream_info(file_path)
-    re_sub_audio = re.compile(R_SUB_AUDIO)
+    probe = FFProbe().log().of("default=noprint_wrappers=1:nokey=1") \
+        .input(file_path).stream(["codec_name"]) \
+        .select_streams(str(stream_index))
 
-    for line in [line for line in stream_lines if "Audio" in line]:
-        info = re_sub_audio.search(line)
-        _stream_index = info.group(1) if info else None
-        if _stream_index != str(stream_index):
-            continue
+    probe_proc = subprocess.Popen(probe.cmd, stdout=subprocess.PIPE)
+    probe_proc.wait()
+    codec_name = probe_proc.stdout.read().decode("utf8").strip()
 
-        if "Audio: aac" in line:
-            mime = ".aac"
-            format = "adts"
-        elif "Audio: flac" in line:
-            mime = ".flac"
-            format = "flac"
-        elif "Audio: opus" in line:
-            mime = ".opus"
-            format = "opus"
-        elif "Audio: vorbis" in line:
-            mime = ".vorbis"
-            format = "oga"
-        else:
-            mime = None
-            format = None
-
-        break
+    if codec_name == "aac":
+        mime = ".aac"
+        format = "adts"
+    elif codec_name == "flac":
+        mime = ".flac"
+        format = "flac"
+    elif codec_name == "opus":
+        mime = ".opus"
+        format = "opus"
+    elif codec_name == "vorbis":
+        mime = ".vorbis"
+        format = "oga"
+    else:
+        mime = None
+        format = None
 
     return mime, format
 
@@ -465,105 +422,146 @@ def get_streams(media):
 
     media_id = media.id()
 
-    stream_lines = _get_stream_info(file_path)
+    font_dir = os.path.join(CTMP_DIR, media.id(), "fonts")
+    os.makedirs(font_dir, exist_ok=True)
+    _dump_attachments(file_path, font_dir)
+
+    probe = FFProbe().log().of().input(file_path).duration() \
+        .stream(["index", "duration", "codec_name", "codec_type"]) \
+        .stream_tags(["language", "title", "filename"]) \
+        .stream_disposition(["default", "forced"])
+
+    probe_json = get_json(probe)
+
+    if "streams" in probe_json.keys():
+        for stream in probe_json["streams"]:
+            ################################################################
+            if stream["codec_type"] == "video":
+                type = None
+                codec_name = stream["codec_name"]
+                if codec_name == "h264":
+                    type = 'video/mp4; codecs="avc1.42E01E"'
+                elif codec_name == "vp8":
+                    type = 'video/webm; codecs="vp8"'
+                elif codec_name == "vp9":
+                    type = 'video/webm; codecs="vp9"'
+                else:
+                    type = "Unsupported"
+                    print("Unsupported Video codec_name:", codec_name)
+
+                video.append({
+                    "type": type
+                })
+            ################################################################
+            elif stream["codec_type"] == "audio":
+                lang = None
+                title = None
+                if "tags" in stream.keys():
+                    if "language" in stream["tags"].keys():
+                        lang = stream["tags"]["language"]
+
+                    if "title" in stream["tags"].keys():
+                        title = stream["tags"]["title"]
+
+                default = False
+                forced = False
+                if "disposition" in stream.keys():
+                    if "default" in stream["disposition"].keys():
+                        default = stream["disposition"]["default"] == 1
+
+                    if "forced" in stream["disposition"].keys():
+                        forced = stream["disposition"]["forced"] == 1
+
+                type = None
+                codec_name = stream["codec_name"]
+                if codec_name == "aac":
+                    type = 'audio/aac'
+                elif codec_name == "flac":
+                    type = 'audio/ogg; codecs=flac'
+                elif codec_name == "opus":
+                    type = 'audio/ogg; codecs=opus'
+                elif codec_name == "vorbis":
+                    type = 'audio/ogg; codecs="vorbis"'
+                else:
+                    type = "Unsupported"
+                    print("Unsupported Audio codec_name:", codec_name)
+
+                _audio = {
+                    'id': stream["index"],
+                    'lang': lang,
+                    'title': title,
+                    'is_forced': forced,
+                    'default': default,
+                    'type': type
+                }
+
+                if default:
+                    audio.insert(0, _audio)
+                else:
+                    audio.append(_audio)
+
+            if len(audio) and audio[0]['default'] is not True:
+                audio[0]['default'] = True
+            ################################################################
+            elif stream["codec_type"] == "subtitle":
+                codec_name = stream["codec_name"]
+                is_bitmap = codec_name in ("dvd_subtitle", "hdmv_pgs_subtitle")
+                if is_bitmap:
+                    print('Discard bitmap sub')
+                    continue
+                    pass
+
+                lang = None
+                title = None
+                if "tags" in stream.keys():
+                    if "language" in stream["tags"].keys():
+                        lang = stream["tags"]["language"]
+
+                    if "title" in stream["tags"].keys():
+                        title = stream["tags"]["title"]
+
+                default = False
+                forced = False
+                if "disposition" in stream.keys():
+                    if "default" in stream["disposition"].keys():
+                        default = stream["disposition"]["default"] == 1
+
+                    if "forced" in stream["disposition"].keys():
+                        forced = stream["disposition"]["forced"] == 1
+
+                is_ass = codec_name == "ass"
+
+                src = f'/subtitle/internal/{stream["index"]}/{media_id}'
+                if is_ass:
+                    src = f"{src}.ass"
+                elif is_bitmap:
+                    src = f"{src}.tra"
+                else:
+                    src = f"{src}.vtt"
+
+                subtitle = {
+                    'src': src,
+                    'lang': lang,
+                    'title': title,
+                    'default': default,
+                    'forced': forced,
+                    'requires_transcode': is_bitmap
+                }
+                subtitles.append(subtitle)
+            ################################################################
+            elif stream["codec_type"] == "attachment":
+                if stream["codec_name"] == "ttf":
+                    if (
+                        "tags" in stream.keys()
+                        and "filename" in stream["tags"]
+                    ):
+                        filename = stream['tags']['filename']
+                        if os.path.exists(os.path.join(font_dir, filename)):
+                            fonts.append(
+                                f"/fonts/{media_id}/{filename}"
+                            )
 
     ###########################################################################
-
-    for line in [line for line in stream_lines if "Video" in line]:
-        if "Video: h264" in line:
-            type = 'video/mp4; codecs="avc1.42E01E"'
-        elif "Video: vp8" in line:
-            type = 'video/webm; codecs="vp8"'
-        elif "Video: vp9" in line:
-            type = 'video/webm; codecs="vp9"'
-        else:
-            type = "Unsupported"
-            print("Unsupported video type:\n", line)
-
-    video.append({
-        "type": type
-    })
-
-    ###########################################################################
-
-    re_sub_audio = re.compile(R_SUB_AUDIO)
-
-    for line in [line for line in stream_lines if "Audio" in line]:
-        info = re_sub_audio.search(line)
-        stream_index = info.group(1) if info else None
-        if not stream_index:
-            continue
-
-        lang = info.group(2) if info else None
-
-        is_default = "(default)" in line
-        is_forced = "(forced)" in line
-        if "Audio: aac" in line:
-            type = 'audio/aac'
-        elif "Audio: flac" in line:
-            type = 'audio/ogg; codecs=flac'
-        elif "Audio: opus" in line:
-            type = 'audio/ogg; codecs=opus'
-        elif "Audio: vorbis" in line:
-            type = 'audio/ogg; codecs="vorbis"'
-        else:
-            type = "Unsupported"
-            print("Unsupported audio type:\n", line)
-
-        _audio = {
-            'id': stream_index,
-            'lang': lang,
-            'is_forced': is_forced,
-            'default': is_default,
-            'type': type
-        }
-
-        if is_default:
-            audio.insert(0, _audio)
-        else:
-            audio.append(_audio)
-
-    if len(audio) and audio[0]['default'] is not True:
-        audio[0]['default'] = True
-
-    ###########################################################################
-
-    for line in [line for line in stream_lines if "Subtitle" in line]:
-        is_bitmap = any([
-            "Subtitle: dvd_subtitle" in line,
-            "Subtitle: hdmv_pgs_subtitle" in line
-        ])
-        if is_bitmap:
-            print('Discard bitmap sub')
-            continue
-            pass
-
-        is_default = "(default)" in line
-        is_forced = "(forced)" in line
-        is_ass = "Subtitle: ass" in line
-
-        info = re_sub_audio.search(line)
-        stream_index = info.group(1) if info else None
-        lang = info.group(2) if info else "Unknown"
-        src = f'/subtitle/internal/{stream_index}/{media_id}'
-
-        if is_ass:
-            src = f"{src}.ass"
-        elif is_bitmap:
-            src = f"{src}.tra"
-        else:
-            src = f"{src}.vtt"
-
-        subtitle = {
-            'src': src,
-            'lang': lang,
-            'default': is_default,
-            'forced': is_forced,
-            'requires_transcode': is_bitmap
-        }
-
-        if stream_index:
-            subtitles.append(subtitle)
 
     for i in range(len(media.subtitles)):
         src = f'/subtitle/external/{i}/{media_id}'
@@ -579,58 +577,47 @@ def get_streams(media):
     ###########################################################################
 
     duration = 0
-    for line in stream_lines:
-        if "Duration" in line:
-            d = re.compile(R_DURATION).search(line)
-            if d:
-                duration = (
-                    int(d.group(1)) * 3600
-                    + int(d.group(2)) * 60
-                    + int(d.group(3))
-                )
-            break
+    if "format" in probe_json.keys():
+        if "duration" in probe_json["format"].keys():
+            duration = int(float(probe_json["format"]["duration"]))
 
     ###########################################################################
 
-    font_dir = os.path.join(CTMP_DIR, media.id(), "fonts")
-    os.makedirs(font_dir, exist_ok=True)
-    _dump_attachments(file_path, font_dir)
+    # USE_ASS_JS = False
 
-    USE_ASS_JS = False
+    # re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
+    # for line in [
+    #     line for line in stream_lines if (
+    #         line.strip().startswith("filename")
+    #         and line.strip().endswith((".otf", ".OTF", ".ttf", ".TTF"))
+    #     )
+    # ]:
+    #     filename = re_attachment_names.search(line)
+    #     if filename:
+    #         if USE_ASS_JS:
+    #             font_path = os.path.join(font_dir, filename.group(1))
+    #             if os.path.exists(font_path):
+    #                 print(font_path)
+    #                 font_proc = subprocess.Popen(
+    #                     ['fc-scan', '-b', font_path],
+    #                     stdout=subprocess.PIPE, text=True
+    #                 )
+    #                 font_proc.wait()
+    #                 if font_proc.returncode == 0:
+    #                     for line in font_proc.stdout.read().split("\n"):
+    #                         if line.lstrip().startswith("family"):
+    #                             family = line.replace("family:", "") \
+    #                                 .replace("(s)", ",").replace("\"", "") \
+    #                                 .strip().strip(",")
+    #                             print(family)
+    #                             break
 
-    re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
-    for line in [
-        line for line in stream_lines if (
-            line.strip().startswith("filename")
-            and line.strip().endswith((".otf", ".OTF", ".ttf", ".TTF"))
-        )
-    ]:
-        filename = re_attachment_names.search(line)
-        if filename:
-            if USE_ASS_JS:
-                font_path = os.path.join(font_dir, filename.group(1))
-                if os.path.exists(font_path):
-                    print(font_path)
-                    font_proc = subprocess.Popen(
-                        ['fc-scan', '-b', font_path],
-                        stdout=subprocess.PIPE, text=True
-                    )
-                    font_proc.wait()
-                    if font_proc.returncode == 0:
-                        for line in font_proc.stdout.read().split("\n"):
-                            if line.lstrip().startswith("family"):
-                                family = line.replace("family:", "") \
-                                    .replace("(s)", ",").replace("\"", "") \
-                                    .strip().strip(",")
-                                print(family)
-                                break
-
-                        fonts.append({
-                            "family": family,
-                            "url": f"/fonts/{media_id}/{filename.group(1)}"
-                        })
-            else:
-                fonts.append(f"/fonts/{media_id}/{filename.group(1)}")
+    #                     fonts.append({
+    #                         "family": family,
+    #                         "url": f"/fonts/{media_id}/{filename.group(1)}"
+    #                     })
+    #         else:
+    #             fonts.append(f"/fonts/{media_id}/{filename.group(1)}")
 
     return {
         'id': media_id,
@@ -640,3 +627,21 @@ def get_streams(media):
         'duration': duration,
         'fonts': fonts
     }
+
+
+def get_json(probe):
+    probe_proc = subprocess.Popen(probe.cmd, stdout=subprocess.PIPE)
+    probe_proc.wait()
+
+    import json
+    return json.load(probe_proc.stdout)
+
+
+def len_streams(file_path):
+    from classes.ffmpeg import FFProbe
+    probe = FFProbe().log().of().input(file_path).stream(["index"])
+
+    # print(' '.join(probe.cmd))
+    probe_json = get_json(probe)
+
+    return len(probe_json["streams"]) if "streams" in probe_json.keys() else 0
