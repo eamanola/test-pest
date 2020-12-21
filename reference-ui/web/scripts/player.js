@@ -70,6 +70,7 @@ Player.prototype = {
   FORCE_VCODEC: null,
   USE_ASS_JS: false,
   fonts: null,
+  chapters: null,
   start_time: 0,
   _can_play: [],
   create_wrapper: function() {
@@ -128,6 +129,10 @@ Player.prototype = {
       }
       this.controls()
         .appendChild(this.create_subtitle_select(streams_obj.subtitles))
+    }
+
+    if (streams_obj.chapters.length) {
+      this.chapters = streams_obj.chapters
     }
 
     this.controls().appendChild(this.create_play_position())
@@ -850,7 +855,7 @@ Player.prototype = {
       && a == params.get("a")
       && ca == params.get("ca")
       && s == params.get("s")
-      && !pstart
+      && pstart == null
     ) {
       console.log('skip')
       return
@@ -859,7 +864,8 @@ Player.prototype = {
     video.pause()
     this.set_state("buffering")
 
-    var current_time = pstart ? pstart : Math.floor(this.current_time())
+    var current_time = pstart != null ? pstart :
+      Math.floor(this.current_time())
     var start = current_time > 10 ? current_time : 0
 
     this.start_time = start
@@ -877,6 +883,11 @@ Player.prototype = {
     console.log(new_src)
     source.setAttribute("src", new_src)
     video.load()
+  },
+  merge_audio: function(audio_id) {
+    this.set_video(null, { a: audio_id }, null, null)
+    // update start_time
+    this.set_subtitle(this.subtitle_select().value)
   },
   seek: function(secs) {
     this.set_video(null, null, null, secs)
@@ -898,11 +909,46 @@ Player.prototype = {
 
     this.set_subtitle(this.subtitle_select().value)
   },
-  merge_audio: function(audio_id) {
-    this.set_video(null, { a: audio_id }, null, null)
-    // update start_time
-    this.set_subtitle(this.subtitle_select().value)
+  next_chapter: function() {
+    var current_chapter = this.current_chapter()
+    var next_chapter = current_chapter + 1
+    if (next_chapter < this.chapters.length) {
+      this.set_chapter(next_chapter)
+    }
   },
+  previous_chapter: function() {
+    var current_chapter = this.current_chapter()
+    var chapter_start_time = this.chapters[current_chapter].start_time
+    var offset = -1
+    if (this.current_time() > chapter_start_time + 10) {
+      offset = 0
+    }
+
+    var previous_chapter = current_chapter + offset
+    if (previous_chapter >= 0) {
+      this.set_chapter(previous_chapter)
+    }
+  },
+  current_chapter: function() {
+    var current_time = this.current_time()
+    for (var i = 0, il = this.chapters.length; i < il; i++) {
+      var chapter = this.chapters[i]
+      if (chapter.start_time <= current_time
+        && chapter.end_time > current_time)
+        return i
+    }
+  },
+  set_chapter: function(index) {
+    if (index < 0 || index >= this.chapters.length) {
+      return
+    }
+
+    var chapter = this.chapters[index]
+    this.seek(chapter.start_time)
+    console.log(chapter, chapter.start_time)
+  },
+
+
   toggleFullscreen: function(e) {
     var fullscreen_button = this.wrapper.querySelector(".fullscreen-button")
 
