@@ -540,8 +540,9 @@ Player.prototype = {
     if (a || ca)
       paudio = { a: a, ca: ca }
     var psubtitle = null
+    var pstart = null
 
-    this.set_video(pvideo, paudio, psubtitle)
+    this.set_video(pvideo, paudio, psubtitle, pstart)
   },
   create_audio: function(audio_obj) {
     var audio = null, source = null
@@ -727,7 +728,7 @@ Player.prototype = {
         var parts = src.split("/")
         if (parts.length > 4) {
           var stream_index = parts[3]
-          this.set_video(null, null, { s: stream_index })
+          this.set_video(null, null, { s: stream_index }, null)
         }
       } else {
         var video = this.video()
@@ -830,7 +831,7 @@ Player.prototype = {
       video.muted = false
     }
   },
-  set_video: function(pvideo, paudio, psubtitle) {
+  set_video: function(pvideo, paudio, psubtitle, pstart) {
     console.log('set_video')
     var video = this.video()
 
@@ -849,6 +850,7 @@ Player.prototype = {
       && a == params.get("a")
       && ca == params.get("ca")
       && s == params.get("s")
+      && !pstart
     ) {
       console.log('skip')
       return
@@ -857,7 +859,7 @@ Player.prototype = {
     video.pause()
     this.set_state("buffering")
 
-    var current_time = Math.floor(this.current_time())
+    var current_time = pstart ? pstart : Math.floor(this.current_time())
     var start = current_time > 10 ? current_time : 0
 
     this.start_time = start
@@ -876,8 +878,30 @@ Player.prototype = {
     source.setAttribute("src", new_src)
     video.load()
   },
+  seek: function(secs) {
+    this.set_video(null, null, null, secs)
+
+    if (!this.MERGE_ALL_AUDIO) {
+      var audio = this.wrapper.querySelectorAll("audio")
+      for (var i = 0, il = audio.length; i < il; i++) {
+        var sources = audio[i].querySelectorAll("source")
+        for (var j = 0, jl = sources.length; j < jl; j++) {
+          var current_src = sources[j].src
+          current_src = current_src
+            .replace(/start=\d+[&]?/, "").replace(/&?$/, "")
+
+          sources[j].src = current_src + "&start=" + this.start_time
+        }
+        audio[i].load()
+      }
+    }
+
+    this.set_subtitle(this.subtitle_select().value)
+  },
   merge_audio: function(audio_id) {
-    this.set_video(null, { a: audio_id }, null)
+    this.set_video(null, { a: audio_id }, null, null)
+    // update start_time
+    this.set_subtitle(this.subtitle_select().value)
   },
   toggleFullscreen: function(e) {
     var fullscreen_button = this.wrapper.querySelector(".fullscreen-button")
@@ -999,11 +1023,12 @@ Player.prototype = {
     if (subtitle_index === undefined)
       subtitle_index = null
 
-    var video = { v: null, cv: this.FORCE_VCODEC ? this.FORCE_VCODEC : "vp9" }
-    var audio = { a: null, ca: "opus" }
-    var subtitle = subtitle_index ? { s: subtitle_index } : null
+    var pvideo = { v: null, cv: this.FORCE_VCODEC ? this.FORCE_VCODEC : "vp9" }
+    var paudio = { a: null, ca: "opus" }
+    var psubtitle = subtitle_index ? { s: subtitle_index } : null
+    var pstart = null
 
-    this.set_video(video, audio, subtitle)
+    this.set_video(pvideo, paudio, psubtitle, pstart)
   },
 
   fullscreen_hide_ui: function() {
