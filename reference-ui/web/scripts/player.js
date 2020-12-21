@@ -19,6 +19,10 @@ var Player = function(streams_url) {
     this.MERGE_FIRST_AUDIO = true
   }
 
+  if (!this.ENABLE_SEEK) {
+    this.ENABLE_CHAPTERS = false
+  }
+
   wrapper.appendChild(this.create_video())
 
   if (this.USE_ASS_JS) {
@@ -73,7 +77,6 @@ Player.prototype = {
   fonts: null,
   chapters: null,
   start_time: 0,
-  _can_play: [],
   create_wrapper: function() {
     var wrapper = document.createElement('div')
     wrapper.className = "video-wrapper"
@@ -203,9 +206,7 @@ Player.prototype = {
 
     video.addEventListener("error", console.error, false)
 
-    // ? check effect tonight
     video.addEventListener("ended", function() {
-      //this.close.bind(this)
       history.go(-1)
     }, false)
 
@@ -244,8 +245,11 @@ Player.prototype = {
       }
     }.bind(this), false)
 
-    this._can_play.push(video)
-    video.addEventListener("canplay", this.on_can_play.bind(this), false)
+    function play() {
+      video.removeEventListener("canplay", play, false)
+      setTimeout(function() { player.play() }.bind(this), this.BUFFER_TIME)
+    }
+    video.addEventListener("canplay", play, false)
 
     return video
   },
@@ -265,7 +269,7 @@ Player.prototype = {
       e.stopPropagation()
       var video = this.video()
       if (video.paused) {
-        video.play().catch(this.on_video_play_error.bind(this))
+        this.play()
       } else {
         video.pause()
       }
@@ -866,8 +870,25 @@ Player.prototype = {
       return
     }
 
-    video.pause()
     this.set_state("buffering")
+
+    var paused = video.paused
+    if (!paused) {
+      console.log('set_video: pause')
+      video.pause()
+    }
+
+    var player = this
+    function play() {
+      video.removeEventListener("canplay", play, false)
+      player.set_state("playing")
+
+      if (!paused) {
+        console.log('set_video: resume')
+        player.play()
+      }
+    }
+    video.addEventListener("canplay", play, false)
 
     var current_time = pstart != null ? pstart : this.current_time()
     var start = current_time > 10 ? current_time : 0
@@ -926,18 +947,6 @@ Player.prototype = {
     }
 
     console.log('server seek')
-
-    var video = this.video()
-    if (!video.paused) {
-      video.pause()
-      function play() {
-        video.removeEventListener("canplay", play, false)
-        video.play().catch(this.on_video_play_error.bind(this))
-        console.log('play')
-      }
-      video.addEventListener("canplay", play.bind(this), false)
-    }
-
 
     this.set_video(null, null, null, secs)
 
@@ -1202,30 +1211,21 @@ Player.prototype = {
     }
   },
 
-  on_can_play: function(e) {
-    var index = this._can_play.indexOf(e.target);
-    if (index > -1) {
-      this._can_play.splice(index, 1);
-    }
-
-    if (this._can_play.length == 0) {
-      setTimeout(function() {
-        this.video().play().then(
-          function() {
-            if (this.video().videoHeight === 0) {
-              this.show_chrome_transcode()
-            } else {
-              this.set_state("playing")
-              if (this.USE_ASS_JS) {
-                if (this.ass_renderer) {
-                  this.ass_renderer.resize()
-                }
-              }
+  play: function(e) {
+    this.video().play().then(
+      function() {
+        if (this.video().videoHeight === 0) {
+          this.show_chrome_transcode()
+        } else {
+          this.set_state("playing")
+          if (this.USE_ASS_JS) {
+            if (this.ass_renderer) {
+              this.ass_renderer.resize()
             }
-          }.bind(this)
-        ).catch(this.on_video_play_error.bind(this))
-      }.bind(this), this.BUFFER_TIME)
-    }
+          }
+        }
+      }.bind(this)
+    ).catch(this.on_video_play_error.bind(this))
   },
   on_audio_play_error: function(error, audio) {
     if (/The element has no supported sources./.test(error)){
