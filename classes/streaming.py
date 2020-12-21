@@ -419,6 +419,7 @@ def get_streams(media):
     audio = []
     subtitles = []
     fonts = []
+    chapters = []
 
     media_id = media.id()
 
@@ -429,7 +430,8 @@ def get_streams(media):
     probe = FFProbe().log().of().input(file_path).duration() \
         .stream(["index", "duration", "codec_name", "codec_type"]) \
         .stream_tags(["language", "title", "filename"]) \
-        .stream_disposition(["default", "forced"])
+        .stream_disposition(["default", "forced"]) \
+        .chapters()
 
     probe_json = get_json(probe)
 
@@ -583,6 +585,25 @@ def get_streams(media):
 
     ###########################################################################
 
+    if "chapters" in probe_json.keys():
+        for chapter in probe_json["chapters"]:
+            start_time = None
+            end_time = None
+            title = ""
+            if "start_time" in chapter.keys():
+                start_time = int(float(chapter["start_time"]))
+            if "end_time" in chapter.keys():
+                end_time = int(float(chapter["end_time"]))
+            if "tags" in chapter.keys():
+                if "title" in chapter["tags"]:
+                    title = chapter["tags"]["title"]
+            chapters.append({
+                'title': title,
+                'start_time': start_time,
+                'end_time': end_time
+            })
+
+    ###########################################################################
     # USE_ASS_JS = False
 
     # re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
@@ -625,7 +646,8 @@ def get_streams(media):
         'audio': audio,
         'subtitles': subtitles,
         'duration': duration,
-        'fonts': fonts
+        'fonts': fonts,
+        'chapters': chapters
     }
 
 

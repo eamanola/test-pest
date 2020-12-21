@@ -272,3 +272,7 @@ class FFProbe(object):
     def select_streams(self, selector):
         self.cmd = self.cmd + ["-select_streams", selector]
         return self
+
+    def chapters(self):
+        self.cmd.append("-show_chapters")
+        return self
