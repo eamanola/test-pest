@@ -269,7 +269,7 @@ def av(
     if acodec:
         dst_file.append("ca" + str(acodec))
 
-    dst_path = os.path.join(CTMP_DIR, "-".join(dst_file) + mime)
+    dst_path = os.path.join(CTMP_DIR, media.id(), "-".join(dst_file) + mime)
 
     if vcodec is None and acodec is None:
         if os.path.exists(dst_path):
@@ -277,7 +277,7 @@ def av(
 
     ###########################################################################
 
-    success, cmd.cmd = test_cmd(cmd.cmd)
+    success, cmd.cmd = test_cmd(cmd.cmd, media.id())
     if not success:
         return None, None
 
@@ -321,13 +321,13 @@ def av(
     return ret, mime
 
 
-def test_cmd(cmd):
+def test_cmd(cmd, media_id):
     passed = False
 
     import uuid
 
     tmp_file = os.path.join(
-        CTMP_DIR, str(uuid.uuid1())
+        CTMP_DIR, media_id, str(uuid.uuid1())
     )
     os.makedirs(os.path.dirname(tmp_file), exist_ok=True)
 
@@ -351,7 +351,7 @@ def test_cmd(cmd):
             cmd.append("-af")
             cmd.append('aformat=channel_layouts=5.1|stereo')
 
-            return test_cmd(cmd)
+            return test_cmd(cmd, media_id)
 
         if any((
             "in MP4 support is experimental" in line
@@ -360,7 +360,7 @@ def test_cmd(cmd):
             cmd.append('-strict')
             cmd.append('experimental')
 
-            return test_cmd(cmd)
+            return test_cmd(cmd, media_id)
 
         else:
             print("##################################################")
@@ -376,31 +376,48 @@ def test_cmd(cmd):
 
 
 def trim(media, start_time):
-    file_path = os.path.join(media.parent().path(), media.file_path())
-    if not os.path.exists(file_path):
-        return None
-
     dst_path = os.path.join(
-        CTMP_DIR, f'trimmed-{start_time}-{media.id()}.mkv'
+        CTMP_DIR, media.id(), 'trimmed', str(start_time)
     )
     if os.path.exists(dst_path):
         return dst_path
 
     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
 
+    previous_trims = os.listdir(os.path.dirname(dst_path))
+
+    usable_trim = None
+    for previous_trim in previous_trims:
+        previous_trim = float(previous_trim)
+        if previous_trim < start_time:
+            if usable_trim is None or previous_trim > usable_trim:
+                usable_trim = previous_trim
+
+    if usable_trim is None:
+        file_path = os.path.join(media.parent().path(), media.file_path())
+        if not os.path.exists(file_path):
+            return None
+    else:
+        print('Using previous trim', usable_trim)
+        file_path = os.path.join(os.path.dirname(dst_path), str(usable_trim))
+        start_time = start_time - usable_trim
+
     cmd = FFMpeg().y().log(stats=True).input(file_path, ss=start_time)
 
-    for subtitle in media.subtitles:
-        cmd.input(
-            os.path.join(media.parent().path(), subtitle), ss=start_time
-        )
+    if usable_trim is None:
+        for subtitle in media.subtitles:
+            cmd.input(
+                os.path.join(media.parent().path(), subtitle), ss=start_time
+            )
 
     cmd.map('0')
 
-    for index in range(0, len(media.subtitles)):
-        cmd.map(str(index + 1))
+    if usable_trim is None:
+        for index in range(0, len(media.subtitles)):
+            cmd.map(str(index + 1))
 
-    cmd.acodec('copy').vcodec('copy').scodec('copy').copyts().output(dst_path)
+    cmd.acodec('copy').vcodec('copy').scodec('copy').copyts() \
+        .format('matroska').output(dst_path)
 
     print('Trim:', ' '.join(cmd.cmd))
 
