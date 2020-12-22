@@ -150,7 +150,7 @@ Player.prototype = {
   set_state: function(state) {
     if (state == "buffering")
       this.wrapper.className += " buffering"
-    else if (state == "playing")
+    else if (state == "canplay")
       this.wrapper.className =
         this.wrapper.className.replace(/\sbuffering/g, "")
 
@@ -881,7 +881,7 @@ Player.prototype = {
     var player = this
     function play() {
       video.removeEventListener("canplay", play, false)
-      player.set_state("playing")
+      player.set_state("canplay")
 
       if (!paused) {
         console.log('set_video: resume')
@@ -1217,7 +1217,7 @@ Player.prototype = {
         if (this.video().videoHeight === 0) {
           this.show_chrome_transcode()
         } else {
-          this.set_state("playing")
+          this.set_state("canplay")
           if (this.USE_ASS_JS) {
             if (this.ass_renderer) {
               this.ass_renderer.resize()
