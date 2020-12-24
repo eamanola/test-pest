@@ -576,9 +576,7 @@ def get_streams(media):
                     ):
                         filename = stream['tags']['filename']
                         if os.path.exists(os.path.join(font_dir, filename)):
-                            fonts.append(
-                                f"/fonts/{media_id}/{filename}"
-                            )
+                            fonts.append(f"/fonts/{media_id}/{filename}")
 
     ###########################################################################
 
@@ -619,43 +617,6 @@ def get_streams(media):
                 'start_time': start_time,
                 'end_time': end_time
             })
-
-    ###########################################################################
-    # USE_ASS_JS = False
-
-    # re_attachment_names = re.compile(r"^\s*filename\s*\:\s*(.*)\s*$")
-    # for line in [
-    #     line for line in stream_lines if (
-    #         line.strip().startswith("filename")
-    #         and line.strip().endswith((".otf", ".OTF", ".ttf", ".TTF"))
-    #     )
-    # ]:
-    #     filename = re_attachment_names.search(line)
-    #     if filename:
-    #         if USE_ASS_JS:
-    #             font_path = os.path.join(font_dir, filename.group(1))
-    #             if os.path.exists(font_path):
-    #                 print(font_path)
-    #                 font_proc = subprocess.Popen(
-    #                     ['fc-scan', '-b', font_path],
-    #                     stdout=subprocess.PIPE, text=True
-    #                 )
-    #                 font_proc.wait()
-    #                 if font_proc.returncode == 0:
-    #                     for line in font_proc.stdout.read().split("\n"):
-    #                         if line.lstrip().startswith("family"):
-    #                             family = line.replace("family:", "") \
-    #                                 .replace("(s)", ",").replace("\"", "") \
-    #                                 .strip().strip(",")
-    #                             print(family)
-    #                             break
-
-    #                     fonts.append({
-    #                         "family": family,
-    #                         "url": f"/fonts/{media_id}/{filename.group(1)}"
-    #                     })
-    #         else:
-    #             fonts.append(f"/fonts/{media_id}/{filename.group(1)}")
 
     return {
         'id': media_id,
