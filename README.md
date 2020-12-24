@@ -28,6 +28,7 @@ Developed on linux, with FF and chrome
 Install
 - sudo apt get install ffmpeg python3
 - git clone https://github.com/eamanola/test-pest.git
+- download a copy of anime-titles.dat.gz from https://wiki.anidb.net/API#Data_Dumps, and save it in test-pest dir
 - cd test-pest && python3 server.py
 - open browser http://localhost:8086
 
