@@ -24,10 +24,6 @@ var Player = function(streams_url) {
   }
 
   wrapper.appendChild(this.create_video())
-
-  if (this.USE_ASS_JS) {
-    wrapper.appendChild(this.create_subtitle_container())
-  }
   wrapper.appendChild(this.create_loading())
   wrapper.appendChild(this.create_overlay())
   wrapper.appendChild(this.create_volume_display())
@@ -73,7 +69,6 @@ Player.prototype = {
   V_AUDIO: null,
   FORCE_VTT: false,
   FORCE_VCODEC: null,
-  USE_ASS_JS: false,
   fonts: null,
   chapters: null,
   start_time: 0,
@@ -123,12 +118,7 @@ Player.prototype = {
 
     // create after sources, in case default subtitle requires re-transcoding
     if (streams_obj.subtitles.length > 0) {
-      if (this.USE_ASS_JS) {
-        if (streams_obj.fonts.length > 0) {
-          this.fonts = []
-          this.load_fonts(streams_obj.fonts)
-        }
-      } else {
+      if (streams_obj.fonts.length > 0) {
         this.fonts = streams_obj.fonts
       }
       this.controls()
@@ -184,9 +174,6 @@ Player.prototype = {
   },
   subtitle_select: function() {
     return this.wrapper.querySelector(".subtitle-select")
-  },
-  subtitle_container: function() {
-    return this.wrapper.querySelector(".subtitle-container")
   },
   prev_chapter_button: function() {
     return this.wrapper.querySelector(".previous-chapter")
@@ -481,12 +468,6 @@ Player.prototype = {
 
     return subtitle_select
   },
-  create_subtitle_container: function() {
-    var div = document.createElement("div")
-    div.className = "subtitle-container"
-
-    return div
-  },
   create_prev_chapter_button: function() {
     var button = document.createElement("button")
     button.className = "previous-chapter"
@@ -596,28 +577,6 @@ Player.prototype = {
       this.wrapper.appendChild(audio);
     }
   },
-  load_fonts: function(fonts_obj) {
-    for (var i = 0, il = fonts_obj.length; i < il; i++) {
-      // var ff = new FontFace("CronosPro-Bold", "url(/fonts/10845a2f096febc4103e79f9ceff6b1d/CronosPro-Bold.ttf)")
-      console.log(fonts_obj[i])
-      var family = fonts_obj[i].family
-      var url = fonts_obj[i].url
-
-      var famalies = family.split(", ")
-      for (var j = 0, jl = famalies.length; j < jl; j++) {
-        var ff = new FontFace(famalies[j], "url(" + encodeURI(url) + ")");
-        (function(ff){
-          ff.load().then(function(res) {
-              document.fonts.add(ff)
-              this.fonts.push(ff)
-              console.log('yep', ff)
-            }.bind(this)).catch(function(res) {
-              console.log("Fail", res, ff)
-            }.bind(this))
-        }.bind(this))(ff)
-      }
-    }
-  },
 
   sync_audio: function() {
     var video = this.video()
@@ -685,11 +644,7 @@ Player.prototype = {
 
     if (this.ass_renderer !== null) {
       try {
-        if (this.USE_ASS_JS) {
-          this.ass_renderer.hide()
-        } else {
-          this.ass_renderer.freeTrack()
-        }
+        this.ass_renderer.freeTrack()
       } catch (e) {
         console.log('ass render', e)
       }
@@ -708,23 +663,7 @@ Player.prototype = {
       var src_path = src.split("?")[0]
       if (/\.ass$/.test(src_path)) {
         try {
-          if (this.USE_ASS_JS) {
-            ajax(src + "?start=" + this.start_time, function(responseText) {
-              this.ass_renderer = new ASS(responseText, this.video(), {
-                // Subtitles will display in the container.
-                // The container will be created automatically if it's not provided.
-                container: this.subtitle_container(),  //document.getElementById('my-container'),
-
-                // see resampling API below
-                resampling: 'video_width',
-              });
-              window.addEventListener("resize", function() {
-                if (this.ass_renderer) {
-                  this.ass_renderer.resize()
-                }
-              }.bind(this), false)
-            }.bind(this))
-          } else if (this.ass_renderer === null) {
+          if (this.ass_renderer === null) {
             this.ass_renderer = new SubtitlesOctopus({
               video: this.video(),
               subUrl: src + "?start=" + this.start_time,
@@ -1092,16 +1031,7 @@ Player.prototype = {
 
     if (this.ass_renderer != null) {
       try {
-        if (this.USE_ASS_JS) {
-          this.ass_renderer.destroy()
-          if (this.fonts) {
-            for (var i = 0, il = this.fonts.length; i < il; i ++) {
-              document.fonts.delete(this.fonts[i])
-            }
-          }
-        } else {
-          this.ass_renderer.dispose()
-        }
+        this.ass_renderer.dispose()
       } catch (e) {
         console.log('ass render', e)
       }
@@ -1218,11 +1148,6 @@ Player.prototype = {
           this.show_chrome_transcode()
         } else {
           this.set_state("canplay")
-          if (this.USE_ASS_JS) {
-            if (this.ass_renderer) {
-              this.ass_renderer.resize()
-            }
-          }
         }
       }.bind(this)
     ).catch(this.on_video_play_error.bind(this))

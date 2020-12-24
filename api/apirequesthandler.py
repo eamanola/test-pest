@@ -18,10 +18,10 @@ class ApiRequestHandler(RequestHandler):
 
             # temp
             for media_library in media_libraries:
-                if media_library.title() == "/data/viihde/anime/":
+                if "anime" in media_library.title().lower():
+                    media_libraries.remove(media_library)
+                    media_libraries.insert(0, media_library)
                     break
-            media_libraries.remove(media_library)
-            media_libraries.insert(0, media_library)
 
             play_next = api.play_next_list(db)
             code = 200

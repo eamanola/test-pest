@@ -7,8 +7,6 @@ class AniDB(MetaSource):
     TV_SHOW = None
     MOVIE = None
 
-    # From https://wiki.anidb.net/API#Data_Dumps
-    DATA_DUMP_FILE_PATH = "./external/anidb-titles-nightly-20200913"
     DATABASE = "ani.db"
     TITLE_TO_ID_TABLE = "title_to_{}_id".format(KEY)
     META_ID_PREFIX = IMAGE_PREFIX = KEY
@@ -158,23 +156,56 @@ class AniDB(MetaSource):
         )
 
     def _generate_search_table(db):
-        table = AniDB.TITLE_TO_ID_TABLE
-        file_path = AniDB.DATA_DUMP_FILE_PATH
+        TEST = True
+        # download latest anime-titles.dat here:
+        # From https://wiki.anidb.net/API#Data_Dumps
+        import os
+        import sys
+
+        ANIME_TITLES_DAT = os.path.join(sys.path[0], "anime-titles.dat.gz")
+        if not os.path.exists(ANIME_TITLES_DAT):
+            data = None
+
+            if TEST:
+                with open('anime-titles-test.dat.gz', "rb") as f:
+                    data = f.read()
+            else:
+                import http.client
+                try:
+                    # From https://wiki.anidb.net/API#Data_Dumps
+                    conn = http.client.HTTPSConnection("anidb.net")
+                    conn.request("GET", '/api/anime-titles.dat.gz')
+
+                    data = conn.getresponse().read()
+                finally:
+                    conn.close()
+
+            if data:
+                os.makedirs(os.path.dirname(ANIME_TITLES_DAT), exist_ok=True)
+                with open(ANIME_TITLES_DAT, "wb") as f:
+                    f.write(data)
+
+                file_path = ANIME_TITLES_DAT
+        else:
+            file_path = ANIME_TITLES_DAT
+
         results = AniDB._parse_data_dump_file(file_path)
+        table = AniDB.TITLE_TO_ID_TABLE
         db.populate_title_to_ext_id_table(table, results)
 
     def _parse_data_dump_file(file_path):
         results = []
 
-        try:
-            file = open(file_path, "r")
-            line = file.readline()
+        import gzip
+        with gzip.open(file_path, "r") as file:
+            line = file.readline().decode("utf-8")
 
             while line:
                 title = AniDB._parse_title_from_line(line)
                 ext_id = AniDB._parse_id_from_line(line)
                 year = AniDB._parse_year_from_line(line)
                 media_type = AniDB._parse_media_type_from_line(line)
+                del line
 
                 result = (
                     ext_id if ext_id else "",
@@ -185,10 +216,8 @@ class AniDB(MetaSource):
 
                 results.append(result)
 
-                line = file.readline()
+                line = file.readline().decode("utf-8")
 
-        finally:
-            file.close()
 
         return results
 

@@ -96,6 +96,10 @@
   }
 
   window.addEventListener("keydown", function(e) {
+    var add_media_lib_path = document.getElementById("add-media-library-path")
+    if (e.target == add_media_lib_path) {
+        return true
+    }
     var next_item = null
     var hoverables = document.querySelectorAll(hoverable.join(","))
 
@@ -104,7 +108,9 @@
       e.preventDefault()
       e.stopPropagation()
 
-      set_hover(hoverables[0])
+      if (hoverables.length){
+        set_hover(hoverables[0])
+      }
       return
     }
 
