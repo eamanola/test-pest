@@ -459,8 +459,6 @@ Player.prototype = {
 
       if (subtitle.default === true) {
         subtitle_option.setAttribute("selected", "selected")
-
-        this.set_subtitle(subtitle.src)
       }
 
       subtitle_select.appendChild(subtitle_option)
@@ -826,6 +824,14 @@ Player.prototype = {
         console.log('set_video: resume')
         player.play()
       }
+
+      // update only softs
+      if (!psubtitle) {
+        var subtitle_select = player.subtitle_select()
+        if (subtitle_select != null) {
+          player.set_subtitle(subtitle_select.value)
+        }
+      }
     }
     video.addEventListener("canplay", play, false)
 
@@ -850,8 +856,6 @@ Player.prototype = {
   },
   merge_audio: function(audio_id) {
     this.set_video(null, { a: audio_id }, null, null)
-    // update start_time
-    this.set_subtitle(this.subtitle_select().value)
   },
   in_buffered: function(secs) {
     console.log(secs, this.start_time)
@@ -903,8 +907,6 @@ Player.prototype = {
         audio[i].load()
       }
     }
-
-    this.set_subtitle(this.subtitle_select().value)
   },
   next_chapter: function() {
     var current_chapter = this.current_chapter()
