@@ -1016,7 +1016,7 @@ Player.prototype = {
       } else if (watched > 0.05) {
         var resume_str = localStorage.getItem('resume')
         var resume = JSON.parse(resume_str) || {}
-        resume[this.media_id] = +this.current_time().toFixed(3)
+        resume[this.media_id] = this.current_time()
         localStorage.setItem('resume', JSON.stringify(resume))
       }
     }

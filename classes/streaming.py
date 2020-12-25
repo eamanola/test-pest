@@ -376,6 +376,8 @@ def test_cmd(cmd, media_id):
 
 
 def trim(media, start_time):
+    start_time = round(start_time, 3)
+
     dst_path = os.path.join(
         CTMP_DIR, media.id(), 'trimmed', str(start_time)
     )
