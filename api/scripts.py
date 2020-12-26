@@ -270,12 +270,15 @@ def media_played(db, media_id, played):
             db.update_media([media])
 
         if played:
-            from CONFIG import CTMP_DIR
-            import os
-            tmp_dir = os.path.join(CTMP_DIR, media_id)
-            if os.path.exists(tmp_dir):
-                import shutil
-                shutil.rmtree(tmp_dir)
+            try:
+                from CONFIG import CTMP_DIR
+                import os
+                tmp_dir = os.path.join(CTMP_DIR, media_id)
+                if os.path.exists(tmp_dir):
+                    import shutil
+                    shutil.rmtree(tmp_dir)
+            finally:
+                pass
 
     return found
 
