@@ -336,18 +336,31 @@ Player.prototype = {
     var play_position_total = document.createElement("div")
     play_position_total.className = "video-position-total"
 
-    if (this.ENABLE_SEEK)
-    play_position_total.addEventListener("click", function(e) {
-      var duration = this.duration
+    function mouse_pos_to_percent(e) {
+      var percent = (e.layerX / play_position_total.offsetWidth)
+      if (percent < 0.025) percent = 0
 
-      if (duration) {
-        var percent = (e.layerX / play_position_total.offsetWidth)
-        if (percent < 0.025) percent = 0
+      return percent
+    }
 
-        var new_time = percent * duration
-        this.seek(new_time)
-      }
-    }.bind(this), false)
+    if (this.ENABLE_SEEK) {
+      play_position_total.addEventListener("click", function(e) {
+        var duration = this.duration
+
+        if (duration) {
+          var secs = mouse_pos_to_percent(e) * duration
+          this.seek(secs)
+        }
+      }.bind(this), false)
+      play_position_total.addEventListener("mousemove", function(e) {
+        var duration = this.duration
+
+        if (duration) {
+          var secs = mouse_pos_to_percent(e) * duration
+          play_position_total.title = format_secs(secs)
+        }
+      }.bind(this), false)
+    }
 
     play_position_total.appendChild(this.create_play_position_buffered())
     play_position_total.appendChild(this.create_play_position_played())
