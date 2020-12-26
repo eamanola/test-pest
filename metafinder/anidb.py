@@ -156,7 +156,7 @@ class AniDB(MetaSource):
         )
 
     def _generate_search_table(db):
-        TEST = True
+        TEST = False
         # download latest anime-titles.dat here:
         # From https://wiki.anidb.net/API#Data_Dumps
         import os
@@ -174,7 +174,11 @@ class AniDB(MetaSource):
                 try:
                     # From https://wiki.anidb.net/API#Data_Dumps
                     conn = http.client.HTTPSConnection("anidb.net")
-                    conn.request("GET", '/api/anime-titles.dat.gz')
+                    conn.request(
+                        "GET",
+                        '/api/anime-titles.dat.gz',
+                        headers={"User-Agent": "testpest/1.0"}
+                    )
 
                     data = conn.getresponse().read()
                 finally:
