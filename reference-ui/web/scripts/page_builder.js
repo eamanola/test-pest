@@ -122,6 +122,11 @@ function description(item) {
   else if (item.summary)
     desc = item.summary
 
+  desc = desc.replace(
+    /(http:\/\/anidb.net[^\s]+)\s\[([^\]]+)\]/g,
+    ['<a href="$1" target="_blank" rel="noopener noreferrer"',
+    'class="external-link js-external-link">$2</a>'].join("")
+  )
 
   if (desc) {
     ret = ['<span class="description">', desc, '</span>'].join("")
