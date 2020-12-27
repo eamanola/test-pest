@@ -22,6 +22,7 @@ class StreamingRequestHandler(FileRequestHandler):
 
     def av(self, db, request):
         code, headers, file_path, redirect, cmd = 400, {}, None, None, None
+        input_cmd = None
         api_params, params = request["api_params"], request["optional_params"]
 
         media_id = api_params[1]
@@ -53,7 +54,7 @@ class StreamingRequestHandler(FileRequestHandler):
 
         disable_re = request["client"] in ("Web0S",)
 
-        stream, mime = api.av(
+        stream, mime, input_cmd = api.av(
             db, media_id, video_index, vcodec, audio_index, acodec,
             start_time, width, height, subtitle_index, disable_re
         )
@@ -80,7 +81,8 @@ class StreamingRequestHandler(FileRequestHandler):
             "headers": headers,
             "redirect": redirect,
             "file_path": file_path,
-            "cmd": cmd
+            "cmd": cmd,
+            "input_cmd": input_cmd
         }
 
     def subtitle(self, db, request):

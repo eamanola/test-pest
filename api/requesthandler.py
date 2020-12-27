@@ -126,7 +126,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
     def do_GET(self):
         response_code, response_headers = None, {}
         response_json, response_file_path, response_cmd = None, None, None
-        response_redirect = None
+        response_redirect, response_input_cmd = None, None
 
         try:
             db = get_db()
@@ -162,6 +162,8 @@ class RequestHandler(socketserver.StreamRequestHandler):
                 response_file_path = response["file_path"]
             if "cmd" in response.keys():
                 response_cmd = response["cmd"]
+            if "input_cmd" in response.keys():
+                response_input_cmd = response["input_cmd"]
             if "redirect" in response.keys():
                 response_redirect = response["redirect"]
 
@@ -264,7 +266,7 @@ class RequestHandler(socketserver.StreamRequestHandler):
             self.end_headers()
 
             if response_cmd:
-                self.send_cmd_output(response_cmd)
+                self.send_cmd_output(response_cmd, response_input_cmd)
 
             elif response_file_path:
                 self.send_chunks(
@@ -320,11 +322,22 @@ class RequestHandler(socketserver.StreamRequestHandler):
                     del chunk
                     del post
 
-    def send_cmd_output(self, cmd):
+    def send_cmd_output(self, cmd, input_cmd):
         try:
             import subprocess
             import time
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+
+            input_proc = None
+            if input_cmd:
+                # print(" ".join(input_cmd))
+                input_proc = subprocess.Popen(
+                    input_cmd, stdout=subprocess.PIPE
+                )
+                time.sleep(5)
+            stdin = None if input_proc is None else input_proc.stdout
+
+            # print(" ".join(cmd))
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stdin=stdin)
 
             CHUNK_SIZE = self.CMD_CHUNK_SIZE
             NEW_LINE = bytes("\r\n", "utf-8")
@@ -348,6 +361,8 @@ class RequestHandler(socketserver.StreamRequestHandler):
 
         finally:
             proc.kill()
+            if input_proc is not None:
+                input_proc.kill()
             print('Close', self.path)
 
     def handle(self):

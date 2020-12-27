@@ -7,7 +7,8 @@ import time
 from classes.ffmpeg import FFMpeg, FFProbe
 
 from CONFIG import (
-    CFFMPEG_STREAM, CFFMPEG_HOST, CFFMPEG_PORT, CFFMPEG_LEGLEVEL, CTMP_DIR
+    CFFMPEG_STREAM, CFFMPEG_HOST, CFFMPEG_PORT, CFFMPEG_LEGLEVEL, CTMP_DIR,
+    CENABLE_BITMAPSUBS
 )
 
 ALWAYS_TRANSCODE = False
@@ -154,46 +155,34 @@ def av(
         )
 
     if not os.path.exists(file_path):
-        return None, None
+        return None, None, None
 
     if video_index is None and audio_index is None:
-        return None, None
+        return None, None, None
 
-    if subtitle_index is not None and False:
-        # ffmpeg -y -i input.mkv -filter_complex '[v:0][0:s:0]overlay' -c:v libx264 -movflags +faststart -f 'matroska' -map 0:a -c:a copy pipe:1|vlc -
-        # ffmpeg -y -i input.mkv -filter_complex '[v:0][0:s:0]overlay' -f h264 pipe:1| ffmpeg -i input.mkv -i pipe:0 -map 0:a -map 1 -quality realtime -speed 10 -f webm pipe:1|vlc -
-        input = file_path
-        file_path = os.path.join(
-            CTMP_DIR,
-            media.id(),
-            "sub-included",
-            f"{subtitle_index}.mkv"
-        )
-        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    if subtitle_index is not None:
+        # ffmpeg -y -i input.mkv -filter_complex '[v:0][0:s:0]overlay' \
+        # -c:v libx264 -movflags +faststart -f 'matroska' -map 0:a \
+        # -c:a copy pipe:1|vlc -
+        # ffmpeg -y -i input.mkv -filter_complex '[v:0][0:s:0]overlay' \
+        # -f h264 pipe:1| ffmpeg -i input.mkv -i pipe:0 -map 0:a -map 1 \
+        # -quality realtime -speed 10 -f webm pipe:1|vlc -
 
-        prep_cmd = FFMpeg().y().log(stats=True).input(input) \
+        prep_cmd = FFMpeg().y().log(stats=True).input(file_path) \
             .filter_complex(f'[0:v:0][0:{subtitle_index}]overlay') \
-            .vcodec("h264")
+            .format("h264")
+
+        prep_cmd.cmd = prep_cmd.cmd + ["-threads", "2"]
+        prep_cmd.cmd = prep_cmd.cmd + ["-preset", "veryfast"]
+        prep_cmd.output("pipe:1")
 
         vcodec = "vp9"
-
         if audio_index:
-            prep_cmd.map(f'0:{audio_index}').acodec('copy')
-
-            audio_index = 1
             acodec = "opus"
 
-        prep_cmd.cmd.append("-threads")
-        prep_cmd.cmd.append("2")
-        prep_cmd.cmd.append("-preset")
-        prep_cmd.cmd.append("veryfast")
-        prep_cmd.format('matroska').output(file_path)
-
-        subprocess.Popen(prep_cmd.cmd)
-        time.sleep(5)
-
-        print(" ".join(prep_cmd.cmd))
-
+        input_cmd = prep_cmd.cmd
+    else:
+        input_cmd = None
     ###########################################################################
 
     cmd, mime = None, None
@@ -201,10 +190,15 @@ def av(
     if disable_re:
         use_re = False
     else:
-        use_re = vcodec is not None or acodec is not None
+        use_re = (
+            vcodec is not None
+            or acodec is not None
+        ) and input_cmd is None
 
     cmd = FFMpeg().y().log() \
         .input(file_path, re=use_re)
+    if input_cmd:
+        cmd.input("pipe:0")
 
     ###########################################################################
 
@@ -226,7 +220,10 @@ def av(
         else:
             print("AV: Unsupported video codec", vcodec)
 
-        cmd.map(f'0:v:{video_index}')
+        if input_cmd:
+            cmd.map("1")
+        else:
+            cmd.map(f'0:v:{video_index}')
 
     ###########################################################################
 
@@ -275,13 +272,14 @@ def av(
 
     if vcodec is None and acodec is None:
         if os.path.exists(dst_path):
-            return dst_path, mime
+            return dst_path, mime, None
 
     ###########################################################################
 
     success, cmd.cmd = test_cmd(cmd.cmd, media.id())
     if not success:
-        return None, None
+        print("test fail")
+        return None, None, None
 
     ###########################################################################
 
@@ -320,7 +318,7 @@ def av(
 
     print("AV:")  # , " ".join(cmd.cmd))
 
-    return ret, mime
+    return ret, mime, input_cmd
 
 
 def test_cmd(cmd, media_id):
@@ -538,9 +536,9 @@ def get_streams(media):
                 codec_name = stream["codec_name"]
                 is_bitmap = codec_name in ("dvd_subtitle", "hdmv_pgs_subtitle")
                 if is_bitmap:
-                    print('Discard bitmap sub')
-                    continue
-                    pass
+                    if not CENABLE_BITMAPSUBS:
+                        print('Discard bitmap sub')
+                        continue
 
                 lang = None
                 title = None

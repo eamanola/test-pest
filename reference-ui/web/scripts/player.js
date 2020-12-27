@@ -463,7 +463,7 @@ Player.prototype = {
       }
       label = title
         + (subtitle.forced ? " (forced)" : "")
-        + (subtitle.requires_transcode ? " (T)" : "")
+        + (subtitle.requires_transcode ? " (T!!)" : "")
 
       subtitle_option = document.createElement("option")
       subtitle_option.innerHTML = label

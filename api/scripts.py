@@ -362,18 +362,18 @@ def av(
     db, media_id, video_index, vcodec, audio_index, acodec,
     start_time, width, height, subtitle_index, disable_re=False
 ):
-    stream, mime = None, None
+    stream, mime, input_cmd = None, None, None
     media = db.get_media(media_id)
 
     if media:
         import classes.streaming as streaming
 
-        stream, mime = streaming.av(
+        stream, mime, input_cmd = streaming.av(
             media, video_index, vcodec, audio_index, acodec,
             start_time, width, height, subtitle_index, disable_re
         )
 
-    return stream, mime
+    return stream, mime, input_cmd
 
 
 def get_subtitle(db, media_id, type, stream_index, format, start_time):

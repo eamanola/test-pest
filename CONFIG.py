@@ -25,4 +25,6 @@ CFFMPEG_LEGLEVEL = "error"
 CFFMPEG_HOST = CHOSTNAME
 CFFMPEG_PORT = 8099
 
+CENABLE_BITMAPSUBS = True
+
 CTMP_DIR = os.path.join(tempfile.gettempdir(), "test-pest")
