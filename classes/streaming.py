@@ -159,7 +159,9 @@ def av(
     if video_index is None and audio_index is None:
         return None, None
 
-    if subtitle_index:
+    if subtitle_index is not None and False:
+        # ffmpeg -y -i input.mkv -filter_complex '[v:0][0:s:0]overlay' -c:v libx264 -movflags +faststart -f 'matroska' -map 0:a -c:a copy pipe:1|vlc -
+        # ffmpeg -y -i input.mkv -filter_complex '[v:0][0:s:0]overlay' -f h264 pipe:1| ffmpeg -i input.mkv -i pipe:0 -map 0:a -map 1 -quality realtime -speed 10 -f webm pipe:1|vlc -
         input = file_path
         file_path = os.path.join(
             CTMP_DIR,
@@ -378,6 +380,8 @@ def test_cmd(cmd, media_id):
 def trim(media, start_time):
     start_time = round(start_time, 3)
 
+    ###########################################################################
+
     dst_path = os.path.join(
         CTMP_DIR, media.id(), 'trimmed', str(start_time)
     )
@@ -385,6 +389,8 @@ def trim(media, start_time):
         return dst_path
 
     os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+
+    ###########################################################################
 
     previous_trims = os.listdir(os.path.dirname(dst_path))
 
@@ -404,6 +410,8 @@ def trim(media, start_time):
         file_path = os.path.join(os.path.dirname(dst_path), str(usable_trim))
         start_time = start_time - usable_trim
 
+    ###########################################################################
+
     cmd = FFMpeg().y().log(stats=True).input(file_path, ss=start_time)
 
     if usable_trim is None:
@@ -420,6 +428,8 @@ def trim(media, start_time):
 
     cmd.acodec('copy').vcodec('copy').scodec('copy').copyts() \
         .format('matroska').output(dst_path)
+
+    ###########################################################################
 
     print('Trim:', ' '.join(cmd.cmd))
 
